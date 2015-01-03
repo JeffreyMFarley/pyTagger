@@ -169,11 +169,6 @@ class Mp3Snapshot:
         with codecs.open(fileName, 'w', encoding='utf-8') as f:
             return json.dump(object, f, indent=2)
 
-# debugging
-#sys.argv = [sys.argv[0], '-b', '-l', r'C:\dvp\MP3Tools\SampleData', r'C:\Users\Jeff\Documents\East Wind\snapshot.json']
-#sys.argv = [sys.argv[0], '--help']
-sys.argv = [sys.argv[0], r'J:\Jeff Music\Music\Justin Timberlake\The 20_20 Experience', r'J:\mp3s.json']
-
 #-------------------------------------------------------------------------------
 # Main
 #-------------------------------------------------------------------------------
