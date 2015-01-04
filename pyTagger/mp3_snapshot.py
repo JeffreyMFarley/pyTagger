@@ -8,6 +8,11 @@ if sys.version < '3':
     import eyed3
     from eyed3 import main, mp3, id3, core
     import codecs
+    _input = lambda fileName: codecs.open(fileName, 'r', encoding='utf-8')
+    _output = lambda fileName: codecs.open(fileName, 'w', encoding='utf-8')
+else:
+    _input = lambda fileName: open(fileName, 'r', encoding='utf-8')
+    _output = lambda fileName: open(fileName, 'w', encoding='utf-8')
 import argparse
 import binascii
 import hashlib
@@ -101,7 +106,7 @@ class Mp3Snapshot:
         formatter = Formatter(fieldSet)
 
         try:
-            fout = codecs.open(outFileName, 'w', encoding='utf-8')
+            fout = _output(outFileName)
             fout.writelines('{')
             sep = ''
 
@@ -162,16 +167,18 @@ class Mp3Snapshot:
     #-------------------------------------------------------------------------------
 
     def load(self, fileName):
-        with codecs.open(fileName, 'r', encoding='utf-8') as f:
+        with _input(fileName) as f:
             return json.load(f)
 
     def save(self, fileName, object):
-        with codecs.open(fileName, 'w', encoding='utf-8') as f:
+        with _output(fileName) as f:
             return json.dump(object, f, indent=2)
 
 #-------------------------------------------------------------------------------
 # Main
 #-------------------------------------------------------------------------------
+
+#sys.argv = [sys.argv[0], r'C:\dvp\MP3Tools\SampleData', r'C:\Users\Jeff\Documents\East Wind\snapshot.json']
 
 def buildArgParser():
     p = argparse.ArgumentParser(description='Scan directories and build a snapshot of the MP3s')
