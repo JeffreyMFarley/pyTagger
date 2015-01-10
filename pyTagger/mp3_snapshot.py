@@ -63,9 +63,9 @@ class Formatter():
 
     basic = ['title', 'track', 'totalTrack', 'artist', 'albumArtist', 'album', 'length']
     songwriting = ['bpm', 'composer', 'key', 'lyrics', 'language']
-    production = ['year', 'releaseDate', 'originalReleaseDate', 'recordingDate', 'conductor', 'remixer']
+    production = ['year', 'releaseDate', 'originalReleaseDate', 'recordingDate', 'conductor', 'remixer', 'publisher']
     distribution = ['media', 'disc', 'totalDisc']
-    library = ['genre', 'id', 'ufid', 'compilation', 'comments', 'playCount', 'group', 'subtitle', 'taggingDate']
+    library = ['genre', 'id', 'ufid', 'compilation', 'comments', 'playCount', 'group', 'subtitle', 'encodingDate', 'taggingDate']
     mp3Info = ['bitRate', 'vbr', 'fileHash']
 
     def __init__(self, fieldSet=columns):
@@ -178,7 +178,7 @@ class Mp3Snapshot:
 # Main
 #-------------------------------------------------------------------------------
 
-#sys.argv = [sys.argv[0], r'C:\dvp\MP3Tools\SampleData', r'C:\Users\Jeff\Documents\East Wind\snapshot.json']
+#sys.argv = [sys.argv[0], r'C:\dvp\MP3Tools\SampleData', r'C:\Users\Jeff\Documents\East Wind\snapshot.json', '--all']
 
 def buildArgParser():
     p = argparse.ArgumentParser(description='Scan directories and build a snapshot of the MP3s')
