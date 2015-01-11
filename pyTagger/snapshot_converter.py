@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 import csv
+import json
 import os
 import sys
 import argparse
@@ -12,7 +13,11 @@ if sys.version < '3':
 else:
     _input = lambda fileName: open(fileName, 'r', encoding='utf-8')
     _output = lambda fileName: open(fileName, 'w', encoding='utf-8')
-from mp3_snapshot import *
+
+if __package__ is None:
+    from mp3_snapshot import Formatter
+else:
+    from .mp3_snapshot import Formatter
 
 #-------------------------------------------------------------------------------
 # Classes
@@ -26,7 +31,7 @@ class SnapshotConverter:
         with _input(inFileName) as f:
             snapshot = json.load(f)
 
-        # build the columns if they are not supplied
+        # build the columns if they are not supplied 
         if not fieldSet:
             fieldSet = self.extractColumns(snapshot)
         fieldSet.append('fullPath')
@@ -37,7 +42,13 @@ class SnapshotConverter:
             for k,v in snapshot.items():
                 row = v
                 row['fullPath'] = k
-                writer.writerow(row)
+                try:        
+                    writer.writerow(row)
+                except UnicodeError:
+                    for field in fieldSet:
+                        if isinstance(row[field], basestring):
+                            row[field] = row[field].encode('ascii', 'replace')
+                    writer.writerow(row)
 
     def extractColumns(self, data):
         header = set()
@@ -79,8 +90,8 @@ def orderedAllColumns():
 # Main
 #-------------------------------------------------------------------------------
 
-#sys.argv = [sys.argv[0], r'C:\dvp\Mp3Reduce\data\mp3s_enh.json', 
-#                         r'C:\Users\Jeff\Documents\East Wind\snapshot.txt']
+sys.argv = [sys.argv[0], r'C:\dvp\Mp3Reduce\data\mp3s_enh.json', 
+                         r'C:\Users\Jeff\Documents\East Wind\snapshot.txt']
 
 def buildArgParser():
     p = argparse.ArgumentParser(description='Convert MP3 snapshot to a row and column format')

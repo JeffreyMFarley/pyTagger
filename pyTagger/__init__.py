@@ -1,4 +1,6 @@
-from .iTunes import *
-from .mp3_snapshot import Mp3Snapshot as Snapshot
-from .snapshot_converter import SnapshotConverter
-from .path_segmentation import *
+import sys
+
+__all__ = ['mp3_snapshot', 'snapshot_converter', 'path_segmentation']
+
+if sys.version > '3':
+    __all__.append('iTunes')

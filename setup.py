@@ -8,4 +8,5 @@ setup(name='pyTagger',
       author_email='JeffreyMFarley@users.noreply.github.com',
       license='MIT',
       packages=['pyTagger'],
+      test_suite='tests',
       zip_safe=False)
