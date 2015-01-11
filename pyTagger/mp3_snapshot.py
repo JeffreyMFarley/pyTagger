@@ -178,7 +178,7 @@ class Mp3Snapshot:
 # Main
 #-------------------------------------------------------------------------------
 
-sys.argv = [sys.argv[0], r'C:\dvp\MP3Tools\SampleData', r'C:\Users\Jeff\Documents\East Wind\snapshot.json', '--all']
+#sys.argv = [sys.argv[0], r'C:\dvp\MP3Tools\SampleData', r'C:\Users\Jeff\Documents\East Wind\snapshot.json', '--all']
 
 def buildArgParser():
     p = argparse.ArgumentParser(description='Scan directories and build a snapshot of the MP3s')
