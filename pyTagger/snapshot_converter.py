@@ -58,7 +58,7 @@ class SnapshotConverter:
                     header.add(j)
 
         # Build the ordered set with the extra columns at the end
-        known = self._orderedAllColumns()
+        known = Formatter.orderedAllColumns()
         unknown = header - set(known)
 
         columns = [c for c in known if c in header]
@@ -67,27 +67,12 @@ class SnapshotConverter:
 
         return columns
 
-    @staticmethod
-    def _orderedAllColumns():
-        # preserve order
-        columns = (Formatter.basic +
-                   Formatter.songwriting +
-                   Formatter.production +
-                   Formatter.distribution +
-                   Formatter.library +
-                   Formatter.mp3Info)
-
-        # for testing that all fields are grouped
-        missing = set(Formatter.columns) - set(columns)
-        assert(not missing)
-        return columns
-
 # -----------------------------------------------------------------------------
 # Main
 # -----------------------------------------------------------------------------
 
 # sys.argv = [sys.argv[0], r'C:\dvp\Mp3Reduce\data\mp3s_enh.json',
-#                         r'C:\Users\Jeff\Documents\East Wind\snapshot.txt']
+#                         r'C:\Users\Jeff\Documents\East Wind\snapshot.txt', '-b']
 
 
 def buildArgParser():
@@ -134,7 +119,7 @@ if __name__ == '__main__':
     if args.mp3Info:
         columns = columns + Formatter.mp3Info
     if args.all:
-        columns = SnapshotConverter._orderedAllColumns()
+        columns = Formatter.orderedAllColumns()
 
     pipeline = SnapshotConverter()
     pipeline.convert(args.infile, args.outfile, columns, args.csv)

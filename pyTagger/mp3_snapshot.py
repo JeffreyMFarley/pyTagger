@@ -113,9 +113,25 @@ class Formatter():
         return date.year if date else ''
 
 
+    @classmethod
+    def orderedAllColumns(cls):
+        # preserve order
+        columns = (Formatter.basic +
+                   Formatter.songwriting +
+                   Formatter.production +
+                   Formatter.distribution +
+                   Formatter.library +
+                   Formatter.mp3Info)
+
+        # for testing that all fields are grouped
+        missing = set(Formatter.columns) - set(columns)
+        assert(not missing)
+        return columns
+
 class Mp3Snapshot:
-    def __init__(self):
+    def __init__(self, compact=True):
         self.currentPath = ''
+        self.compact = compact
 
     def createFromScan(self, scanPath, outFileName,
                        fieldSet=Formatter.columns):
@@ -153,7 +169,7 @@ class Mp3Snapshot:
                                              self.currentPath.replace('\\',
                                                                       '\\\\'),
                                              '":'])
-                            json.dump(a, fout, indent=2)
+                            json.dump(a, fout, indent=None if self.compact else 2)
                             sep = ','
 
         finally:
@@ -196,7 +212,7 @@ class Mp3Snapshot:
 
     def save(self, fileName, object):
         with _output(fileName) as f:
-            return json.dump(object, f, indent=2)
+            return json.dump(object, f, indent=None if self.compact else 2)
 
 # -----------------------------------------------------------------------------
 # Main
@@ -204,8 +220,7 @@ class Mp3Snapshot:
 
 # sys.argv = [sys.argv[0],
 #            r'C:\dvp\MP3Tools\SampleData',
-#            r'C:\Users\Jeff\Documents\East Wind\snapshot.json',
-#            '--all']
+#            r'C:\Users\Jeff\Documents\East Wind\snapshot.json']
 
 
 def buildArgParser():
@@ -231,6 +246,8 @@ def buildArgParser():
                    help=' '.join(Formatter.mp3Info))
     p.add_argument('-a', '--all', action='store_true', dest='all',
                    help='include all supported fields')
+    p.add_argument('--compact', action='store_true', dest='compact',
+                   help='output the JSON in a compact format')
 
     return p
 
@@ -257,5 +274,5 @@ if __name__ == '__main__':
     if not columns:
         columns = Formatter.basic
 
-    pipeline = Mp3Snapshot()
+    pipeline = Mp3Snapshot(args.compact)
     pipeline.createFromScan(args.path, args.outfile, list(set(columns)))
