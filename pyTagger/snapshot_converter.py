@@ -71,9 +71,6 @@ class SnapshotConverter:
 # Main
 # -----------------------------------------------------------------------------
 
-# sys.argv = [sys.argv[0], r'C:\dvp\Mp3Reduce\data\mp3s_enh.json',
-#                         r'C:\Users\Jeff\Documents\East Wind\snapshot.txt', '-b']
-
 
 def buildArgParser():
     description = 'Convert MP3 snapshot to a row and column format'

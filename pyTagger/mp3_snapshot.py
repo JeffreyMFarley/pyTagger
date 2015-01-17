@@ -123,9 +123,6 @@ class Formatter():
                    Formatter.library +
                    Formatter.mp3Info)
 
-        # for testing that all fields are grouped
-        missing = set(Formatter.columns) - set(columns)
-        assert(not missing)
         return columns
 
 class Mp3Snapshot:
@@ -217,10 +214,6 @@ class Mp3Snapshot:
 # -----------------------------------------------------------------------------
 # Main
 # -----------------------------------------------------------------------------
-
-# sys.argv = [sys.argv[0],
-#            r'C:\dvp\MP3Tools\SampleData',
-#            r'C:\Users\Jeff\Documents\East Wind\snapshot.json']
 
 
 def buildArgParser():
