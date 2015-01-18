@@ -1,18 +1,18 @@
 # -*- coding: utf-8 -*
 
 from __future__ import print_function
-import csv
 import json
 import os
 import sys
 import argparse
+import unicodedata
 if sys.version < '3':
     import codecs
     _input = lambda fileName: codecs.open(fileName, 'r', encoding='utf-8')
-    _output = lambda fileName: codecs.open(fileName, 'w', encoding='utf-8')
+    _output = lambda fileName: codecs.open(fileName, 'w', encoding='utf_16_le')
 else:
     _input = lambda fileName: open(fileName, 'r', encoding='utf-8')
-    _output = lambda fileName: open(fileName, 'w', encoding='utf-8')
+    _output = lambda fileName: open(fileName, 'w', encoding='utf_16_le')
 from pyTagger.mp3_snapshot import Formatter
 
 # -----------------------------------------------------------------------------
@@ -33,21 +33,26 @@ class SnapshotConverter:
             fieldSet = self._extractColumns(snapshot)
         fieldSet.append('fullPath')
 
+        # not using csv.DictWriter since the Python 2.x version has a hard time 
+        # supporting unicode
         with _output(outFileName) as f:
-            dialect = csv.excel if useCsv else csv.excel_tab
-            writer = csv.DictWriter(f, fieldSet, dialect=dialect,
-                                    extrasaction='ignore')
-            writer.writeheader()
+            sep = ',' if useCsv else '\t'
+
+            # write BOM
+            f.write(u'\ufeff')
+
+            # write the header row
+            a = sep.join([self._encapsulate(col) for col in fieldSet])
+            f.writelines([a, os.linesep])
+
+            # write the rows                
             for k, v in snapshot.items():
                 row = v
                 row['fullPath'] = k
-                try:
-                    writer.writerow(row)
-                except UnicodeError:
-                    for field in fieldSet:
-                        if isinstance(row[field], basestring):
-                            row[field] = row[field].encode('ascii', 'replace')
-                    writer.writerow(row)
+                a = sep.join([self._encapsulate(row[col])
+                              if col in row else ''
+                              for col in fieldSet])
+                f.writelines([a, os.linesep])                
 
     def _extractColumns(self, data):
         header = set()
@@ -67,6 +72,31 @@ class SnapshotConverter:
 
         return columns
 
+    def _is_sequence(self, arg):
+        return isinstance(arg, (list, set, dict))
+
+    def _encapsulate(self, field):
+        try:
+            if self._is_sequence(field):
+                return  '"' + self._seqrepr(field) + '"'
+            if not field:
+                return ''
+            needDoubleQuotes = [',', '"', '\r', '\n']
+            addDoubleQuotes = any([x in field for x in needDoubleQuotes])
+            if addDoubleQuotes:
+                return '"' + field.replace('"', '""') + '"' 
+            return field
+        except (TypeError, AttributeError):
+            return str(field)
+
+    def _seqrepr(self, iter):
+        if isinstance(iter, (list, set)):
+            return '\n'.join(self._seqrepr(x) for x in iter)
+        if isinstance(iter, dict):
+            return ', '.join([' : '.join([self._seqrepr(k), 
+                                          self._seqrepr(v)])
+                                         for k,v in iter.items()])
+        return iter
 # -----------------------------------------------------------------------------
 # Main
 # -----------------------------------------------------------------------------

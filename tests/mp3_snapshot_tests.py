@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*
+
 import unittest
 import os
 import sys
@@ -6,13 +8,24 @@ import pyTagger
 class TestMp3Snapshot(unittest.TestCase):
 
     def setUp(self):
-        self.sourceDirectory = r'..\SampleData'
-        self.resultDirectory = r'..\TestOutput'
+        assert sys.version < '3', 'This test must be run in Python 2.x'
+
+        self.sourceDirectory = r'C:\dvp\MP3Tools\SampleData'
+        self.resultDirectory = r'C:\dvp\MP3Tools\TestOutput'
         if not os.path.exists(self.resultDirectory):
             os.makedirs(self.resultDirectory)
 
     def tearDown(self):
         pass
+
+    def buildFormula(self):
+        greek_lower_d = u'\u03b4'
+        dot_multiply = u'\u00b7'
+        greater_than_or_equal = u'\u2265'
+        divide = u'\u2044'
+        pi = u'\u03c0'
+        title = u''.join([greek_lower_d, 'p', dot_multiply, greek_lower_d, 'q', greater_than_or_equal, 'h', divide, '4', pi])
+        return title
 
     def test_allFieldsGrouped(self):
         target = pyTagger.mp3_snapshot.Formatter()
@@ -22,24 +35,85 @@ class TestMp3Snapshot(unittest.TestCase):
         missing = set(target.columns) - set(columns)
         assert not missing
 
-    def test_01_scan(self):
-        assert sys.version < '3', 'This test must be run in Python 2.x'
+    def test_normalizeToAsciiEasy(self):
+        target = pyTagger.mp3_snapshot.Formatter()
+        title = u'Bj\xf6rk';
 
-        target = pyTagger.Mp3Snapshot(False)
-        columns = pyTagger.mp3_snapshot.Formatter.columns
-        outFile = os.path.join(self.resultDirectory, r'snapshot.json')
+        result = target.normalizeToAscii(title)
+        
+        assert result == 'Bjork', result
 
-        target.createFromScan(self.sourceDirectory, outFile, columns)
-        assert os.path.getsize(outFile) > 0
+    def test_normalizeToAsciiHard(self):
+        target = pyTagger.mp3_snapshot.Formatter()
+        title = self.buildFormula();
 
-    def test_02_convert(self):
-        target = pyTagger.SnapshotConverter()
-        inFile = os.path.join(self.resultDirectory, r'snapshot.json')
-        outFile = os.path.join(self.resultDirectory, r'snapshot.txt')
+        result = target.normalizeToAscii(title)
+        
+        assert result == '?p??q?h?4?', result
 
-        target.convert(inFile, outFile)
-        assert os.path.getsize(outFile) > 0
+    def test_extract_basic(self):
+        target = pyTagger.Mp3Snapshot()
+        formatter = pyTagger.mp3_snapshot.Formatter(pyTagger.mp3_snapshot.Formatter.basic)
+        file = os.path.join(self.sourceDirectory, r'The King Of Limbs\05 LotusFlower.MP3')
+
+        row = target.extractTags(file, formatter)
+        
+        assert row
+        assert row['title'] == 'Lotus Flower'
+        assert 'fileHash' not in row
+
+    def test_extract_full(self):
+        target = pyTagger.Mp3Snapshot()
+        formatter = pyTagger.mp3_snapshot.Formatter()
+        file = os.path.join(self.sourceDirectory, r'The King Of Limbs\05 LotusFlower.MP3')
+
+        row = target.extractTags(file, formatter)
+        
+        assert row
+        assert row['title'] == 'Lotus Flower'
+        assert 'fileHash' in row
+        assert row['fileHash']
+
+    def test_extract_badfile(self):
+        target = pyTagger.Mp3Snapshot()
+        formatter = pyTagger.mp3_snapshot.Formatter(pyTagger.mp3_snapshot.Formatter.basic)
+        file = os.path.join(self.sourceDirectory, 'kafafasfaafaf.mp3')
+
+        row = target.extractTags(file, formatter)
+        
+        assert not row
+
+    def test_extract_utf8(self):
+        target = pyTagger.Mp3Snapshot()
+        formatter = pyTagger.mp3_snapshot.Formatter(pyTagger.mp3_snapshot.Formatter.basic)
+        file = os.path.join(self.sourceDirectory, '08 - Aeroplane.mp3')
+
+        row = target.extractTags(file, formatter)
+        
+        assert row
+        assert row['artist'] == u'Bj\xf6rk'
+
+    def test_extract_non_ascii_filename(self):
+        target = pyTagger.Mp3Snapshot()
+        formatter = pyTagger.mp3_snapshot.Formatter(pyTagger.mp3_snapshot.Formatter.basic)
+        title = self.buildFormula();
+        file = os.path.join(self.sourceDirectory, u'10 '+title+u'.MP3')
+
+        row = target.extractTags(file, formatter)
+        
+        assert row
+        assert row['title'] == title
+        assert row['artist'] == u'T\xe9l\xe9popmusik'
+
+    def test_calculate_hash(self):
+        target = pyTagger.Mp3Snapshot()
+        file = os.path.join(self.sourceDirectory, '10 World\'s Famous.mp3')
+        track = target._loadID3(file)
+
+        hash = target._calculateHash(track, file)
+
+        assert hash == 'Bf4eOMgTeKkeNxKH345RQHF2GLU=', 'actual:' + hash
 
 if __name__ == '__main__':
 
-    unittest.main(failfast=True, exit=False)
+    unittest.main()

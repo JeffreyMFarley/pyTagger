@@ -11,6 +11,7 @@ if sys.version < '3':
     import eyed3
     from eyed3 import main, mp3, id3, core
     import codecs
+    import unicodedata
     _input = lambda fileName: codecs.open(fileName, 'r', encoding='utf-8')
     _output = lambda fileName: codecs.open(fileName, 'w', encoding='utf-8')
 else:
@@ -23,7 +24,7 @@ else:
 
 
 class Formatter():
-    projectionEyed3 = {
+    _projectionEyed3 = {
         'album': lambda x: x.tag.album,
         'albumArtist': lambda x: x.tag.album_artist,
         'artist': lambda x: x.tag.artist,
@@ -68,7 +69,7 @@ class Formatter():
         'vbr': lambda x: x.info.bit_rate[0] if x.info is not None else None,
         'year': lambda x: Formatter.extractDate(x.tag.getBestDate()),
     }
-    columns = list(projectionEyed3.keys())
+    columns = list(_projectionEyed3.keys())
 
     basic = ['title', 'track', 'totalTrack', 'artist',
              'albumArtist', 'album', 'length']
@@ -82,15 +83,31 @@ class Formatter():
 
     def __init__(self, fieldSet=columns):
         self.fieldSet = fieldSet
+        self.translateTable = []
 
     def format(self, obj):
         if isinstance(obj, mp3.Mp3AudioFile) and obj.tag:
             # Python 2.6 does not like dictionary comprehensions
             row = {}
             for k in self.fieldSet:
-                row[k] = self.projectionEyed3[k](obj)
+                row[k] = self._projectionEyed3[k](obj)
             return row
         return {}
+
+    def normalizeToAscii(self, text):
+        if not self.translateTable:
+            self.translateTable = self.buildTranslateTable()
+        b = unicodedata.normalize('NFKD', text)
+        return b.translate(self.translateTable).encode('ascii', 'replace')
+
+    @classmethod
+    def buildTranslateTable(cls):
+        if sys.version >= '3':
+            return dict.fromkeys(c for c in range(sys.maxunicode)
+                                 if unicodedata.combining(chr(c)))
+        else:
+            return dict.fromkeys(c for c in range(sys.maxunicode)
+                                 if unicodedata.combining(unichr(c)))
 
     @classmethod
     def extractTaggerId(cls, track):
@@ -112,7 +129,6 @@ class Formatter():
     def extractDate(cls, date):
         return date.year if date else ''
 
-
     @classmethod
     def orderedAllColumns(cls):
         # preserve order
@@ -127,7 +143,6 @@ class Formatter():
 
 class Mp3Snapshot:
     def __init__(self, compact=True):
-        self.currentPath = ''
         self.compact = compact
 
     def createFromScan(self, scanPath, outFileName,
@@ -138,64 +153,66 @@ class Mp3Snapshot:
             fout = _output(outFileName)
             fout.writelines('{')
             sep = ''
-            osCoding = sys.getfilesystemencoding()
 
-            for currentDir, subdirs, files in os.walk(scanPath):
+            # make sure the scan path is unicode and the results will be returned in unicode
+            for currentDir, subdirs, files in os.walk(unicode(scanPath)):
                 # Get the absolute path of the currentDir parameter
                 currentDir = os.path.abspath(currentDir)
 
                 # Traverse through all files
                 for fileName in files:
-                    self.currentPath = os.path.join(currentDir, fileName)
-                    self.currentPath = self.currentPath.decode(osCoding)
+                    fullPath = os.path.join(currentDir, fileName)
 
                     # Check if the file has an extension of typical music files
-                    if self.currentPath[-3:].lower() in ['mp3']:
-                        try:
-                            print("Processing", self.currentPath)
-                        except UnicodeEncodeError:
-                            print("Processing",
-                                  self.currentPath.encode('ascii',
-                                                          errors='replace'))
-
-                        if self.loadID3():
-                            a = formatter.format(self.track)
-                            if 'fileHash' in fieldSet:
-                                a['fileHash'] = self.calculateHash()
+                    if fullPath[-3:].lower() in ['mp3']:
+                        print("Processing", formatter.normalizeToAscii(fullPath))
+                        row = self.extractTags(fullPath, formatter)
+                        if row:
                             fout.writelines([sep, '"',
-                                             self.currentPath.replace('\\',
-                                                                      '\\\\'),
+                                             fullPath.replace('\\', '\\\\'),
                                              '":'])
-                            json.dump(a, fout, indent=None if self.compact else 2)
+                            json.dump(row, fout,
+                                      indent=None if self.compact else 2)
                             sep = ','
 
         finally:
             fout.writelines('}')
             fout.close()
 
-    def loadID3(self):
-        try:
-            self.track = eyed3.load(self.currentPath)
-            return True
-        except (IOError, ValueError):
-            print('Error with ID3 Load', self.currentPath, file=sys.stderr)
-            return False
+    def extractTags(self, mp3FileName, formatter):
+        track = self._loadID3(mp3FileName)
+        if not track:
+            return None
+        a = self._extractTags(track, formatter)
+        if 'fileHash' in formatter.fieldSet:
+            a['fileHash'] = self._calculateHash(track, mp3FileName)
+        return a
+           
+    def _extractTags(self, track, formatter):
+        return formatter.format(track)
 
-    def calculateHash(self):
+    def _loadID3(self, mp3FileName):
+        try:
+            return eyed3.load(mp3FileName)
+        except (IOError, ValueError):
+            print('Error with ID3 Load', mp3FileName, file=sys.stderr)
+            return None
+
+    def _calculateHash(self, track, mp3FileName):
         chunk_size = 1024
-        offset = (self.track.tag.header.tag_size
-                  if self.track.tag and self.track.tag.header
+        offset = (track.tag.header.tag_size
+                  if track.tag and track.tag.header
                   else 0)
         shaAccum = hashlib.sha1()
         try:
-            with open(self.currentPath, "rb") as f:
+            with open(mp3FileName, "rb") as f:
                 f.seek(offset)
                 byte = f.read(chunk_size)
                 while byte:
                     shaAccum.update(byte)
                     byte = f.read(chunk_size)
         except IOError:
-            print('Cannot Hash', self.currentPath, file=sys.stderr)
+            print('Cannot Hash', mp3FileName, file=sys.stderr)
             return ''
         return binascii.b2a_base64(shaAccum.digest()).strip()
 
