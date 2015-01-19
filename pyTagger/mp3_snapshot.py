@@ -7,6 +7,7 @@ import sys
 import argparse
 import binascii
 import hashlib
+import logging
 if sys.version < '3':
     import eyed3
     from eyed3 import main, mp3, id3, core
@@ -67,6 +68,7 @@ class Formatter():
         'track': lambda x: x.tag.track_num[0],
         'ufid': lambda x: Formatter.extractFileIds(x),
         'vbr': lambda x: x.info.bit_rate[0] if x.info is not None else None,
+        'version' : lambda x: '.'.join([str(y) for y in x.tag.version]),
         'year': lambda x: Formatter.extractDate(x.tag.getBestDate()),
     }
     columns = list(_projectionEyed3.keys())
@@ -79,7 +81,7 @@ class Formatter():
     distribution = ['media', 'disc', 'totalDisc']
     library = ['genre', 'id', 'ufid', 'compilation', 'comments', 'playCount',
                'group', 'subtitle', 'encodingDate', 'taggingDate']
-    mp3Info = ['bitRate', 'vbr', 'fileHash']
+    mp3Info = ['bitRate', 'vbr', 'fileHash', 'version']
 
     def __init__(self, fieldSet=columns):
         self.fieldSet = fieldSet
@@ -127,7 +129,7 @@ class Formatter():
 
     @classmethod
     def extractDate(cls, date):
-        return date.year if date else ''
+        return str(date) if date else ''
 
     @classmethod
     def orderedAllColumns(cls):
@@ -146,8 +148,12 @@ class Mp3Snapshot:
         self.compact = compact
 
     def createFromScan(self, scanPath, outFileName,
-                       fieldSet=Formatter.columns):
+                       fieldSet=Formatter.columns, supressWarnings=True):
         formatter = Formatter(fieldSet)
+
+        if supressWarnings:
+            log = logging.getLogger('eyed3')
+            log.setLevel(logging.ERROR)
 
         try:
             fout = _output(outFileName)
