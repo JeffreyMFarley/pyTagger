@@ -62,7 +62,47 @@ class TestMp3Snapshot(unittest.TestCase):
         assert row['title'] == 'Lotus Flower'
         assert 'fileHash' not in row
 
-    def test_extract_full(self):
+    def test_extract_full_v10(self):
+        target = pyTagger.Mp3Snapshot()
+        formatter = pyTagger.mp3_snapshot.Formatter()
+        file = os.path.join(self.sourceDirectory, r'Test Files\ID3V1.MP3')
+
+        row = target.extractTags(file, formatter)
+        
+        assert row
+        assert row['version'] == '1.0.0', row['version']
+        assert row['title'] == 'West End Girls', row['title']
+        assert row['artist'] == 'Petshop Boys', row['artist']
+
+    def test_extract_full_v22(self):
+        target = pyTagger.Mp3Snapshot()
+        formatter = pyTagger.mp3_snapshot.Formatter()
+        file = os.path.join(self.sourceDirectory, r'Test Files\iTunes 9 256 kbps.MP3')
+
+        row = target.extractTags(file, formatter)
+        
+        assert row
+        assert row['version'] == '2.2.0', row['version']
+        assert row['track'] == 1, row['track']
+        assert row['title'] == 'Granddad\'s Opening Address', row['title']
+        assert row['artist'] == 'Geggy Tah', row['artist']
+        assert row['year'] == '1996', row['year']
+
+    def test_extract_full_v23(self):
+        target = pyTagger.Mp3Snapshot()
+        formatter = pyTagger.mp3_snapshot.Formatter()
+        file = os.path.join(self.sourceDirectory, r'01 - Bust A Move.MP3')
+
+        row = target.extractTags(file, formatter)
+        
+        assert row
+        assert row['version'] == '2.3.0', row['version']
+        assert row['track'] == 1, row['track']
+        assert row['title'] == 'Bust A Move', row['title']
+        assert row['artist'] == 'Young MC', row['artist']
+        assert row['year'] == '1989', row['year']
+
+    def test_extract_full_v24(self):
         target = pyTagger.Mp3Snapshot()
         formatter = pyTagger.mp3_snapshot.Formatter()
         file = os.path.join(self.sourceDirectory, r'The King Of Limbs\05 LotusFlower.MP3')
@@ -70,7 +110,11 @@ class TestMp3Snapshot(unittest.TestCase):
         row = target.extractTags(file, formatter)
         
         assert row
-        assert row['title'] == 'Lotus Flower'
+        assert row['version'] == '2.4.0', row['version']
+        assert row['track'] == 5, row['track']
+        assert row['title'] == 'Lotus Flower', row['title']
+        assert row['artist'] == 'Radiohead', row['artist']
+        assert row['year'] == '2011', row['year']
         assert 'fileHash' in row
         assert row['fileHash']
 

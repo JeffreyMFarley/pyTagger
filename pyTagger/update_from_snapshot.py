@@ -32,7 +32,7 @@ class UpdateFromSnapshot:
         'originalReleaseDate': 'original_release_date',
         'recordingDate': 'recording_date',
         'releaseDate': 'release_date',
-        'taggingDate': 'tagging_date',
+        'taggingDate': 'tagging_date'
     }
 
     _useSetAttrString = {
@@ -53,8 +53,7 @@ class UpdateFromSnapshot:
         'language': 'TLAN',
         'media': 'TMED',
         'remixer': 'TPE4',
-        'subtitle': 'TIT3',
-        'year': 'TYER'
+        'subtitle': 'TIT3'
         }
 
     def __init__(self):
@@ -75,8 +74,11 @@ class UpdateFromSnapshot:
             print('Error with ID3 Load', fileName, file=sys.stderr)
             return None
 
-    def _saveID3(self, track):
-        track.tag.save()
+    def _saveID3(self, track, version=None):
+        if not version:
+            track.tag.save()
+        else:
+            track.tag.save(version=version)
         
     def _writeSimple(self, track, tags):
         for k,v in tags.items():
@@ -93,6 +95,11 @@ class UpdateFromSnapshot:
                 setattr(track.tag, self._useSetAttrDate[k], date)
             elif k in self._useSetTextFrame:
                 track.tag.setTextFrame(self._useSetTextFrame[k], text),
+            elif k == 'year':
+                for dateAttr in self._useSetAttrDate.values():
+                    setattr(track.tag, dateAttr, None)
+                date = eyed3.core.Date.parse(v) if v else None
+                track.tag.recording_date = date
             elif k == 'disc':
                 track.tag.disc_num = (v, track.tag.disc_num[1])
             elif k == 'totalDisc':

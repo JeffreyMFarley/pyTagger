@@ -35,6 +35,16 @@ class TestUpdateFromSnapshot(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.resultDirectory)
 
+    # -------------------------------------------------------------------------
+    # Helpers
+    # -------------------------------------------------------------------------
+
+    def createTestableFile(self, path):
+        subdir, filename = os.path.split(path)
+        fromFile = os.path.join(self.sourceDirectory, path)
+        shutil.copy(fromFile, self.resultDirectory)
+        return os.path.join(self.resultDirectory, filename)
+
     def buildSimpleTags(self, version):
         tags = {}
         for k in self.stringFields:
@@ -46,22 +56,55 @@ class TestUpdateFromSnapshot(unittest.TestCase):
 
         if version[1] == 4:
             for k in self.dateFields:
-                tags[k] = '2015-01-19' if k != 'year' else '2015'
+                if k != 'year':
+                    tags[k] = '2015-01-19'
         else:
             tags['year'] = '2015'
         return tags
 
-    def test_deleteSimple(self):
-        file = os.path.join(self.sourceDirectory, '08 - Killa Brew.mp3')
-        shutil.copy(file, self.resultDirectory)
+    def buildSimpleTagsForDelete(self, version):
+        tags = {}
+        for k in self.stringFields:
+            tags[k] = None
+        for k in self.numberFields:
+            if k not in ['bpm', 'playCount']:
+                tags[k] = None
+        for k, values in self.enumFields.items():
+            tags[k] = None
+
+        if version[1] == 4:
+            for k in self.dateFields:
+                if k != 'year':
+                    tags[k] = None
+        else:
+            tags['year'] = None
+        return tags
+
+    # -------------------------------------------------------------------------
+    # Tests
+    # -------------------------------------------------------------------------
+
+    def test_deleteSimple_v22(self):
+        file = self.createTestableFile(r'Test Files\iTunes 9 256 kbps.MP3')
         
         target = pyTagger.update_from_snapshot.UpdateFromSnapshot()
         track = target._loadID3(file)
-        tags = self.buildSimpleTags(track.tag.version)
-        for k,v in tags.items():
-            tags[k] = None
-        del tags['bpm']
-        del tags['playCount']
+        tags = self.buildSimpleTagsForDelete(track.tag.version)
+        target._writeSimple(track,tags)
+        target._saveID3(track, (2,3,0))
+
+        self.formatter = pyTagger.mp3_snapshot.Formatter(tags.keys())
+        actualTags = self.verifier.extractTags(file, self.formatter)
+        
+        for k in tags.keys():
+            assert not actualTags[k], k + ' : ' + repr(actualTags[k])
+
+    def test_deleteSimple_v23(self):
+        file = self.createTestableFile('08 - Killa Brew.mp3')
+        
+        target = pyTagger.update_from_snapshot.UpdateFromSnapshot()
+        track = target._loadID3(file)
+        tags = self.buildSimpleTagsForDelete(track.tag.version)
         target._writeSimple(track,tags)
         target._saveID3(track)
 
@@ -71,9 +114,56 @@ class TestUpdateFromSnapshot(unittest.TestCase):
         for k in tags.keys():
             assert not actualTags[k], k + ' : ' + repr(actualTags[k])
 
-    def test_writeSimple(self):
-        file = os.path.join(self.sourceDirectory, '08 - Killa Brew.mp3')
-        shutil.copy(file, self.resultDirectory)
+    def test_deleteSimple_v24(self):
+        file = self.createTestableFile(r'The King Of Limbs\05 LotusFlower.MP3')
+        
+        target = pyTagger.update_from_snapshot.UpdateFromSnapshot()
+        track = target._loadID3(file)
+        tags = self.buildSimpleTagsForDelete(track.tag.version)
+        target._writeSimple(track,tags)
+        target._saveID3(track)
+
+        self.formatter = pyTagger.mp3_snapshot.Formatter(tags.keys())
+        actualTags = self.verifier.extractTags(file, self.formatter)
+        
+        for k in tags.keys():
+            assert not actualTags[k], k + ' : ' + repr(actualTags[k])
+
+    #def test_writeSimple_v10(self):
+    #    file = self.createTestableFile(r'Test Files\ID3V1.MP3')
+
+    def test_writeSimple_v22(self):
+        file = self.createTestableFile(r'Test Files\iTunes 9 256 kbps.MP3')
+        
+        target = pyTagger.update_from_snapshot.UpdateFromSnapshot()
+        track = target._loadID3(file)
+        tags = self.buildSimpleTags(track.tag.version)
+        target._writeSimple(track,tags)
+        target._saveID3(track, (2,3,0))
+
+        self.formatter = pyTagger.mp3_snapshot.Formatter(tags.keys())
+        actualTags = self.verifier.extractTags(file, self.formatter)
+        
+        for k in tags.keys():
+            assert actualTags[k] == tags[k], k + ' : ' + repr(actualTags[k])
+
+    def test_writeSimple_v23(self):
+        file = self.createTestableFile('08 - Killa Brew.mp3')
+        
+        target = pyTagger.update_from_snapshot.UpdateFromSnapshot()
+        track = target._loadID3(file)
+        tags = self.buildSimpleTags(track.tag.version)
+        target._writeSimple(track,tags)
+        target._saveID3(track)
+
+        self.formatter = pyTagger.mp3_snapshot.Formatter(tags.keys())
+        actualTags = self.verifier.extractTags(file, self.formatter)
+        
+        for k in tags.keys():
+            assert actualTags[k] == tags[k], k + ' : ' + repr(actualTags[k])
+
+    def test_writeSimple_v24(self):
+        file = self.createTestableFile(r'The King Of Limbs\05 LotusFlower.MP3')
         
         target = pyTagger.update_from_snapshot.UpdateFromSnapshot()
         track = target._loadID3(file)
