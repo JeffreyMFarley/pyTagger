@@ -78,7 +78,7 @@ class SnapshotConverter:
     def _encapsulate(self, field):
         try:
             if self._is_sequence(field):
-                return  '"' + self._seqrepr(field) + '"'
+                return  '"' + self._seqrepr(field).replace('"', '""') + '"'
             if not field:
                 return ''
             needDoubleQuotes = [',', '"', '\r', '\n']

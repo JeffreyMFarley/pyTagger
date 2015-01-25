@@ -22,6 +22,8 @@ import pyTagger
 
 
 class UpdateFromSnapshot:
+    _collectionTags = ['comments', 'lyrics', 'ufid']
+
     _useSetAttr = {
         'bpm': 'bpm',
         'playCount': 'play_count',
@@ -108,6 +110,31 @@ class UpdateFromSnapshot:
                 track.tag.track_num = (track.tag.track_num[0], v)
             elif k == 'track':
                 track.tag.track_num = (v, track.tag.track_num[1])
+
+    def _writeCollection(self, track, tags):
+        for k,v in tags.items():
+            if k == 'comments':
+                for v0 in v:
+                    l = unicode(v0['lang'])
+                    d = unicode(v0['description'])
+                    if not v0['text']:
+                        track.tag.comments.remove(d, l)
+                    else:
+                        track.tag.comments.set(unicode(v0['text']), d, l)
+            elif k == 'lyrics':
+                for v0 in v:
+                    l = unicode(v0['lang'])
+                    d = unicode(v0['description'])
+                    if not v0['text']:
+                        track.tag.lyrics.remove(d, l)
+                    else:
+                        track.tag.lyrics.set(unicode(v0['text']), d, l)
+            elif k == 'ufid':
+                for id, value in v.items():
+                    if not value:
+                        track.tag.unique_file_ids.remove(id)
+                    else:
+                        track.tag.unique_file_ids.set(value, id)
 
 # -----------------------------------------------------------------------------
 # Main
