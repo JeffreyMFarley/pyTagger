@@ -90,7 +90,7 @@ class TestUpdateFromSnapshot(unittest.TestCase):
         return verifier.extractTags(file, formatter)
 
     # -------------------------------------------------------------------------
-    # Tests
+    # Write Simple Tests
     # -------------------------------------------------------------------------
 
     def test_deleteSimple_v22(self):
@@ -167,6 +167,10 @@ class TestUpdateFromSnapshot(unittest.TestCase):
         actualTags = self.actualTags(tags, file)
         for k in tags.keys():
             assert actualTags[k] == tags[k], k + ' : ' + repr(actualTags[k])
+
+    # -------------------------------------------------------------------------
+    # Write Collection Tests
+    # -------------------------------------------------------------------------
 
     def test_writeCollection_addComment(self):
         file = self.createTestableFile(r'09 - Bite It.mp3')
@@ -331,6 +335,345 @@ class TestUpdateFromSnapshot(unittest.TestCase):
         actualTags = self.actualTags(tags, file)
         actual = actualTags['ufid']
         assert not actualTags['ufid']
+
+    # -------------------------------------------------------------------------
+    # Other Write Tests
+    # -------------------------------------------------------------------------
+    def test_writeConsolidated(self):
+        file = self.createTestableFile(r'The King Of Limbs\05 LotusFlower.MP3')
+        id = uuid.uuid1()
+        tags = self.buildSimpleTags((2,4,0))
+        tags['comments'] = [{'lang': 'eng', 'text': 'here is some text', 'description': ''}]
+        tags['ufid'] = {'DJTagger': id.bytes}
+        tags['lyrics'] = [{'lang': 'eng', 'text': 'I will shake myself into your pocket\nInvisible', 'description': ''}]
+        track = self.target._loadID3(file)
+
+        self.target._writeSimple(track,tags)
+        self.target._writeCollection(track, tags)
+        self.target._saveID3(track)
+
+        actualTags = self.actualTags(tags, file)
+        for k in tags.keys():
+            if k == 'comments':
+                assert len(actualTags[k]) == 1
+                assert actualTags[k][0]['text'] == 'here is some text'
+            elif k == 'ufid':
+                assert len(actualTags[k]) == 1
+                assert actualTags[k]['DJTagger'] == binascii.b2a_base64(id.bytes).strip()
+            elif k == 'lyrics':
+                assert len(actualTags[k]) == 1
+                assert actualTags[k][0]['text'] == 'I will shake myself into your pocket\nInvisible'
+            else:
+                assert actualTags[k] == tags[k], k + ' : ' + repr(actualTags[k])
+
+    # -------------------------------------------------------------------------
+    # Find Delta Tests
+    # -------------------------------------------------------------------------
+
+    def test_a_greaterThan_b(self):
+        a = {'title' : 'abc',  'artist': 'def', 'album': 'ghi'}
+        b = {'album': 'ghi'}
+        expected = {'title' : 'abc',  'artist': 'def'}
+        
+        actual = self.target._findDelta(a, b);
+        
+        self.assertDictEqual(expected, actual, repr(actual))
+
+    def test_a_lessThan_b(self):
+        a = {'album': 'ghi'}
+        b = {'title' : 'abc',  'artist': 'def', 'album': 'ghi'}
+        expected = {}
+        
+        actual = self.target._findDelta(a, b);
+        
+        self.assertDictEqual(expected, actual, repr(actual))
+
+    def test_a_isNull(self):
+        a = {}
+        b = {'title' : 'abc',  'artist': 'def', 'album': 'ghi'}
+        expected = {}
+        
+        actual = self.target._findDelta(a, b);
+        
+        self.assertDictEqual(expected, actual, repr(actual))
+
+    def test_b_isNull(self):
+        a = {'title' : 'abc',  'artist': 'def', 'album': 'ghi'}
+        b = {}
+        expected = a
+        
+        actual = self.target._findDelta(a, b);
+        
+        self.assertDictEqual(expected, actual, repr(actual))
+
+    def test_a_simpleEqual_b(self):
+        a = {'title' : 'abc',  'artist': 'def', 'album': 'ghi'}
+        b = {'title' : 'abc',  'artist': 'def', 'album': 'ghi'}
+        expected = {}
+        
+        actual = self.target._findDelta(a, b);
+        
+        self.assertDictEqual(expected, actual, repr(actual))
+
+    def test_a_simpleNotEqual_b(self):
+        a = {'title' : 'cde',  'artist': 'def', 'album': 'ghi'}
+        b = {'title' : 'abc',  'artist': 'def', 'album': 'ghi'}
+        expected = {'title' : 'cde'}
+        
+        actual = self.target._findDelta(a, b);
+        
+        self.assertDictEqual(expected, actual, repr(actual))
+
+    def test_a_simpleIsNull(self):
+        a = {'title' : '',  'artist': 'def', 'album': 'ghi'}
+        b = {'title' : 'abc',  'artist': 'def', 'album': 'ghi'}
+        expected = {'title' : None}
+        
+        actual = self.target._findDelta(a, b);
+        
+        self.assertDictEqual(expected, actual, repr(actual))
+
+    def test_b_simpleIsNull(self):
+        a = {'title' : 'cde',  'artist': 'def', 'album': 'ghi'}
+        b = {'title' : '',  'artist': 'def', 'album': 'ghi'}
+        expected = {'title' : 'cde'}
+        
+        actual = self.target._findDelta(a, b);
+        
+        self.assertDictEqual(expected, actual, repr(actual))
+
+    def test_a_commentsGreaterThan_b(self):
+        a = { 'comments' : [{'lang': 'eng', 'text': 'hello', 'description': ''},
+                            {'lang': 'esp', 'text': 'hola', 'description': ''},
+                            {'lang': 'fra', 'text': 'bonjour', 'description': ''}
+                            ]}
+        b = { 'comments' : [{'lang': 'eng', 'text': 'hello', 'description': ''}]}
+        expected = { 'comments' : [{'lang': 'esp', 'text': 'hola', 'description': ''},
+                                   {'lang': 'fra', 'text': 'bonjour', 'description': ''}
+                                   ]}
+        
+        actual = self.target._findDelta(a, b);
+        
+        self.assertDictEqual(expected, actual, repr(actual))
+
+    def test_b_commentsGreaterThan_a(self):
+        a = { 'comments' : [{'lang': 'eng', 'text': 'hello', 'description': ''}]}
+        b = { 'comments' : [{'lang': 'eng', 'text': 'hello', 'description': ''},
+                            {'lang': 'esp', 'text': 'hola', 'description': ''},
+                            {'lang': 'fra', 'text': 'bonjour', 'description': ''}
+                            ]}
+        expected = {}
+        
+        actual = self.target._findDelta(a, b);
+        
+        self.assertDictEqual(expected, actual, repr(actual))
+
+    def test_a_commentEqual_b(self):
+        a = { 'comments' : [{'lang': 'eng', 'text': 'hello', 'description': ''},
+                            {'lang': 'esp', 'text': 'hola', 'description': ''},
+                            {'lang': 'fra', 'text': 'bonjour', 'description': ''}
+                            ]}
+        b = { 'comments' : [{'lang': 'eng', 'text': 'hello', 'description': ''},
+                            {'lang': 'esp', 'text': 'hola', 'description': ''},
+                            {'lang': 'fra', 'text': 'bonjour', 'description': ''}
+                            ]}
+        expected = {}
+        
+        actual = self.target._findDelta(a, b);
+        
+        self.assertDictEqual(expected, actual, repr(actual))
+
+    def test_a_commentNotEqual_b(self):
+        a = { 'comments' : [{'lang': 'eng', 'text': 'hello', 'description': ''},
+                            {'lang': 'esp', 'text': 'hola', 'description': ''},
+                            {'lang': 'fra', 'text': 'bonjour', 'description': ''}
+                            ]}
+        b = { 'comments' : [{'lang': 'eng', 'text': 'hello', 'description': ''},
+                            {'lang': 'esp', 'text': 'hola', 'description': ''},
+                            {'lang': 'fra', 'text': 'bon', 'description': ''}
+                            ]}
+        expected = { 'comments' : [{'lang': 'fra', 'text': 'bonjour', 'description': ''}]}
+        
+        actual = self.target._findDelta(a, b);
+        
+        self.assertDictEqual(expected, actual, repr(actual))
+
+    def test_a_commentIsNull(self):
+        a = { 'comments' : []}
+        b = { 'comments' : [{'lang': 'eng', 'text': 'hello', 'description': ''},
+                            {'lang': 'esp', 'text': 'hola', 'description': ''},
+                            {'lang': 'fra', 'text': 'bon', 'description': ''}
+                            ]}
+        expected = {}
+        
+        actual = self.target._findDelta(a, b);
+        
+        self.assertDictEqual(expected, actual, repr(actual))
+
+    def test_b_commentIsNull(self):
+        a = { 'comments' : [{'lang': 'eng', 'text': 'hello', 'description': ''},
+                            {'lang': 'esp', 'text': 'hola', 'description': ''},
+                            {'lang': 'fra', 'text': 'bonjour', 'description': ''}
+                            ]}
+        b = { 'comments' : []}
+        expected = a
+        
+        actual = self.target._findDelta(a, b);
+        
+        self.assertDictEqual(expected, actual, repr(actual))
+
+    def test_a_lyricsGreaterThan_b(self):
+        a = { 'lyrics' : [{'lang': 'eng', 'text': 'hello', 'description': ''},
+                          {'lang': 'esp', 'text': 'hola', 'description': ''},
+                          {'lang': 'fra', 'text': 'bonjour', 'description': ''}
+                          ]}
+        b = { 'lyrics' : [{'lang': 'eng', 'text': 'hello', 'description': ''}]}
+        expected = { 'lyrics' : [{'lang': 'esp', 'text': 'hola', 'description': ''},
+                                 {'lang': 'fra', 'text': 'bonjour', 'description': ''}
+                                 ]}
+        
+        actual = self.target._findDelta(a, b);
+        
+        self.assertDictEqual(expected, actual, repr(actual))
+
+    def test_b_lyricsGreaterThan_a(self):
+        a = { 'lyrics' : [{'lang': 'eng', 'text': 'hello', 'description': ''}]}
+        b = { 'lyrics' : [{'lang': 'eng', 'text': 'hello', 'description': ''},
+                          {'lang': 'esp', 'text': 'hola', 'description': ''},
+                          {'lang': 'fra', 'text': 'bonjour', 'description': ''}
+                          ]}
+        expected = {}
+        
+        actual = self.target._findDelta(a, b);
+        
+        self.assertDictEqual(expected, actual, repr(actual))
+
+    def test_a_lyricEqual_b(self):
+        a = { 'lyrics' : [{'lang': 'eng', 'text': 'hello', 'description': ''},
+                          {'lang': 'esp', 'text': 'hola', 'description': ''},
+                          {'lang': 'fra', 'text': 'bonjour', 'description': ''}
+                          ]}
+        b = { 'lyrics' : [{'lang': 'eng', 'text': 'hello', 'description': ''},
+                          {'lang': 'esp', 'text': 'hola', 'description': ''},
+                          {'lang': 'fra', 'text': 'bonjour', 'description': ''}
+                          ]}
+        expected = {}
+        
+        actual = self.target._findDelta(a, b);
+        
+        self.assertDictEqual(expected, actual, repr(actual))
+
+    def test_a_lyricNotEqual_b(self):
+        a = { 'lyrics' : [{'lang': 'eng', 'text': 'hello', 'description': ''},
+                          {'lang': 'esp', 'text': 'hola', 'description': ''},
+                          {'lang': 'fra', 'text': 'bonjour', 'description': ''}
+                          ]}
+        b = { 'lyrics' : [{'lang': 'eng', 'text': 'hello', 'description': ''},
+                          {'lang': 'esp', 'text': 'hola', 'description': ''},
+                          {'lang': 'fra', 'text': 'bon', 'description': ''}
+                          ]}
+        expected = { 'lyrics' : [{'lang': 'fra', 'text': 'bonjour', 'description': ''}]}
+        
+        actual = self.target._findDelta(a, b);
+        
+        self.assertDictEqual(expected, actual, repr(actual))
+
+    def test_a_lyricIsNull(self):
+        a = { 'lyrics' : []}
+        b = { 'lyrics' : [{'lang': 'eng', 'text': 'hello', 'description': ''},
+                          {'lang': 'esp', 'text': 'hola', 'description': ''},
+                          {'lang': 'fra', 'text': 'bon', 'description': ''}
+                          ]}
+        expected = {}
+        
+        actual = self.target._findDelta(a, b);
+        
+        self.assertDictEqual(expected, actual, repr(actual))
+
+    def test_b_lyricIsNull(self):
+        a = { 'lyrics' : [{'lang': 'eng', 'text': 'hello', 'description': ''},
+                          {'lang': 'esp', 'text': 'hola', 'description': ''},
+                          {'lang': 'fra', 'text': 'bonjour', 'description': ''}
+                          ]}
+        b = { 'lyrics' : []}
+        expected = a
+        
+        actual = self.target._findDelta(a, b);
+
+        self.assertDictEqual(expected, actual, repr(actual))
+
+    def test_a_idsGreaterThan_b(self):
+        id1 = uuid.uuid1()
+        id2 = uuid.uuid1()
+        id3 = uuid.uuid1()
+        a = { 'ufid' : {'abc': id1.bytes, 'def': id2.bytes, 'ghi': id3.bytes}}
+        b = { 'ufid' : {'def': id2.bytes}}
+        expected = { 'ufid' : {'abc': id1.bytes, 'ghi': id3.bytes}}
+
+        actual = self.target._findDelta(a, b);
+
+        self.assertDictEqual(expected, actual, repr(actual))
+
+    def test_b_idsGreaterThan_a(self):
+        id1 = uuid.uuid1()
+        id2 = uuid.uuid1()
+        id3 = uuid.uuid1()
+        a = { 'ufid' : {'def': id2.bytes}}
+        b = { 'ufid' : {'abc': id1.bytes, 'def': id2.bytes, 'ghi': id3.bytes}}
+        expected = {}
+
+        actual = self.target._findDelta(a, b);
+
+        self.assertDictEqual(expected, actual, repr(actual))
+
+    def test_a_idEqual_b(self):
+        id1 = uuid.uuid1()
+        id2 = uuid.uuid1()
+        id3 = uuid.uuid1()
+        a = { 'ufid' : {'abc': id1.bytes, 'def': id2.bytes, 'ghi': id3.bytes}}
+        b = { 'ufid' : {'abc': id1.bytes, 'def': id2.bytes, 'ghi': id3.bytes}}
+        expected = {}
+
+        actual = self.target._findDelta(a, b);
+
+        self.assertDictEqual(expected, actual, repr(actual))
+
+    def test_a_idNotEqual_b(self):
+        id1 = uuid.uuid1()
+        id2 = uuid.uuid1()
+        id3 = uuid.uuid1()
+        id4 = uuid.uuid1()
+        a = { 'ufid' : {'abc': id4.bytes, 'def': id2.bytes, 'ghi': id3.bytes}}
+        b = { 'ufid' : {'abc': id1.bytes, 'def': id2.bytes, 'ghi': id3.bytes}}
+        expected = { 'ufid' : {'abc': id4.bytes}}
+
+        actual = self.target._findDelta(a, b);
+
+        self.assertDictEqual(expected, actual, repr(actual))
+
+    def test_a_idIsNull(self):
+        id1 = uuid.uuid1()
+        id2 = uuid.uuid1()
+        id3 = uuid.uuid1()
+        a = { 'ufid' : {} }
+        b = { 'ufid' : {'abc': id1.bytes, 'def': id2.bytes, 'ghi': id3.bytes}}
+        expected = {}
+
+        actual = self.target._findDelta(a, b);
+
+        self.assertDictEqual(expected, actual, repr(actual))
+
+    def test_b_idIsNull(self):
+        id1 = uuid.uuid1()
+        id2 = uuid.uuid1()
+        id3 = uuid.uuid1()
+        a = { 'ufid' : {'abc': id1.bytes, 'def': id2.bytes, 'ghi': id3.bytes}}
+        b = { 'ufid' : {} }
+        expected = a
+
+        actual = self.target._findDelta(a, b);
+
+        self.assertDictEqual(expected, actual, repr(actual))
 
 if __name__ == '__main__':
 

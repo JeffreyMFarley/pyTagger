@@ -61,13 +61,17 @@ class UpdateFromSnapshot:
     def __init__(self):
         pass
 
-    def update(self, inFileName, fieldSet=[], force=False):
+    def update(self, inFileName, fieldSet=[], force=False, supressWarnings=True):
+        if supressWarnings:
+            log = logging.getLogger('eyed3')
+            log.setLevel(logging.ERROR)
+
         with _input(inFileName) as f:
             snapshot = json.load(f)
 
-        formatter = pyTagger.mp3_snapshot.Formatter(fieldSet)
         if not fieldSet:
             fieldSet = formatter.columns
+        formatter = pyTagger.mp3_snapshot.Formatter(fieldSet)
 
     def _loadID3(self, fileName):
         try:
@@ -82,8 +86,18 @@ class UpdateFromSnapshot:
         else:
             track.tag.save(version=version)
         
+    def _findDelta(self, a, b):
+        '''Compare two file snapshots and return the difference
+        ''a'' should be considered the source, like the JSON snapshot.
+        ''b'' should be considered the destination, like the file
+        '''
+        return {}
+
     def _writeSimple(self, track, tags):
         for k,v in tags.items():
+            if k in self._collectionTags:
+                continue
+
             assert not isinstance(v, (list, set, dict))
             text = unicode(v) if v else None
 
@@ -162,6 +176,8 @@ def buildArgParser():
                    help='include all supported fields')
     p.add_argument('--force', action='store_true', dest='force',
                    help='always overwrite tags')
+    p.add_argument('--suppress', action='store_true', dest='supressWarnings',
+                   help='supress eyed3 warnings')
 
     return p
 
@@ -187,4 +203,4 @@ if __name__ == '__main__':
         columns = Formatter.basic
 
     pipeline = UpdateFromSnapshot()
-    pipeline.update(args.infile, columns, args.force);
+    pipeline.update(args.infile, columns, args.force, args.supressWarnings);
