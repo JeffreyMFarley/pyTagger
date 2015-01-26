@@ -36,7 +36,6 @@ class TestUpdateFromSnapshot(unittest.TestCase):
         shutil.rmtree(SANDBOX_DIRECTORY)
 
     def setUp(self):
-        assert sys.version < '3', 'This test must be run in Python 2.x'
         self.target = pyTagger.update_from_snapshot.UpdateFromSnapshot()
 
     # -------------------------------------------------------------------------
@@ -93,6 +92,7 @@ class TestUpdateFromSnapshot(unittest.TestCase):
     # Write Simple Tests
     # -------------------------------------------------------------------------
 
+    @unittest.skipIf(sys.version > '3', 'This test must be run in Python 2.x')
     def test_deleteSimple_v22(self):
         file = self.createTestableFile(r'Test Files\iTunes 9 256 kbps.MP3')
         track = self.target._loadID3(file)
@@ -105,6 +105,7 @@ class TestUpdateFromSnapshot(unittest.TestCase):
         for k in tags.keys():
             assert not actualTags[k], k + ' : ' + repr(actualTags[k])
 
+    @unittest.skipIf(sys.version > '3', 'This test must be run in Python 2.x')
     def test_deleteSimple_v23(self):
         file = self.createTestableFile('08 - Killa Brew.mp3')
         track = self.target._loadID3(file)
@@ -117,6 +118,7 @@ class TestUpdateFromSnapshot(unittest.TestCase):
         for k in tags.keys():
             assert not actualTags[k], k + ' : ' + repr(actualTags[k])
 
+    @unittest.skipIf(sys.version > '3', 'This test must be run in Python 2.x')
     def test_deleteSimple_v24(self):
         file = self.createTestableFile(r'The King Of Limbs\05 LotusFlower.MP3')
         track = self.target._loadID3(file)
@@ -132,6 +134,7 @@ class TestUpdateFromSnapshot(unittest.TestCase):
     #def test_writeSimple_v10(self):
     #    file = self.createTestableFile(r'Test Files\ID3V1.MP3')
 
+    @unittest.skipIf(sys.version > '3', 'This test must be run in Python 2.x')
     def test_writeSimple_v22(self):
         file = self.createTestableFile(r'Test Files\iTunes 9 256 kbps.MP3')
         track = self.target._loadID3(file)
@@ -144,6 +147,7 @@ class TestUpdateFromSnapshot(unittest.TestCase):
         for k in tags.keys():
             assert actualTags[k] == tags[k], k + ' : ' + repr(actualTags[k])
 
+    @unittest.skipIf(sys.version > '3', 'This test must be run in Python 2.x')
     def test_writeSimple_v23(self):
         file = self.createTestableFile('08 - Killa Brew.mp3')
         track = self.target._loadID3(file)
@@ -156,6 +160,7 @@ class TestUpdateFromSnapshot(unittest.TestCase):
         for k in tags.keys():
             assert actualTags[k] == tags[k], k + ' : ' + repr(actualTags[k])
 
+    @unittest.skipIf(sys.version > '3', 'This test must be run in Python 2.x')
     def test_writeSimple_v24(self):
         file = self.createTestableFile(r'The King Of Limbs\05 LotusFlower.MP3')
         track = self.target._loadID3(file)
@@ -172,6 +177,7 @@ class TestUpdateFromSnapshot(unittest.TestCase):
     # Write Collection Tests
     # -------------------------------------------------------------------------
 
+    @unittest.skipIf(sys.version > '3', 'This test must be run in Python 2.x')
     def test_writeCollection_addComment(self):
         file = self.createTestableFile(r'09 - Bite It.mp3')
         track = self.target._loadID3(file)
@@ -186,6 +192,7 @@ class TestUpdateFromSnapshot(unittest.TestCase):
         assert len(actual) == 1
         assert actual[0]['text'] == 'here is some text'
 
+    @unittest.skipIf(sys.version > '3', 'This test must be run in Python 2.x')
     def test_writeCollection_addAnotherComment(self):
         file = self.createTestableFile('10 World\'s Famous.mp3')
         tags = { 'comments' : [{'lang': 'eng', 'text': '0.80', 'description': 'echonest dance'}]}
@@ -200,6 +207,7 @@ class TestUpdateFromSnapshot(unittest.TestCase):
         assert len(actual) == 2
         assert '0.80' == actual[1]['text'] if actual[1]['description'] == 'echonest dance' else actual[0]['text']
 
+    @unittest.skipIf(sys.version > '3', 'This test must be run in Python 2.x')
     def test_writeCollection_updateComment(self):
         file = self.createTestableFile(r'Test Files\From Amazon.mp3')
         tags = { 'comments' : [{'lang': 'eng', 'text': 'here is some text', 'description': ''}]}
@@ -214,6 +222,7 @@ class TestUpdateFromSnapshot(unittest.TestCase):
         assert len(actual) == 1
         assert actual[0]['text'] == 'here is some text'
 
+    @unittest.skipIf(sys.version > '3', 'This test must be run in Python 2.x')
     def test_writeCollection_deleteComment(self):
         file = self.createTestableFile(r'Test Files\From Amazon.mp3')
         tags = { 'comments' : [{'lang': 'eng', 'text': '', 'description': ''}]}
@@ -225,6 +234,7 @@ class TestUpdateFromSnapshot(unittest.TestCase):
         actualTags = self.actualTags(tags, file)
         assert not actualTags['comments']
 
+    @unittest.skipIf(sys.version > '3', 'This test must be run in Python 2.x')
     def test_writeCollection_addLyrics(self):
         file = self.createTestableFile('07 - Toddler Hiway.mp3')
         tags = { 'lyrics' : [{'lang': 'eng', 'text': 'tippie toe to the front room', 'description': ''}]}
@@ -239,6 +249,7 @@ class TestUpdateFromSnapshot(unittest.TestCase):
         assert len(actual) == 1
         assert actual[0]['text'] == 'tippie toe to the front room'
 
+    @unittest.skipIf(sys.version > '3', 'This test must be run in Python 2.x')
     def test_writeCollection_addAnotherLyrics(self):
         file = self.createTestableFile('08 Kaulana Na Pua.mp3')
         tags = { 'lyrics' : [{'lang': 'haw', 'text': 'kaulana na pua', 'description': ''}]}
@@ -253,6 +264,7 @@ class TestUpdateFromSnapshot(unittest.TestCase):
         assert len(actual) == 2
         assert 'kaulana na pua' == actual[1]['text'] if actual[1]['lang'] == 'haw' else actual[0]['text']
 
+    @unittest.skipIf(sys.version > '3', 'This test must be run in Python 2.x')
     def test_writeCollection_updateLyrics(self):
         file = self.createTestableFile('08 Kaulana Na Pua.mp3')
         tags = { 'lyrics' : [{'lang': 'eng', 'text': 'the english translation', 'description': ''}]}
@@ -267,6 +279,7 @@ class TestUpdateFromSnapshot(unittest.TestCase):
         assert len(actual) == 1
         assert actual[0]['text'] == 'the english translation'
 
+    @unittest.skipIf(sys.version > '3', 'This test must be run in Python 2.x')
     def test_writeCollection_deleteLyrics(self):
         file = self.createTestableFile('05 - In Da Club.mp3')
         tags = { 'lyrics' : [{'lang': 'eng', 'text': '', 'description': ''}]}
@@ -278,6 +291,7 @@ class TestUpdateFromSnapshot(unittest.TestCase):
         actualTags = self.actualTags(tags, file)
         assert not actualTags['lyrics']
 
+    @unittest.skipIf(sys.version > '3', 'This test must be run in Python 2.x')
     def test_writeCollection_addFileId(self):
         file = self.createTestableFile(r'The King Of Limbs\05 LotusFlower.MP3')
         id = uuid.uuid1()
@@ -293,6 +307,7 @@ class TestUpdateFromSnapshot(unittest.TestCase):
         assert len(actual) == 1
         assert actual['DJTagger'] == binascii.b2a_base64(id.bytes).strip()
 
+    @unittest.skipIf(sys.version > '3', 'This test must be run in Python 2.x')
     def test_writeCollection_addAnotherFileId(self):
         file = self.createTestableFile(r'05 - In Da Club.mp3')
         id = uuid.uuid1()
@@ -309,6 +324,7 @@ class TestUpdateFromSnapshot(unittest.TestCase):
         assert actual['DJTagger'] == 'C3KEMBFzlkKrEy/e1xTKuA=='
         assert actual['CDDB'] == binascii.b2a_base64(id.bytes).strip()
 
+    @unittest.skipIf(sys.version > '3', 'This test must be run in Python 2.x')
     def test_writeCollection_updateFileId(self):
         file = self.createTestableFile('05 - In Da Club.mp3')
         id = uuid.uuid1()
@@ -324,6 +340,7 @@ class TestUpdateFromSnapshot(unittest.TestCase):
         assert len(actual) == 1
         assert actual['DJTagger'] == binascii.b2a_base64(id.bytes).strip()
 
+    @unittest.skipIf(sys.version > '3', 'This test must be run in Python 2.x')
     def test_writeCollection_deleteFileId(self):
         file = self.createTestableFile('05 - In Da Club.mp3')
         tags = { 'ufid' : {'DJTagger': ''}}
@@ -339,6 +356,8 @@ class TestUpdateFromSnapshot(unittest.TestCase):
     # -------------------------------------------------------------------------
     # Other Write Tests
     # -------------------------------------------------------------------------
+
+    @unittest.skipIf(sys.version > '3', 'This test must be run in Python 2.x')
     def test_writeConsolidated(self):
         file = self.createTestableFile(r'The King Of Limbs\05 LotusFlower.MP3')
         id = uuid.uuid1()

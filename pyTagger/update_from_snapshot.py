@@ -91,7 +91,51 @@ class UpdateFromSnapshot:
         ''a'' should be considered the source, like the JSON snapshot.
         ''b'' should be considered the destination, like the file
         '''
-        return {}
+        result = {}
+
+        # Scope the work
+        ka = set(a.keys())
+        kb = set(b.keys())
+        notb = ka - kb
+        kboth = ka & kb
+
+        # copy over the new keys
+        for k in notb:
+            result[k] = a[k]
+
+        # look for the smaller differences
+        for k in kboth:
+            if k not in self._collectionTags:
+                if a[k] != b[k]:
+                    result[k] = a[k] if a[k] else None
+            elif k in ['comments', 'lyrics']:
+                result[k] = self._findDeltaDLT(a[k], b[k])
+            elif k == 'ufid':
+                result[k] = self._findDelta(a[k], b[k])
+            
+            # if there are no members of a collection, remove the collection
+            if k in self._collectionTags:
+                if not result[k]:
+                    del result[k]
+
+        return result;
+
+    def _findDeltaDLT(self, a, b):
+        ''' Compares collections of Description, Language, Text tuples
+        '''
+        result = []
+
+        for a0 in a:
+            toTest = list(filter(lambda x: x['lang'] == a0['lang'] and x['description'] == a0['description'], b))
+            if not toTest:
+                result.append(a0)
+            else:
+                for b0 in toTest:
+                    if a0['text'] != b0['text']:
+                        result.append(a0)
+                        break
+
+        return result
 
     def _writeSimple(self, track, tags):
         for k,v in tags.items():
