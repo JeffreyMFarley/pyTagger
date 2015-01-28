@@ -58,19 +58,19 @@ class TestSnapshotConverter(unittest.TestCase):
 
     def test_encapsulate_withSimpleList(self):
         field = ['a', 'b', 'c']
-        expected = '"'+ '\n'.join(field) + '"'
+        expected = '"['+ '\n'.join(field) + ']"'
         actual = self.target._encapsulate(field)
         assert actual == expected, repr(actual)
 
     def test_encapsulate_withSimpleDictionary(self):
         field = {'a' : 'b', 'c': 'd'}
-        expected = '"a : b, c : d"'
+        expected = '"{a : b, c : d}"'
         actual = self.target._encapsulate(field)
         assert actual == expected, repr(actual)
 
     def test_encapsulate_withComplexList(self):
         field = [{'a' : 'b', 'c' : 'd'},{'e' : 'f', 'g' : 'h'}]
-        expected = '"a : b, c : d\ne : f, g : h"'
+        expected = '"[{a : b, c : d}\n{e : f, g : h}]"'
         actual = self.target._encapsulate(field)
         assert actual == expected, repr(actual)
 

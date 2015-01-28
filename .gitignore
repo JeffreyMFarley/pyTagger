@@ -1,6 +1,9 @@
 # Compiled python modules.
 *.pyc
 
+# extra Visual Studio Files
+*.suo
+
 # Setuptools distribution folder.
 /dist/
 

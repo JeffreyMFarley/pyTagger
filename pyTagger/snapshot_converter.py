@@ -91,11 +91,12 @@ class SnapshotConverter:
 
     def _seqrepr(self, iter):
         if isinstance(iter, (list, set)):
-            return '\n'.join(self._seqrepr(x) for x in iter)
+            return '[' + '\n'.join(self._seqrepr(x) for x in iter) + ']'
         if isinstance(iter, dict):
-            return ', '.join([' : '.join([self._seqrepr(k), 
-                                          self._seqrepr(v)])
-                                         for k,v in iter.items()])
+            return '{' + ', '.join([' : '.join([self._seqrepr(k),
+                                                self._seqrepr(v)])
+                                    for k,v in iter.items()
+                                    ]) + '}'
         return iter
 # -----------------------------------------------------------------------------
 # Main
