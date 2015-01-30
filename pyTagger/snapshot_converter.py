@@ -43,7 +43,7 @@ class SnapshotConverter:
 
             # write the header row
             a = sep.join([self._encapsulate(col) for col in fieldSet])
-            f.writelines([a, os.linesep])
+            f.writelines([a, '\n'])
 
             # write the rows                
             for k, v in snapshot.items():
@@ -52,7 +52,7 @@ class SnapshotConverter:
                 a = sep.join([self._encapsulate(row[col])
                               if col in row else ''
                               for col in fieldSet])
-                f.writelines([a, os.linesep])                
+                f.writelines([a, '\n'])                
 
     def _extractColumns(self, data):
         header = set()
