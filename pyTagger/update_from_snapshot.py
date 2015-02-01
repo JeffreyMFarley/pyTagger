@@ -127,7 +127,7 @@ class UpdateFromSnapshot:
 
         for a0 in a:
             toTest = list(filter(lambda x: x['lang'] == a0['lang'] and x['description'] == a0['description'], b))
-            if not toTest:
+            if not toTest and a0['text']:
                 result.append(a0)
             else:
                 for b0 in toTest:
