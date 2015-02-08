@@ -35,10 +35,6 @@ class BaseSpecifications(unittest.TestCase):
                   'compilation' : ['0', '1'] }
     text = ['abc', 'def', 'ghi', 'jkl', u'Bj\xf6rk']
 
-    @classmethod
-    def setUpClass(cls):
-        cls.verifier = pyTagger.Mp3Snapshot()
-
     @unittest.skipIf(sys.version > '3', 'This test must be run in Python 2.x')
     def setUp(self):
         self.target = pyTagger.update_from_snapshot.UpdateFromSnapshot()
@@ -53,7 +49,7 @@ class BaseSpecifications(unittest.TestCase):
         yield track
         self.saveTrack(track)
         formatter = pyTagger.mp3_snapshot.Formatter(tags.keys())
-        actual.update(self.verifier.extractTags(file, formatter))
+        actual.update(self.target.reader.extractTags(file, formatter))
 
     def saveTrack(self, track):
         self.target._saveID3(track)
@@ -346,18 +342,20 @@ class ID3V22_Snapshot(BaseSpecifications):
 
     def test_adds_ufid_when_none_exist(self):
         id = uuid.uuid1()
-        tags = { 'ufid' : {'DJTagger': id.bytes}}
+        asString = binascii.b2a_base64(id.bytes).strip()
+        tags = { 'ufid' : {'DJTagger': asString}}
         actual = {}
 
         with self.useFile(self.minimal, tags, actual) as track:
             self.target._writeCollection(track, tags)
 
         assert len(actual['ufid']) == 1
-        assert actual['ufid']['DJTagger'] == binascii.b2a_base64(id.bytes).strip()
+        assert actual['ufid']['DJTagger'] == asString
 
     def test_adds_ufid_when_some_exist(self):
         id = uuid.uuid1()
-        tags = { 'ufid' : {'DJTagger': id.bytes}}
+        asString = binascii.b2a_base64(id.bytes).strip()
+        tags = { 'ufid' : {'DJTagger': asString}}
         actual = {}
 
         with self.useFile(self.hasUfid, tags, actual) as track:
@@ -367,7 +365,7 @@ class ID3V22_Snapshot(BaseSpecifications):
         assert len(innerActual) == 2
         expected = {k:innerActual[k] for k in innerActual if k == 'DJTagger'}
         assert len(expected) == 1
-        assert expected['DJTagger'] == binascii.b2a_base64(id.bytes).strip()
+        assert expected['DJTagger'] == asString
 
     def test_removes_ufid_when_some_exist(self):
         tags = { 'ufid' : {'http://www.cddb.com/id3/taginfo1.html': None}}
@@ -381,9 +379,10 @@ class ID3V22_Snapshot(BaseSpecifications):
 
     def test_updates_ufid_when_some_exist(self):
         id = uuid.uuid1()
-        tags = { 'ufid' : {'http://www.cddb.com/id3/taginfo1.html': id.bytes}}
+        asString = binascii.b2a_base64(id.bytes).strip()
+        tags = { 'ufid' : {'http://www.cddb.com/id3/taginfo1.html': asString}}
         actual = {}
-        expected = {'ufid' : {'http://www.cddb.com/id3/taginfo1.html':  binascii.b2a_base64(id.bytes).strip()}}
+        expected = tags
 
         with self.useFile(self.hasUfid, tags, actual) as track:
             self.target._writeCollection(track, tags)
@@ -525,18 +524,20 @@ class ID3V23_Snapshot(BaseSpecifications):
 
     def test_adds_ufid_when_none_exist(self):
         id = uuid.uuid1()
-        tags = { 'ufid' : {'DJTagger': id.bytes}}
+        asString = binascii.b2a_base64(id.bytes).strip()
+        tags = { 'ufid' : {'DJTagger': asString}}
         actual = {}
 
         with self.useFile(self.minimal, tags, actual) as track:
             self.target._writeCollection(track, tags)
 
         assert len(actual['ufid']) == 1
-        assert actual['ufid']['DJTagger'] == binascii.b2a_base64(id.bytes).strip()
+        assert actual['ufid']['DJTagger'] == asString
 
     def test_adds_ufid_when_some_exist(self):
         id = uuid.uuid1()
-        tags = { 'ufid' : {'echonest': id.bytes}}
+        asString = binascii.b2a_base64(id.bytes).strip()
+        tags = { 'ufid' : {'echonest': asString}}
         actual = {}
 
         with self.useFile(self.hasUfid, tags, actual) as track:
@@ -546,7 +547,7 @@ class ID3V23_Snapshot(BaseSpecifications):
         assert len(innerActual) == 2
         expected = {k:innerActual[k] for k in innerActual if k == 'echonest'}
         assert len(expected) == 1
-        assert expected['echonest'] == binascii.b2a_base64(id.bytes).strip()
+        assert expected['echonest'] == asString
 
     def test_removes_ufid_when_some_exist(self):
         tags = { 'ufid' : {'DJTagger': None}}
@@ -560,9 +561,10 @@ class ID3V23_Snapshot(BaseSpecifications):
 
     def test_updates_ufid_when_some_exist(self):
         id = uuid.uuid1()
-        tags = { 'ufid' : {'DJTagger': id.bytes}}
+        asString = binascii.b2a_base64(id.bytes).strip()
+        tags = { 'ufid' : {'DJTagger': asString}}
         actual = {}
-        expected = {'ufid' : {'DJTagger':  binascii.b2a_base64(id.bytes).strip()}}
+        expected = tags
 
         with self.useFile(self.hasUfid, tags, actual) as track:
             self.target._writeCollection(track, tags)

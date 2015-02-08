@@ -7,6 +7,7 @@ import sys
 import argparse
 import logging
 import datetime
+import binascii
 if sys.version < '3':
     import eyed3
     from eyed3 import main, mp3, id3, core
@@ -59,7 +60,7 @@ class UpdateFromSnapshot:
         }
 
     def __init__(self):
-        pass
+        self.reader = pyTagger.Mp3Snapshot()
 
     def update(self, inFileName, fieldSet=[], force=False, supressWarnings=True):
         if supressWarnings:
@@ -70,8 +71,36 @@ class UpdateFromSnapshot:
             snapshot = json.load(f)
 
         if not fieldSet:
-            fieldSet = formatter.columns
-        formatter = pyTagger.mp3_snapshot.Formatter(fieldSet)
+            friend = pyTagger.SnapshotConverter()
+            fieldSet = friend._extractColumns(snapshot)
+        self.formatter = pyTagger.mp3_snapshot.Formatter(fieldSet)
+
+        for k,v in snapshot.items():
+            self._updateOne(k,v)
+
+    def _updateOne(self, fileName, updates):
+        track = self._loadID3(fileName)
+        if not track or not track.tag:
+            return
+
+        version = self._compliance(track)
+        asIs = self.reader._extractTags(track, self.formatter)
+        delta = self._findDelta(updates, asIs)
+        self._writeSimple(track, delta)
+        self._writeCollection(track, delta)
+        self._saveID3(track, version)
+
+    def _compliance(self, track):
+        version = track.tag.version
+        if version[1] == 2:
+            version = (2, 3, 0)
+
+        if version[1] == 3:
+            hasMood = track.tag.getTextFrame('TMOO')
+            if hasMood:
+                track.tag.setTextFrame('TMOO', None)
+
+        return version
 
     def _loadID3(self, fileName):
         try:
@@ -192,7 +221,9 @@ class UpdateFromSnapshot:
                     if not value:
                         track.tag.unique_file_ids.remove(id)
                     else:
-                        track.tag.unique_file_ids.set(value, id)
+                        toBytes = binascii.a2b_base64(value)
+                        b = toBytes.decode('latin_1')
+                        track.tag.unique_file_ids.set(b, id)
 
 # -----------------------------------------------------------------------------
 # Main
