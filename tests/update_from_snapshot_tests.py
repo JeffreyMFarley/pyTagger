@@ -936,6 +936,7 @@ class TestFindDelta(unittest.TestCase):
         
         self.assertListEqual(expected, actual, repr(actual))
 
+
 del(BaseSpecifications)
 
 if __name__ == '__main__':

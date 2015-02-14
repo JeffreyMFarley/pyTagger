@@ -222,8 +222,8 @@ class UpdateFromSnapshot:
                         track.tag.unique_file_ids.remove(id)
                     else:
                         toBytes = binascii.a2b_base64(value)
-                        b = toBytes.decode('latin_1')
-                        track.tag.unique_file_ids.set(b, id)
+                        # str(id) is so Python doesn't try to do ASCII conversion on the whole string
+                        track.tag.unique_file_ids.set(toBytes, str(id))
 
 # -----------------------------------------------------------------------------
 # Main
