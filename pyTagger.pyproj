@@ -15,6 +15,9 @@
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
   <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
   <ItemGroup>
+    <Compile Include="pyTagger\prepare_check_in.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="setup.py" />
     <Compile Include="pyTagger\iTunes.py" />
     <Compile Include="pyTagger\mp3_snapshot.py" />
