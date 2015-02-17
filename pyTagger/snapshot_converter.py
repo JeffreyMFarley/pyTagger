@@ -8,12 +8,122 @@ import argparse
 import unicodedata
 if sys.version < '3':
     import codecs
-    _input = lambda fileName: codecs.open(fileName, 'r', encoding='utf-8')
-    _output = lambda fileName: codecs.open(fileName, 'w', encoding='utf_16_le')
+    _input_json = lambda fileName: codecs.open(fileName, 'r', encoding='utf-8')
+    _input_table = lambda fileName: codecs.open(fileName, 'r', encoding='utf_16_le')
+    _output_json = lambda fileName: codecs.open(fileName, 'w', encoding='utf-8')
+    _output_table = lambda fileName: codecs.open(fileName, 'w', encoding='utf_16_le')
 else:
-    _input = lambda fileName: open(fileName, 'r', encoding='utf-8')
-    _output = lambda fileName: open(fileName, 'w', encoding='utf_16_le')
+    _input_json = lambda fileName: open(fileName, 'r', encoding='utf-8')
+    _input_table = lambda fileName: open(fileName, 'r', encoding='utf_16_le')
+    _output_json = lambda fileName: open(fileName, 'w', encoding='utf-8')
+    _output_table = lambda fileName: open(fileName, 'w', encoding='utf_16_le')
 from pyTagger.mp3_snapshot import Formatter
+
+# -----------------------------------------------------------------------------
+# State Machine
+# -----------------------------------------------------------------------------
+
+class Context:
+    def __init__(self):
+        self._reset()
+    def _reset(self):
+        self._buffer = []
+        self._state = State.Initial
+    def push(self, c):
+        self._buffer.append(c)
+
+    @property
+    def separator(self):
+        return self._separator
+
+    def parse(self, inFile, useCsv=False):
+        self._reset()
+        self._separator = ',' if useCsv else '\t'
+        with _input_table(inFile) as f:
+            f.seek(2) # skip BOM
+            c = f.read(1)
+            while c:
+                self._state = self._state.onCharacter(self, c)
+                self._state.run(self, c)
+                if self._state.isEndOfRecord:
+                    row = unicode(''.join(self._buffer))
+                    yield row.split('\x1f')
+                    self._reset()
+                c = f.read(1)
+
+
+class State:
+    def run(self, context, c):
+        raise NotImplementedError
+    def onCharacter(self, context, c):
+        if c == context.separator:
+            return State.EndOfField
+        elif c == '"':
+            return State.DoubleQuote
+        elif c == '\n':
+            return State.NewLine
+        else:
+            return State.Raw
+    @property
+    def isEndOfRecord(self):
+        return False
+
+
+class InitialState(State):
+    pass
+
+
+class RawState(State):
+    def run(self, context, c):
+        context.push(c)
+
+
+class EndOfFieldState(State):
+    def run(self, context, c):
+        context.push('\x1f')
+
+
+class DoubleQuoteState(State):
+    def run(self, context, c):
+        if c != '"':
+            context.push(c)
+    def onCharacter(self, context, c):
+        if c == '"':
+            return State.EscapingDoubleQuote
+        else:
+            return self
+
+
+class EscapingDoubleQuoteState(State):
+    def run(self, context, c):
+        pass
+    def onCharacter(self, context, c):
+        if c == context.separator:
+            return State.EndOfField
+        elif c == '"':
+            context.push('"')
+            return State.DoubleQuote
+        elif c == '\n':
+            return State.NewLine
+        else:
+            return State.Raw
+
+
+class NewLineState(State):
+    def run(self, context, c):
+        pass
+    def onCharacter(self, context, c):
+        return self
+    def isEndOfRecord(self):
+        return True
+
+
+State.Initial = InitialState()
+State.Raw = RawState()
+State.EndOfField = EndOfFieldState()
+State.DoubleQuote = DoubleQuoteState()
+State.EscapingDoubleQuote = EscapingDoubleQuoteState()
+State.NewLine = NewLineState()
 
 # -----------------------------------------------------------------------------
 # Classes
@@ -25,7 +135,7 @@ class SnapshotConverter:
         pass
 
     def convert(self, inFileName, outFileName, fieldSet=[], useCsv=False):
-        with _input(inFileName) as f:
+        with _input_json(inFileName) as f:
             snapshot = json.load(f)
 
         # build the columns if they are not supplied
@@ -35,7 +145,7 @@ class SnapshotConverter:
 
         # not using csv.DictWriter since the Python 2.x version has a hard time 
         # supporting unicode
-        with _output(outFileName) as f:
+        with _output_table(outFileName) as f:
             sep = ',' if useCsv else '\t'
 
             # write BOM
@@ -98,17 +208,49 @@ class SnapshotConverter:
                                     for k,v in iter.items()
                                     ]) + '}'
         return iter
+
+
+class ConvertBack:
+    _collectionTags = ['comments', 'lyrics', 'ufid']
+    _numberTags = ['bitRate', 'bpm', 'disc', 'length', 'totalDisc', 'totalTrack', 'track']
+    _booleanTags = ['vbr']
+
+    def convert(self, inFileName, outFileName, fieldSet=[], useCsv=False):
+        context = Context()
+        rowgen = context.parse(inFileName, useCsv)
+        columns = next(rowgen)
+
+        # Make the set output columns
+        #fieldSet
+        outputColumns = set(columns) - {'comments', 'lyrics', 'ufid', 'fullPath'}
+
+        result = {}
+        for row in rowgen:
+            value = {columns[i]: self._transform(x, columns[i])
+                     for (i,x) in enumerate(row)
+                     if columns[i] in outputColumns }
+            result[row[-1]] = value
+
+        with _output_json(outFileName) as f:
+            json.dump(result, f)
+
+    def _transform(self, s, column):
+        if column in self._numberTags and s:
+            return int(s)
+        elif column in self._booleanTags:
+            return s == 'True'
+        return s
+
 # -----------------------------------------------------------------------------
 # Main
 # -----------------------------------------------------------------------------
 
 
 def buildArgParser():
-    description = 'Convert MP3 snapshot to a row and column format'
+    description = 'Convert between MP3 snapshot format and a row and column format'
     p = argparse.ArgumentParser(description=description)
     p.add_argument('infile', metavar='infile', help='the snapshot to process')
-    p.add_argument('outfile',  nargs='?', metavar='outfile',
-                   default='mp3s.txt',
+    p.add_argument('outfile',  metavar='outfile',
                    help='the name of the file that will hold the results')
     p.add_argument('-b', '--basic', action='store_true', dest='basic',
                    help=' '.join(Formatter.basic))
@@ -126,6 +268,8 @@ def buildArgParser():
                    help='include all supported fields')
     p.add_argument('--csv', action='store_true', dest='csv',
                    help='CSV as the output format (default = tab-delimited)')
+    p.add_argument('--convert-back', action='store_true', dest='reverse',
+                   help='Convert CSV to JSON')
 
     return p
 
@@ -149,5 +293,9 @@ if __name__ == '__main__':
     if args.all:
         columns = Formatter.orderedAllColumns()
 
-    pipeline = SnapshotConverter()
-    pipeline.convert(args.infile, args.outfile, columns, args.csv)
+    if not args.reverse:
+        pipeline = SnapshotConverter()
+        pipeline.convert(args.infile, args.outfile, columns, args.csv)
+    else:
+        pipeline = ConvertBack()
+        pipeline.convert(args.infile, args.outfile, columns, args.csv)

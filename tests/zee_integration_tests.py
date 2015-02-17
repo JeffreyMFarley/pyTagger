@@ -1,6 +1,7 @@
 import unittest
 import os
 import json
+import csv
 import sys
 import shutil
 import unicodedata
@@ -87,6 +88,28 @@ class TestIntegration(unittest.TestCase):
 
         target.convert(inFile, outFile)
         assert os.path.getsize(outFile) > 0
+
+    def test_04_convertBack(self):
+        target = pyTagger.ConvertBack()
+        inFile = os.path.join(RESULT_DIRECTORY, r'snapshot.txt')
+        outFile = os.path.join(RESULT_DIRECTORY, r'snapshot2.json')
+
+        target.convert(inFile, outFile)
+
+        original = os.path.join(RESULT_DIRECTORY, r'snapshot.json')
+        with _input(original) as f:
+            a = json.load(f)
+        with _input(outFile) as f:
+            b = json.load(f)
+        
+        for path, tags in b.items():
+            a_tags = a[path]
+            for tag, value in tags.items():
+                if not value:
+                    assert tag not in a_tags or not a_tags[tag]
+                else:
+                    assert value == a_tags[tag]
+        
 
 if __name__ == '__main__':
 
