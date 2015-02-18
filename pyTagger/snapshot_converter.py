@@ -46,7 +46,10 @@ class Context:
                 self._state = self._state.onCharacter(self, c)
                 self._state.run(self, c)
                 if self._state.isEndOfRecord:
-                    row = unicode(''.join(self._buffer))
+                    if sys.version < '3':
+                        row = unicode(''.join(self._buffer))
+                    else:
+                        row = ''.join(self._buffer)
                     yield row.split('\x1f')
                     self._reset()
                 c = f.read(1)
