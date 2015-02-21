@@ -16,6 +16,7 @@ if sys.version < '3':
 else:
     _input = lambda fileName: open(fileName, 'r', encoding='utf-8')
 import pyTagger
+from pyTagger.mp3_snapshot import Formatter
 
 # -----------------------------------------------------------------------------
 # Classes
@@ -62,10 +63,11 @@ class UpdateFromSnapshot:
     def __init__(self):
         self.reader = pyTagger.Mp3Snapshot()
 
-    def update(self, inFileName, fieldSet=[], force=False, supressWarnings=True):
+    def update(self, inFileName, fieldSet=[], upgrade=False, supressWarnings=True):
         if supressWarnings:
             log = logging.getLogger('eyed3')
             log.setLevel(logging.ERROR)
+        self.upgrade = upgrade
 
         with _input(inFileName) as f:
             snapshot = json.load(f)
@@ -93,6 +95,9 @@ class UpdateFromSnapshot:
     def _compliance(self, track):
         version = track.tag.version
         if version[1] == 2:
+            version = (2, 3, 0)
+
+        if self.upgrade and version[1] < 3:
             version = (2, 3, 0)
 
         if version[1] == 3:
@@ -249,8 +254,8 @@ def buildArgParser():
                    help='Only update: ' + ' '.join(Formatter.library))
     p.add_argument('-a', '--all', action='store_true', dest='all',
                    help='include all supported fields')
-    p.add_argument('--force', action='store_true', dest='force',
-                   help='always overwrite tags')
+    p.add_argument('--upgrade', action='store_true', dest='upgrade',
+                   help='Upgrade the tags to be at least 2.3')
     p.add_argument('--suppress', action='store_true', dest='supressWarnings',
                    help='supress eyed3 warnings')
 
@@ -278,4 +283,4 @@ if __name__ == '__main__':
         columns = Formatter.basic
 
     pipeline = UpdateFromSnapshot()
-    pipeline.update(args.infile, columns, args.force, args.supressWarnings);
+    pipeline.update(args.infile, columns, args.upgrade, args.supressWarnings);

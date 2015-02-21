@@ -78,7 +78,8 @@ class InitialState(State):
 
 class RawState(State):
     def run(self, context, c):
-        context.push(c)
+        if c != '\r':
+            context.push(c)
 
 
 class EndOfFieldState(State):

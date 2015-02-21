@@ -70,7 +70,7 @@ class TestIntegration(unittest.TestCase):
             json.dump(snapshot, f, indent=2)
 
         target = pyTagger.UpdateFromSnapshot()
-        target.update(updateFile)
+        target.update(updateFile, upgrade=True)
 
     @unittest.skipIf(sys.version > '3', 'This test must be run in Python 2.x')
     def test_02_scan(self):
