@@ -15,6 +15,9 @@
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
   <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
   <ItemGroup>
+    <Compile Include="pyTagger\console_progress_bar.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="pyTagger\prepare_check_in.py">
       <SubType>Code</SubType>
     </Compile>

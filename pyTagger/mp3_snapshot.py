@@ -171,7 +171,7 @@ class Mp3Snapshot:
 
                     # Check if the file has an extension of typical music files
                     if fullPath[-3:].lower() in ['mp3']:
-                        print("Processing", formatter.normalizeToAscii(fullPath))
+                        print("Scanning", formatter.normalizeToAscii(fullPath))
                         row = self.extractTags(fullPath, formatter)
                         if row:
                             fout.writelines([sep, '"',

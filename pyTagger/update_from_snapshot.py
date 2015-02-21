@@ -78,6 +78,7 @@ class UpdateFromSnapshot:
         self.formatter = pyTagger.mp3_snapshot.Formatter(fieldSet)
 
         for k,v in snapshot.items():
+            print("Updating", self.formatter.normalizeToAscii(k))
             self._updateOne(k,v)
 
     def _updateOne(self, fileName, updates):
