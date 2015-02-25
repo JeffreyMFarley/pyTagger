@@ -181,7 +181,7 @@ class SnapshotConverter:
         unknown = header - set(known)
 
         columns = [c for c in known if c in header]
-        for c in unknown:
+        for c in sorted(unknown):
             columns.append(c)
 
         return columns
@@ -254,7 +254,7 @@ def buildArgParser():
     description = 'Convert between MP3 snapshot format and a row and column format'
     p = argparse.ArgumentParser(description=description)
     p.add_argument('infile', metavar='infile', help='the snapshot to process')
-    p.add_argument('outfile',  metavar='outfile',
+    p.add_argument('outfile', nargs='?', metavar='outfile',
                    help='the name of the file that will hold the results')
     p.add_argument('-b', '--basic', action='store_true', dest='basic',
                    help=' '.join(Formatter.basic))
@@ -296,6 +296,13 @@ if __name__ == '__main__':
         columns = columns + Formatter.mp3Info
     if args.all:
         columns = Formatter.orderedAllColumns()
+         
+    if not args.outfile:
+        root, ext = os.path.splitext(args.infile)
+        newext = '.csv' if args.csv else '.txt'
+        if args.reverse:
+            newext = '.json'
+        args.outfile = root + newext
 
     if not args.reverse:
         pipeline = SnapshotConverter()
