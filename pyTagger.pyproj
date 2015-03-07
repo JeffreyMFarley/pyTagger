@@ -18,6 +18,9 @@
     <Compile Include="pyTagger\console_progress_bar.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="pyTagger\extract_images.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="pyTagger\prepare_check_in.py">
       <SubType>Code</SubType>
     </Compile>
@@ -31,6 +34,9 @@
     <Content Include="pyTagger.egg-info\dependency_links.txt" />
     <Content Include="pyTagger.egg-info\SOURCES.txt" />
     <Content Include="pyTagger.egg-info\top_level.txt" />
+    <Compile Include="tests\extract_images_test.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="tests\mp3_snapshot_tests.py" />
     <Compile Include="tests\snapshot_converter_tests.py" />
     <Compile Include="tests\update_from_snapshot_tests.py" />

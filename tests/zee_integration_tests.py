@@ -110,6 +110,28 @@ class TestIntegration(unittest.TestCase):
                 else:
                     assert value == a_tags[tag]
         
+    @unittest.skipIf(sys.version > '3', 'This test must be run in Python 2.x')
+    def test_05_extractAll(self):
+        targetDir = os.path.join(RESULT_DIRECTORY, r'images')
+        target = pyTagger.ExtractImages(targetDir)
+        target.extractAll(INTEGRATION_TEST_DIRECTORY)
+        
+        files = [name for name in os.listdir(targetDir)]
+        assert len(files) == 20
+
+    @unittest.skipIf(sys.version > '3', 'This test must be run in Python 2.x')
+    def test_00_extractFromList(self):
+        fileName = os.path.join(RESULT_DIRECTORY, 'extract_list.txt')
+        with _output(fileName) as f:
+            f.writelines([os.path.join(INTEGRATION_TEST_DIRECTORY, '01 Oh No.mp3'), '\n'])
+            f.writelines([os.path.join(INTEGRATION_TEST_DIRECTORY, '08 - Aeroplane.mp3'), '\n'])
+
+        targetDir = os.path.join(RESULT_DIRECTORY, r'some_images')
+        target = pyTagger.ExtractImages(targetDir)
+        target.extractFrom(fileName)
+        
+        files = [name for name in os.listdir(targetDir)]
+        assert len(files) == 2
 
 if __name__ == '__main__':
 

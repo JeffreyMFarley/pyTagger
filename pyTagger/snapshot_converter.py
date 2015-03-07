@@ -160,8 +160,8 @@ class SnapshotConverter:
             f.writelines([a, '\n'])
 
             # write the rows                
-            for k, v in snapshot.items():
-                row = v
+            for k in sorted(snapshot):
+                row = snapshot[k]
                 row['fullPath'] = k
                 a = sep.join([self._encapsulate(row[col])
                               if col in row else ''
