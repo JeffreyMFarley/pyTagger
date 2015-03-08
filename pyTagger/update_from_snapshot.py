@@ -79,7 +79,10 @@ class UpdateFromSnapshot:
 
         for k,v in snapshot.items():
             print("Updating", self.formatter.normalizeToAscii(k))
-            self._updateOne(k,v)
+            try:
+                self._updateOne(k,v)
+            except:
+                print('Error with', self.formatter.normalizeToAscii(k))
 
     def _updateOne(self, fileName, updates):
         track = self._loadID3(fileName)
