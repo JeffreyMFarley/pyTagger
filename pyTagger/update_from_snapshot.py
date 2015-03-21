@@ -104,6 +104,10 @@ class UpdateFromSnapshot:
         if self.upgrade and version[1] < 3:
             version = (2, 3, 0)
 
+        # MJMD tag was in some Jen files
+        if 'MJMD' in track.tag.frame_set:
+            del track.tag.frame_set['MJMD']
+
         if version[1] == 3:
             hasMood = track.tag.getTextFrame('TMOO')
             if hasMood:
