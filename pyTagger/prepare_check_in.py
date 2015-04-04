@@ -22,6 +22,7 @@ class prepare_check_in():
     def __init__(self):
         self.updater = pyTagger.UpdateFromSnapshot()
         self.updater.formatter = pyTagger.mp3_snapshot.Formatter({'media', 'ufid', 'comments', 'group', 'subtitle'})
+        self.updater.upgrade = True
 
     def _walk(self, path):
         for currentDir, subdirs, files in os.walk(unicode(path)):
