@@ -15,7 +15,8 @@ if sys.version < '3':
 else:
     _input = lambda fileName: open(fileName, 'r', encoding='utf-8')
     _output = lambda fileName: open(fileName, 'w', encoding='utf-8')
-import pyTagger
+from pyTagger import UpdateFromSnapshot, Mp3Snapshot
+from pyTagger.mp3_snapshot import Formatter
 
 def curryStrip(phrase):
     def strip(x):
@@ -24,12 +25,22 @@ def curryStrip(phrase):
         return x
     return strip
 
-class prepare_check_in():
+class PrepareCheckIn():
     """description of class"""
 
     def __init__(self):
-        self.updater = pyTagger.UpdateFromSnapshot()
-        self.updater.formatter = pyTagger.mp3_snapshot.Formatter({'media', 'ufid', 'comments', 'group', 'subtitle'})
+        self.stripFields = {'title', 'album'}
+        self.featuring = {'artist'}
+        self.addTags = {'media', 'ufid', 'comments', 'group', 'subtitle'}
+
+        self.reader = Mp3Snapshot()
+        self.readerFormatter = Formatter(self.stripFields
+                                         .union(self.featuring))
+
+        self.updater = UpdateFromSnapshot()
+        self.updater.formatter = Formatter(self.stripFields
+                                           .union(self.featuring)
+                                           .union(self.addTags))
         self.updater.upgrade = True
 
         self.regexBracket = re.compile('^(.*)(\[.*\])+(.*)$')
@@ -82,6 +93,9 @@ class prepare_check_in():
         else:
             return s, None
         
+    def getTags(self, fullPath):
+        return self.reader.extractTags(fullPath, self.readerFormatter)
+
     # -------------------------------------------------------------------------
     # Process
     # -------------------------------------------------------------------------
@@ -96,26 +110,34 @@ class prepare_check_in():
                 fullPath = os.path.join(currentDir, fileName)
                 yield fullPath
 
+    def _process(self, fullPath):
+        tags = self.getTags(fullPath)
+        for k in self.stripFields:
+            tags[k] = self.prepareText(tags[k])
+
+        stamp = datetime.date.today()
+        id = uuid.uuid4()
+        asString = binascii.b2a_base64(id.bytes).strip()
+        preparationTags = {
+            'media' : 'DIG',
+            'ufid' : {'DJTagger': asString},
+            'comments' : [{'lang': 'eng', 'text': '', 'description': ''},
+                            {'lang': '', 'text': '', 'description': ''}
+                            ],
+            'group' : '',
+            'subtitle' : stamp.isoformat()
+            }
+        tags.update(preparationTags)
+        self.updater._updateOne(fullPath, tags)
+
     def run(self, path, supressWarnings=True):
         if supressWarnings:
             log = logging.getLogger('eyed3')
             log.setLevel(logging.ERROR)
 
-        stamp = datetime.date.today()
         for fullPath in self._walk(unicode(path)):
-            id = uuid.uuid4()
-            asString = binascii.b2a_base64(id.bytes).strip()
-            preparationTags = {
-                'media' : 'DIG',
-                'ufid' : {'DJTagger': asString},
-                'comments' : [{'lang': 'eng', 'text': '', 'description': ''},
-                              {'lang': '', 'text': '', 'description': ''}
-                              ],
-                'group' : '',
-                'subtitle' : stamp.isoformat()
-                }
-            self.updater._updateOne(fullPath, preparationTags)
-
+            if fullPath[-3:].lower() in ['mp3']:
+                self._process(fullPath)
 
 # -----------------------------------------------------------------------------
 # Main
@@ -139,7 +161,7 @@ if __name__ == '__main__':
     parser = buildArgParser()
     args = parser.parse_args()
 
-    pipeline = prepare_check_in()
+    pipeline = PrepareCheckIn()
     pipeline.run(args.path, args.supressWarnings);
 
 

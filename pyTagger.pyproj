@@ -38,6 +38,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="tests\mp3_snapshot_tests.py" />
+    <Compile Include="tests\prepare_check_in_tests.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="tests\snapshot_converter_tests.py" />
     <Compile Include="tests\update_from_snapshot_tests.py" />
     <Compile Include="tests\zee_integration_tests.py" />

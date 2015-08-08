@@ -544,7 +544,7 @@ class ID3V23_Snapshot(BaseSpecifications):
             self.target._writeCollection(track, tags)
 
         innerActual = actual['ufid']
-        assert len(innerActual) == 2
+        self.assertEqual(2, len(innerActual))
         expected = {k:innerActual[k] for k in innerActual if k == 'echonest'}
         assert len(expected) == 1
         assert expected['echonest'] == asString

@@ -117,7 +117,7 @@ class TestIntegration(unittest.TestCase):
         target.extractAll(INTEGRATION_TEST_DIRECTORY)
         
         files = [name for name in os.listdir(targetDir)]
-        assert len(files) == 20
+        self.assertEqual(27, len(files))
 
     @unittest.skipIf(sys.version > '3', 'This test must be run in Python 2.x')
     def test_00_extractFromList(self):
