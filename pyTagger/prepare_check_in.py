@@ -7,6 +7,7 @@ import datetime
 import uuid
 import unicodedata
 import binascii
+from pymonad.Reader import *
 
 if sys.version < '3':
     import codecs
@@ -18,12 +19,23 @@ else:
 from pyTagger import UpdateFromSnapshot, Mp3Snapshot
 from pyTagger.mp3_snapshot import Formatter
 
-def curryStrip(phrase):
-    def strip(x):
-        if phrase in x:
-            return x.replace(phrase, '')
-        return x
-    return strip
+@curry
+def strip(phrase, x):
+    if phrase in x:
+        return x.replace(phrase, '')
+    return x
+
+@curry
+def stripBracketedText(regex, s):
+    if '[' in s:
+        while '[' in s:
+            m = regex.match(s)
+            if not m:  # no closing bracket, strip to end
+                openBracket = s.index('[')
+                s = s[:openBracket]
+            else:
+                s = m.group(1).strip() + m.group(3).strip()
+    return s
 
 class PrepareCheckIn():
     """description of class"""
@@ -43,44 +55,32 @@ class PrepareCheckIn():
                                            .union(self.addTags))
         self.updater.upgrade = True
 
-        self.regexBracket = re.compile('^(.*)(\[.*\])+(.*)$')
         self.regexFeature = re.compile('\((feat|feat\.|featuring|with) (.*)\)')
 
-        self.textMonoids = [
-                            self.stripBracketedText, 
-                            curryStrip(' (Explicit Version)'),
-                            curryStrip(' (Explicit)'),
-                            curryStrip(' (Explicit Content)'),
-                            curryStrip(' (US Version)'),
-                            curryStrip(' (US Release)'),
-                            curryStrip(' (Album Version)'),
-                            curryStrip(' (LP Version)'),
-                            curryStrip(' (Deluxe)'),
-                            curryStrip(' (Deluxe Edition)'),
-                            curryStrip(' (Deluxe Version)'),
-                            curryStrip(' (Amazon MP3 Exclusive Version)'),
-                            curryStrip(' (Amazon MP3 Exclusive - Deluxe Version)'),
-                            curryStrip(' (Original Motion Picture Soundtrack)'),
-                            curryStrip(' (Special Edition)')
+        self.normalizers = [
+                            stripBracketedText(re.compile('^(.*)(\[.*\])+(.*)$')), 
+                            strip(' (Explicit Version)'),
+                            strip(' (Explicit)'),
+                            strip(' (Explicit Content)'),
+                            strip(' (US Version)'),
+                            strip(' (US Release)'),
+                            strip(' (Album Version)'),
+                            strip(' (LP Version)'),
+                            strip(' (Deluxe)'),
+                            strip(' (Deluxe Edition)'),
+                            strip(' (Deluxe Version)'),
+                            strip(' (Amazon MP3 Exclusive Version)'),
+                            strip(' (Amazon MP3 Exclusive - Deluxe Version)'),
+                            strip(' (Original Motion Picture Soundtrack)'),
+                            strip(' (Special Edition)')
                             ]
 
     # -------------------------------------------------------------------------
     # Helpers
     # -------------------------------------------------------------------------
 
-    def stripBracketedText(self, s):
-        if '[' in s:
-            while '[' in s:
-                m = self.regexBracket.match(s)
-                if not m:  # no closing bracket, strip to end
-                    openBracket = s.index('[')
-                    s = s[:openBracket]
-                else:
-                    s = m.group(1).strip() + m.group(3).strip()
-        return s
-
     def prepareText(self, s):
-        for fn in self.textMonoids:
+        for fn in self.normalizers:
             s = fn(s)
         return s
 
