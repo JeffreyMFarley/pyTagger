@@ -21,6 +21,9 @@
     <Compile Include="pyTagger\extract_images.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="pyTagger\normalizer.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="pyTagger\prepare_check_in.py">
       <SubType>Code</SubType>
     </Compile>
