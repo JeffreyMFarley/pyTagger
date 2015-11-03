@@ -41,6 +41,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="tests\mp3_snapshot_tests.py" />
+    <Compile Include="tests\normalizer_test.py" />
     <Compile Include="tests\prepare_check_in_tests.py">
       <SubType>Code</SubType>
     </Compile>
