@@ -21,9 +21,6 @@
     <Compile Include="pyTagger\extract_images.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="pyTagger\normalizer.py">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="pyTagger\prepare_check_in.py">
       <SubType>Code</SubType>
     </Compile>
@@ -41,7 +38,6 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="tests\mp3_snapshot_tests.py" />
-    <Compile Include="tests\normalizer_test.py" />
     <Compile Include="tests\prepare_check_in_tests.py">
       <SubType>Code</SubType>
     </Compile>
