@@ -18,6 +18,7 @@
     <Compile Include="pyTagger\console_progress_bar.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="pyTagger\echonest_proxy.py" />
     <Compile Include="pyTagger\extract_images.py">
       <SubType>Code</SubType>
     </Compile>
