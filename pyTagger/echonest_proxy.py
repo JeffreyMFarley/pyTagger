@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 import sys
 import csv
@@ -158,14 +159,14 @@ class EchoNestProxy():
 
 if __name__ == '__main__':
     service = EchoNestProxy()
-    songs = sorted(service.getByArtist('Underworld'), 
+    songs = sorted(service.getByArtist(u'The Future Sound of London'), 
                    key=itemgetter('artist', 'title', 'length'))
 
     columns = sorted(_songProjection.keys())
     print('\t'.join(columns))
     for song in songs:
-        cells = [str(song[col]) if col in song else '' for col in columns]
-        print(service.normalizer.to_ascii('\t'.join(cells)))
+        cells = [unicode(song[col]) if col in song else '' for col in columns]
+        print(service.normalizer.to_ascii(u'\t'.join(cells)))
 
     #for song in songs:
     #    s = json.dumps(song, ensure_ascii=True, sort_keys=True)
