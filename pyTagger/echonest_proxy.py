@@ -5,6 +5,7 @@ import csv
 import time
 import json
 import requests
+from functools import partial
 from hew import Normalizer
 from operator import itemgetter, attrgetter
 
@@ -15,6 +16,15 @@ def relativeToAbsolute(path):
     # get the expected paths
     return os.path.join(thisScriptDir, path)
 
+def pickleForTesting(r, params, baseFile):
+    import pickle
+    import urlparse
+
+    fileName = relativeToAbsolute('{0}-{1}.p'.format(baseFile, 
+                                                     params['start']))
+    with open(fileName, 'wb') as f:
+        pickle.dump(r, f)
+    
 # -----------------------------------------------------------------------------
 
 def apiKeys():
@@ -99,6 +109,7 @@ class EchoNestProxy():
         self.step = 100
         self.status_code = 0
         self.normalizer = Normalizer()
+        self.requestHook = None
 
     # -------------------------------------------------------------------------
 
@@ -118,6 +129,9 @@ class EchoNestProxy():
         while True:
             print('Calling', url, params['artist'], params['start'])
             r = requests.get(url, params=params)
+            if self.requestHook:
+                self.requestHook(r, params)
+
             data = json.loads(r.text)
             self.status_code = r.status_code
 
@@ -159,6 +173,9 @@ class EchoNestProxy():
 
 if __name__ == '__main__':
     service = EchoNestProxy()
+    #service.requestHook = partial(pickleForTesting, baseFile='../tests/echonest-chunks')
+    #l = list(service.getByArtist(u'Meat Beat Manifesto'))
+
     songs = sorted(service.getByArtist(u'The Future Sound of London'), 
                    key=itemgetter('artist', 'title', 'length'))
 
