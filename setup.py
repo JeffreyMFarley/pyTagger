@@ -1,4 +1,10 @@
+import sys
 from setuptools import setup
+
+install_requires=['eyed3', 'pymonad', 'requests']  # 'hew'
+
+if sys.version < '3.0':
+    install_requires.append('mock')
 
 setup(name='pyTagger',
       version='0.1',
@@ -8,6 +14,6 @@ setup(name='pyTagger',
       author_email='JeffreyMFarley@users.noreply.github.com',
       license='MIT',
       packages=['pyTagger'],
-      install_requires=['eyed3', 'pymonad', 'requests'],  # 'hew'
+      install_requires=install_requires,
       test_suite='tests',
       zip_safe=False)

@@ -35,6 +35,9 @@
     <Content Include="pyTagger.egg-info\dependency_links.txt" />
     <Content Include="pyTagger.egg-info\SOURCES.txt" />
     <Content Include="pyTagger.egg-info\top_level.txt" />
+    <Compile Include="tests\echonest_proxy_test.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="tests\extract_images_test.py">
       <SubType>Code</SubType>
     </Compile>

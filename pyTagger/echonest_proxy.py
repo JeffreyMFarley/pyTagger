@@ -129,11 +129,15 @@ class EchoNestProxy():
         while True:
             print('Calling', url, params['artist'], params['start'])
             r = requests.get(url, params=params)
+
             if self.requestHook:
                 self.requestHook(r, params)
 
-            data = json.loads(r.text)
             self.status_code = r.status_code
+            if r.status_code != 200:
+                raise StopIteration
+
+            data = json.loads(r.text)
 
             if not data or 'response' not in data:
                 print('Unable to load records', r.status_code, file=sys.stderr)
