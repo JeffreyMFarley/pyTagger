@@ -173,7 +173,14 @@ class EchoNestProxy():
                 yield projection(song)
 
     def getByArtistAndTitle(self, artist, title):
-        pass
+        url = 'http://developer.echonest.com/api/v4/song/search'
+        artist0 = self.normalizer.for_query_string(artist)
+        title0 = self.normalizer.for_query_string(title)
+        params = {'artist': artist0, 'title': title0}
+
+        for chunk in self._chunk(url, params):
+            for song in chunk:
+                yield projection(song)
 
 if __name__ == '__main__':
     service = EchoNestProxy()
