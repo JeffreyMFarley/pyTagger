@@ -6,7 +6,6 @@ import time
 import json
 import requests
 from functools import partial
-from hew import Normalizer
 from operator import itemgetter, attrgetter
 
 def relativeToAbsolute(path):
@@ -104,6 +103,8 @@ class EchoNestProxy():
     Encapsulates calling the EchoNest Web Service
     """
     def __init__(self):
+        from hew import Normalizer
+
         self.api_key = getApiKey('ECHONEST_API_KEY')
         self.maxCallsPerMinute = 200
         self.step = 100
