@@ -204,7 +204,7 @@ class ID3V22_Snapshot(BaseSpecifications):
     minimal = '05 Mr. Zebra.mp3'
     hasComments = '06 Getting Ahead In The Lucrative Field Of Artist Managmt.mp3'
     hasLyrics = '06 Getting Ahead In The Lucrative Field Of Artist Managmt.mp3'
-    hasUfid = 'Test Files\iTunes 9 256 kbps.mp3'
+    hasUfid = os.sep.join(['Test Files','iTunes 9 256 kbps.mp3'])
 
     def buildSimpleTags(self):
         tags = {}
@@ -391,7 +391,7 @@ class ID3V22_Snapshot(BaseSpecifications):
 
 
 class ID3V23_Snapshot(BaseSpecifications):
-    minimal = 'Test Files\WMP 10 256kbps.mp3'
+    minimal = os.sep.join(['Test Files','WMP 10 256kbps.mp3'])
     hasComments = '05 - In Da Club.mp3'
     hasLyrics = '05 - In Da Club.mp3'
     hasUfid = '05 - In Da Club.mp3'
