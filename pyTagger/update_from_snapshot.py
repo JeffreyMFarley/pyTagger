@@ -81,8 +81,10 @@ class UpdateFromSnapshot:
             print("Updating", self.formatter.normalizeToAscii(k))
             try:
                 self._updateOne(k,v)
+            except AssertionError as assertEx:
+                print('    Assertion Error', assertEx.args)
             except:
-                print('Error with', self.formatter.normalizeToAscii(k))
+                print('    Error with', sys.exc_info()[0])
 
     def _updateOne(self, fileName, updates):
         track = self._loadID3(fileName)
@@ -188,7 +190,7 @@ class UpdateFromSnapshot:
             text = unicode(v) if v else None
 
             # pick setting the value based on a strategy
-            if k in self._useSetAttr:
+            if k in self._useSetAttr and v:
                 setattr(track.tag, self._useSetAttr[k], v)
             elif k in self._useSetAttrString:
                 setattr(track.tag, self._useSetAttrString[k], text)
@@ -269,6 +271,8 @@ def buildArgParser():
 
     return p
 
+#sys.argv = ['update_from_snapshot', '--all', '--upgrade', r'c:\Users\Jeff\Music\update.json']
+
 if __name__ == '__main__':
     parser = buildArgParser()
     args = parser.parse_args()
@@ -285,7 +289,9 @@ if __name__ == '__main__':
     if args.library:
         columns = columns + Formatter.library
     if args.all:
-        columns = Formatter.columns - Formatter.mp3Info
+        columns = Formatter.columns
+        for x in Formatter.mp3Info:
+            columns.remove(x)
 
     if not columns:
         columns = Formatter.basic
