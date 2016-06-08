@@ -1,0 +1,17 @@
+FROM alpine
+
+RUN apk add --update python py-pip ca-certificates git python-dev build-base
+
+# Add hew
+WORKDIR /
+RUN ["mkdir", "src"]
+WORKDIR src
+RUN ["git", "clone", "https://github.com/JeffreyMFarley/hew.git"]
+WORKDIR hew
+RUN ["python", "setup.py", "develop"]
+
+# Add the Sample Data
+ADD https://github.com/JeffreyMFarley/pyTagger/releases/download/v0.1-alpha/sample-data.tar.gz /var/tmp/
+# https://s3.amazonaws.com/jefftemp/sample-data.tar.gz
+WORKDIR /
+RUN ["tar", "-zxvf", "/var/tmp/sample-data.tar.gz"]

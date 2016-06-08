@@ -575,7 +575,7 @@ class ID3V23_Snapshot(BaseSpecifications):
 class ID3V24_Snapshot(ID3V23_Snapshot):
     minimal = '06 - Faust Arp.MP3'
     hasComments = '11 Swept Away.mp3'
-    hasLyrics = '01 Bloom.mp3'
+    hasLyrics = '01 Bloom.MP3'
     hasUfid = '03 - Kitten Moon.mp3'
 
     def buildSimpleTags(self):

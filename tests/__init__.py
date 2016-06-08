@@ -6,7 +6,7 @@ if sys.platform.startswith('win'):
     SOURCE_DIRECTORY = r'C:\dvp\MP3Tools\SampleData'
 else:
     RESULT_DIRECTORY = '/var/test_output'
-    SOURCE_DIRECTORY = '/var/sample_data'
+    SOURCE_DIRECTORY = '/SampleData'
 
 if not os.path.exists(RESULT_DIRECTORY):
     os.makedirs(RESULT_DIRECTORY)

@@ -22,8 +22,8 @@ class TestExtractImages(unittest.TestCase):
         assert os.path.exists(expected)
 
     def test_multiple_on_same_album_extract(self):
-        file1 = os.path.join(SOURCE_DIRECTORY, 'The King Of Limbs', '01 Bloom.mp3')
-        file2 = os.path.join(SOURCE_DIRECTORY, 'The King Of Limbs', '02 MorningMrMagpie.mp3')
+        file1 = os.path.join(SOURCE_DIRECTORY, 'The King Of Limbs', '01 Bloom.MP3')
+        file2 = os.path.join(SOURCE_DIRECTORY, 'The King Of Limbs', '02 MorningMrMagpie.MP3')
         expected = os.path.join(IMAGES_DIRECTORY, 'The King Of Limbs - Bloom.jpeg')
         not_expected = os.path.join(IMAGES_DIRECTORY, 'The King Of Limbs - Morning Mr Magpie.jpeg')
         

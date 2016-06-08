@@ -22,5 +22,10 @@
 /.bundle
 /.cache
 /.vagrant
+.docker/
 
+# Linux
 .bash_history
+
+# Mac
+.DS_Store

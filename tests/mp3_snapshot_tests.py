@@ -42,7 +42,7 @@ class TestMp3Snapshot(unittest.TestCase):
 
     def test_extract_basic(self):
         formatter = pyTagger.mp3_snapshot.Formatter(pyTagger.mp3_snapshot.Formatter.basic)
-        file = os.path.join(SOURCE_DIRECTORY, r'The King Of Limbs\05 LotusFlower.MP3')
+        file = os.path.join(SOURCE_DIRECTORY, 'The King Of Limbs','05 LotusFlower.MP3')
 
         row = self.target.extractTags(file, formatter)
         
@@ -52,7 +52,7 @@ class TestMp3Snapshot(unittest.TestCase):
 
     def test_extract_full_v10(self):
         formatter = pyTagger.mp3_snapshot.Formatter()
-        file = os.path.join(SOURCE_DIRECTORY, r'Test Files\ID3V1.MP3')
+        file = os.path.join(SOURCE_DIRECTORY, 'Test Files', 'ID3V1.mp3')
 
         row = self.target.extractTags(file, formatter)
         
@@ -63,7 +63,7 @@ class TestMp3Snapshot(unittest.TestCase):
 
     def test_extract_full_v22(self):
         formatter = pyTagger.mp3_snapshot.Formatter()
-        file = os.path.join(SOURCE_DIRECTORY, r'Test Files\iTunes 9 256 kbps.MP3')
+        file = os.path.join(SOURCE_DIRECTORY, 'Test Files', 'iTunes 9 256 kbps.mp3')
 
         row = self.target.extractTags(file, formatter)
         
@@ -76,7 +76,7 @@ class TestMp3Snapshot(unittest.TestCase):
 
     def test_extract_full_v23(self):
         formatter = pyTagger.mp3_snapshot.Formatter()
-        file = os.path.join(SOURCE_DIRECTORY, r'01 - Bust A Move.MP3')
+        file = os.path.join(SOURCE_DIRECTORY, '01 - Bust A Move.mp3')
 
         row = self.target.extractTags(file, formatter)
         
@@ -89,7 +89,7 @@ class TestMp3Snapshot(unittest.TestCase):
 
     def test_extract_full_v24(self):
         formatter = pyTagger.mp3_snapshot.Formatter()
-        file = os.path.join(SOURCE_DIRECTORY, r'The King Of Limbs\05 LotusFlower.MP3')
+        file = os.path.join(SOURCE_DIRECTORY, 'The King Of Limbs', '05 LotusFlower.MP3')
 
         row = self.target.extractTags(file, formatter)
         
@@ -122,7 +122,7 @@ class TestMp3Snapshot(unittest.TestCase):
     def test_extract_non_ascii_filename(self):
         formatter = pyTagger.mp3_snapshot.Formatter(pyTagger.mp3_snapshot.Formatter.basic)
         title = buildFormula();
-        file = os.path.join(SOURCE_DIRECTORY, u'10 '+title+u'.MP3')
+        file = os.path.join(SOURCE_DIRECTORY, u'10 '+title+u'.mp3')
 
         row = self.target.extractTags(file, formatter)
         
