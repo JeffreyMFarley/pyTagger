@@ -114,6 +114,11 @@ class TestIntegration(unittest.TestCase):
     def test_05_extractAll(self):
         targetDir = os.path.join(RESULT_DIRECTORY, r'images')
         target = pyTagger.ExtractImages(targetDir)
+
+        # Clear directory
+        for name in os.listdir(targetDir):
+            os.remove(os.path.join(targetDir, name))
+
         target.extractAll(INTEGRATION_TEST_DIRECTORY)
         
         files = [name for name in os.listdir(targetDir)]

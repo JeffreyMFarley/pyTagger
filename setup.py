@@ -15,5 +15,6 @@ setup(name='pyTagger',
       license='MIT',
       packages=['pyTagger'],
       install_requires=install_requires,
-      test_suite='tests',
+      test_suite='nose.collector',
+      tests_require=['nose'],
       zip_safe=False)
