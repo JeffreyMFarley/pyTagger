@@ -1,4 +1,4 @@
-import unittest
+﻿import unittest
 import os
 import sys
 import shutil
@@ -32,26 +32,26 @@ class TestRename(unittest.TestCase):
         return t
 
     def test_buildPath_badChars(self):
-        tags = self._buildTags(title=r'\/:*?"<>|.')
-        expected = ['Foo', 'Bar', '01 - __________.mp3']
+        tags = self._buildTags(title=u'\\/:*?"<>|.')
+        expected = [u'Foo', u'Bar', u'01 - __________.mp3']
         actual = self.target.buildPath(tags)
         self.assertSequenceEqual(expected, actual)
 
     def test_buildPath_compilation(self):
         tags = self._buildTags(compilation=1)
-        expected = ['Compilations', 'Bar', '01 - Baz.mp3']
+        expected = [u'Compilations', u'Bar', u'01 - Baz.mp3']
         actual = self.target.buildPath(tags)
         self.assertSequenceEqual(expected, actual)
 
     def test_buildPath_disc(self):
         tags = self._buildTags(totalDisc=2)
-        expected = ['Foo', 'Bar', '01-01 - Baz.mp3']
+        expected = [u'Foo', u'Bar', u'01-01 - Baz.mp3']
         actual = self.target.buildPath(tags)
         self.assertSequenceEqual(expected, actual)
 
     def test_buildPath_disc2(self):
         tags = self._buildTags(totalDisc=2, disc=2)
-        expected = ['Foo', 'Bar', '02-01 - Baz.mp3']
+        expected = [u'Foo', u'Bar', u'02-01 - Baz.mp3']
         actual = self.target.buildPath(tags)
         self.assertSequenceEqual(expected, actual)
 
@@ -61,9 +61,17 @@ class TestRename(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.target.buildPath(tags)
 
+    def test_buildPath_exception_emptyAlbumArtist(self):
+        tags = self._buildTags()
+        del tags['albumArtist']
+        expected = [u'Foo (with Qaz)', u'Bar', u'01 - Baz.mp3']
+        actual = self.target.buildPath(tags)
+        self.assertSequenceEqual(expected, actual)
+
     def test_buildPath_exception_emptyArtist(self):
         tags = self._buildTags()
         del tags['albumArtist']
+        del tags['artist']
         with self.assertRaises(ValueError):
             self.target.buildPath(tags)
 
@@ -76,58 +84,58 @@ class TestRename(unittest.TestCase):
     def test_buildPath_exception_emptyTrack(self):
         tags = self._buildTags()
         del tags['track']
-        expected = ['Foo', 'Bar', '00 - Baz.mp3']
+        expected = [u'Foo', u'Bar', u'00 - Baz.mp3']
         actual = self.target.buildPath(tags)
         self.assertSequenceEqual(expected, actual)
 
     def test_buildPath_happy(self):
         tags = self._buildTags()
-        expected = ['Foo', 'Bar', '01 - Baz.mp3']
+        expected = [u'Foo', u'Bar', u'01 - Baz.mp3']
         actual = self.target.buildPath(tags)
         self.assertSequenceEqual(expected, actual)
 
     def test_buildPath_length_album(self):
-        s = '0123456789abcdef' * 4
+        s = u'0123456789abcdef' * 4
         tags = self._buildTags(album=s)
-        expected = ['Foo', '0123456789abcdef0123456789abcdef01234567', 
-                    '01 - Baz.mp3']
+        expected = [u'Foo', u'0123456789abcdef0123456789abcdef01234567', 
+                    u'01 - Baz.mp3']
         actual = self.target.buildPath(tags)
         self.assertSequenceEqual(expected, actual)
 
     def test_buildPath_length_artist(self):
-        s = '0123456789abcdef' * 4
+        s = u'0123456789abcdef' * 4
         tags = self._buildTags(albumArtist=s)
-        expected = ['0123456789abcdef0123456789abcdef01234567', 'Bar',
-                    '01 - Baz.mp3']
+        expected = [u'0123456789abcdef0123456789abcdef01234567', u'Bar',
+                    u'01 - Baz.mp3']
         actual = self.target.buildPath(tags)
         self.assertSequenceEqual(expected, actual)
 
     def test_buildPath_length_title(self):
-        s = '0123456789abcdef' * 4
+        s = u'0123456789abcdef' * 4
         tags = self._buildTags(title=s)
-        expected = ['Foo', 'Bar', 
-                    '01 - 0123456789abcdef0123456789ab.mp3']
+        expected = [u'Foo', u'Bar', 
+                    u'01 - 0123456789abcdef0123456789abcde.mp3']
         actual = self.target.buildPath(tags)
         self.assertSequenceEqual(expected, actual)
 
     def test_buildPath_length_title_disc(self):
-        s = '0123456789abcdef' * 4
+        s = u'0123456789abcdef' * 4
         tags = self._buildTags(title=s, totalDisc=2)
-        expected = ['Foo', 'Bar', 
-                    '01-01 - 0123456789abcdef012345678.mp3']
+        expected = [u'Foo', u'Bar', 
+                    u'01-01 - 0123456789abcdef0123456789ab.mp3']
         actual = self.target.buildPath(tags)
         self.assertSequenceEqual(expected, actual)
 
     def test_buildPath_matchExtension(self):
         tags = self._buildTags()
-        expected = ['Foo', 'Bar', '01 - Baz.MP3']
+        expected = [u'Foo', u'Bar', u'01 - Baz.MP3']
         actual = self.target.buildPath(tags, 'MP3')
         self.assertSequenceEqual(expected, actual)
 
     def test_buildPath_trim(self):
-        tags = self._buildTags(title=' B a z ', album=' B a r ', 
-                               albumArtist=' F o o ')
-        expected = ['F o o', 'B a r', '01 - B a z.mp3']
+        tags = self._buildTags(title=u' B a z ', album=u' B a r ', 
+                               albumArtist=u' F o o ')
+        expected = [u'F o o', u'B a r', u'01 - B a z.mp3']
         actual = self.target.buildPath(tags)
         self.assertSequenceEqual(expected, actual)
 

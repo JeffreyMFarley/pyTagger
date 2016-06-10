@@ -6,10 +6,14 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{FEAD3372-82E4-4C53-9359-3F176DC1AE59}"
 	ProjectSection(SolutionItems) = preProject
 		.env = .env
+		.env.example = .env.example
 		.gitattributes = .gitattributes
 		.gitignore = .gitignore
 		Dockerfile = Dockerfile
+		Dockerfile-hew-sample-data = Dockerfile-hew-sample-data
 		README.rst = README.rst
+		run-test.sh = run-test.sh
+		run_tests.bat = run_tests.bat
 		Vagrantfile = Vagrantfile
 	EndProjectSection
 EndProject

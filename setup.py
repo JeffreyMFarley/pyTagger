@@ -1,4 +1,4 @@
-import sys
+﻿import sys
 from setuptools import setup
 
 install_requires=['eyed3', 'pymonad', 'requests']  # 'hew'
@@ -15,6 +15,6 @@ setup(name='pyTagger',
       license='MIT',
       packages=['pyTagger'],
       install_requires=install_requires,
-      test_suite='nose.collector',
+      test_suite='tests',
       tests_require=['nose'],
       zip_safe=False)

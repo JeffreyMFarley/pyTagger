@@ -1,4 +1,4 @@
-import unittest
+﻿import unittest
 import pickle
 try:
     from unittest.mock import patch
@@ -6,6 +6,7 @@ except ImportError:
     from mock import patch
 from pyTagger.echonest_proxy import EchoNestProxy
 
+@unittest.skip('Echonest API has deprecated and moved to Spotify 2016-05')
 class Test_EchoNestProxy(unittest.TestCase):
     fields = {'artist', 'title', 'key', 'length', 'bpm',
               'id_musicbrainz_artist', 'id_musicbrainz_song', 

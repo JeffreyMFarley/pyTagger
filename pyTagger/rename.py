@@ -1,20 +1,29 @@
-
+﻿
 from __future__ import print_function
 import os
 import sys
 import argparse
 import itertools
 import logging
-import binascii
-import hashlib
 if sys.version < '3':
-    import eyed3
-    from eyed3 import main, mp3, id3, core
     import codecs
     _input = lambda fileName: codecs.open(fileName, 'r', encoding='utf-8')
 else:
     _input = lambda fileName: open(fileName, 'r', encoding='utf-8')
 from pyTagger.mp3_snapshot import Formatter, Mp3Snapshot
+
+winFileReserved = ['\\', '/', ':', '*', '?', '"', '<', '>', '|', '.']
+winFileTable = {ord(c):u'_' for c in winFileReserved}
+
+# -----------------------------------------------------------------------------
+# Functions
+# -----------------------------------------------------------------------------
+
+def RemoveBadFileNameChars(s):
+    return s.translate(winFileTable)
+
+def Limit(s, maxChars):
+    return s[:maxChars]
 
 # -----------------------------------------------------------------------------
 # Classes
@@ -31,8 +40,48 @@ class Rename():
         fields.append('compilation')
         return Formatter(fields)
 
-    def buildPath(self, tags, extension=None):
-        return [None, None, None]
+    # -------------------------------------------------------------------------
+    # Path Methods
+    # -------------------------------------------------------------------------
+
+    def buildPath(self, tags, ext=None):
+        safeGet = lambda x: tags[x] if x in tags else None 
+        pipeline = lambda x, n: RemoveBadFileNameChars(Limit(x.strip(), n))
+
+        album = safeGet('album')
+        if not album:
+            raise ValueError('Album Name must be provided')
+
+        if safeGet('compilation'):
+            artist = u'Compilations'
+        else:
+            artist = safeGet('albumArtist') or safeGet('artist')
+            if not artist:
+                raise ValueError('Artist must be provided')
+
+        title = safeGet('title')
+        if not title:
+            raise ValueError('Title must be provided')
+
+        jointedPath = [pipeline(artist, 40), pipeline(album, 40)]
+
+        totalDisc = safeGet('totalDisc') or 1
+        if totalDisc > 1:
+            fileName = u'{0:02d}-'.format(safeGet('disc') or 0)
+        else:
+            fileName = u''
+
+        fileName += u'{0:02d} - {1}'.format(safeGet('track') or 0, 
+                                            pipeline(title, 100))
+        fileName = u'{0}.{1}'.format(Limit(fileName, 36),
+                                     u'mp3' if not ext else ext)
+                
+        jointedPath.append(fileName)
+        return jointedPath
+
+    # -------------------------------------------------------------------------
+    # Main Methods
+    # -------------------------------------------------------------------------
 
     def run(self, directory):
         log = logging.getLogger('eyed3')
@@ -54,6 +103,7 @@ class Rename():
                     print("Extracting", formatter.normalizeToAscii(fullPath))
                     tags = reader.extractTags(fullPath, formatter)
                     relativePath = self.buildPath(tags, fullPath[-3:])
+                    print(relativePath)
 
 # -----------------------------------------------------------------------------
 # Main

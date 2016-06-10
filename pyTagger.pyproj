@@ -25,6 +25,7 @@
     <Compile Include="pyTagger\prepare_check_in.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="pyTagger\rename.py" />
     <Compile Include="setup.py" />
     <Compile Include="pyTagger\iTunes.py" />
     <Compile Include="pyTagger\mp3_snapshot.py" />
@@ -45,6 +46,7 @@
     <Compile Include="tests\prepare_check_in_tests.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="tests\rename_test.py" />
     <Compile Include="tests\snapshot_converter_tests.py" />
     <Compile Include="tests\update_from_snapshot_tests.py" />
     <Compile Include="tests\zee_integration_tests.py" />

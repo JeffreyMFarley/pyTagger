@@ -12,4 +12,4 @@ docker run -it \
 
 docker stop pytagger-dev && docker rm pytagger-dev
 
-# -v "/home/vagrant:/home/project" \
+# python -m pyTagger.rename /SampleData
