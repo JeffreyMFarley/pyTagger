@@ -45,8 +45,8 @@ class Rename():
     # -------------------------------------------------------------------------
 
     def buildPath(self, tags, ext=None):
-        safeGet = lambda x: tags[x] if x in tags else None 
-        pipeline = lambda x, n: RemoveBadFileNameChars(Limit(x.strip(), n))
+        safeGet = lambda x: tags[x] if x in tags else None
+        pipeline = lambda x, n: RemoveBadFileNameChars(Limit(x, n)).strip(' _')
 
         album = safeGet('album')
         if not album:
@@ -71,11 +71,11 @@ class Rename():
         else:
             fileName = u''
 
-        fileName += u'{0:02d} - {1}'.format(safeGet('track') or 0, 
-                                            pipeline(title, 100))
+        fileName += u'{0:02d} {1}'.format(safeGet('track') or 0,
+                                          pipeline(title, 100))
         fileName = u'{0}.{1}'.format(Limit(fileName, 36),
                                      u'mp3' if not ext else ext)
-                
+
         jointedPath.append(fileName)
         return jointedPath
 
