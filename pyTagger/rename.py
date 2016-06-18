@@ -5,6 +5,7 @@ import sys
 import argparse
 import itertools
 import logging
+import shutil
 if sys.version < '3':
     import codecs
     _input = lambda fileName: codecs.open(fileName, 'r', encoding='utf-8')
@@ -32,6 +33,8 @@ def Limit(s, maxChars):
 class Rename():
     def __init__(self, destDir):
         self.destDir = destDir if destDir else os.getcwd()
+        if self.destDir[-1] != os.path.sep:
+            self.destDir += os.path.sep
         if not os.path.exists(self.destDir):
             os.makedirs(self.destDir)
 
@@ -46,7 +49,7 @@ class Rename():
 
     def buildPath(self, tags, ext=None):
         safeGet = lambda x: tags[x] if x in tags else None
-        pipeline = lambda x, n: RemoveBadFileNameChars(Limit(x, n)).strip(' _')
+        pipeline = lambda x, n: Limit(RemoveBadFileNameChars(x).strip(' _'), n)
 
         album = safeGet('album')
         if not album:
@@ -79,6 +82,15 @@ class Rename():
         jointedPath.append(fileName)
         return jointedPath
 
+    def needsMove(self, current, proposed):
+        if current == proposed:
+            return False
+
+        if os.path.exists(proposed):
+            raise ValueError(proposed + ' already exists. Avoiding collision')
+
+        return True
+
     # -------------------------------------------------------------------------
     # Main Methods
     # -------------------------------------------------------------------------
@@ -100,15 +112,27 @@ class Rename():
 
                 # Check if the file has an extension of typical music files
                 if fullPath[-3:].lower() in ['mp3']:
-                    print("Extracting", formatter.normalizeToAscii(fullPath))
-                    tags = reader.extractTags(fullPath, formatter)
-                    relativePath = self.buildPath(tags, fullPath[-3:])
-                    print(relativePath)
+                    try:
+                        print("Reading", formatter.normalizeToAscii(fullPath))
+                        tags = reader.extractTags(fullPath, formatter)
+                        relativePath = self.buildPath(tags, fullPath[-3:])
+                        proposed = os.path.join(self.destDir, *relativePath)
+                        if self.needsMove(fullPath, proposed):
+                            newPath = os.path.join(self.destDir,
+                                                   relativePath[0],
+                                                   relativePath[1], '')
+                            if not os.path.exists(newPath):
+                                os.makedirs(newPath)
+                            print('  Moving to', proposed)
+                            shutil.move(fullPath, proposed)
+                        else:
+                            print('  Same name... Skipping')
 
+                    except ValueError as ve:
+                        print('  Error', ve)
 # -----------------------------------------------------------------------------
 # Main
 # -----------------------------------------------------------------------------
-
 
 def buildArgParser():
     description = 'Rename MP3 files'

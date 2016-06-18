@@ -20,7 +20,6 @@ from tests import *
 
 INTEGRATION_TEST_DIRECTORY = os.path.join(RESULT_DIRECTORY, r'integration-test')
 
-
 def walk(path):
     for currentDir, subdirs, files in os.walk(unicode(path)):
         # Get the absolute path of the currentDir parameter
@@ -101,7 +100,7 @@ class TestIntegration(unittest.TestCase):
             a = json.load(f)
         with _input(outFile) as f:
             b = json.load(f)
-        
+
         for path, tags in b.items():
             a_tags = a[path]
             for tag, value in tags.items():
@@ -109,7 +108,7 @@ class TestIntegration(unittest.TestCase):
                     assert tag not in a_tags or not a_tags[tag]
                 else:
                     assert value == a_tags[tag]
-        
+
     @unittest.skipIf(sys.version > '3', 'This test must be run in Python 2.x')
     def test_05_extractAll(self):
         targetDir = os.path.join(RESULT_DIRECTORY, r'images')
@@ -120,9 +119,31 @@ class TestIntegration(unittest.TestCase):
             os.remove(os.path.join(targetDir, name))
 
         target.extractAll(INTEGRATION_TEST_DIRECTORY)
-        
+
         files = [name for name in os.listdir(targetDir)]
         self.assertEqual(27, len(files))
+
+    @unittest.skipIf(sys.version > '3', 'This test must be run in Python 2.x')
+    def test_06_rename(self):
+        targetDir = os.path.join(RESULT_DIRECTORY, u'renamed', '')
+        if os.path.exists(targetDir):
+            shutil.rmtree(targetDir)
+
+        target = pyTagger.Rename(targetDir)
+
+        # Copy over files
+        for f in walk(os.path.join(SOURCE_DIRECTORY, u'Checkin')):
+            shutil.copy(f, targetDir)
+
+        prepare = pyTagger.PrepareCheckIn()
+        prepare.run(targetDir)
+        target.run(targetDir)
+
+        files = [name for name in os.listdir(targetDir)]
+        self.assertEqual(7, len(files))
+
+        expected = os.path.join(targetDir, 'Beck', 'Dreams', '01 Dreams.mp3')
+        self.assertTrue(os.path.exists(expected))
 
     @unittest.skipIf(sys.version > '3', 'This test must be run in Python 2.x')
     def test_00_extractFromList(self):
@@ -134,7 +155,7 @@ class TestIntegration(unittest.TestCase):
         targetDir = os.path.join(RESULT_DIRECTORY, r'some_images')
         target = pyTagger.ExtractImages(targetDir)
         target.extractFrom(fileName)
-        
+
         files = [name for name in os.listdir(targetDir)]
         assert len(files) == 2
 

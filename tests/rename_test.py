@@ -9,12 +9,32 @@ import itertools
 import pyTagger
 from tests import *
 
-RENAMED_DIRECTORY = os.path.join(RESULT_DIRECTORY, 'renamed')
+RENAMED_DIRECTORY = os.path.join(RESULT_DIRECTORY, u'renamed')
+CHECKIN_DIRECTORY = os.path.join(SOURCE_DIRECTORY, u'Checkin')
+
+# -----------------------------------------------------------------------------
+# Module-Wide Routines
+# -----------------------------------------------------------------------------
+
+def resetFile(fileName):
+    fromFile = os.path.join(CHECKIN_DIRECTORY, fileName)
+    shutil.copy(fromFile, RENAMED_DIRECTORY)
+    return os.path.join(RENAMED_DIRECTORY, fileName)
+
+def setUpModule():
+    pass
+
+def tearDownModule():
+    #shutil.rmtree(unicode(RENAMED_DIRECTORY))
+    pass
+
+# -----------------------------------------------------------------------------
+# Test Class
+# -----------------------------------------------------------------------------
 
 class TestRename(unittest.TestCase):
 
     def setUp(self):
-        assert sys.version < '3', 'This test must be run in Python 2.x'
         self.target = pyTagger.Rename(RENAMED_DIRECTORY)
 
     def _buildTags(self, **kwargs):
@@ -138,6 +158,22 @@ class TestRename(unittest.TestCase):
         expected = [u'F o o', u'B a r', u'01 B a z.mp3']
         actual = self.target.buildPath(tags)
         self.assertSequenceEqual(expected, actual)
+
+    def test_needsMove_bothEqual(self):
+        current = resetFile(u'01-11- Restart.mp3')
+        actual = self.target.needsMove(current, current)
+        self.assertEqual(False, actual)
+
+    def test_needsMove_collision(self):
+        proposed = resetFile(u'01-11- Restart.mp3')
+        with self.assertRaises(ValueError):
+            self.target.needsMove(u'foo', proposed)
+
+    def test_needsMove_notEqual(self):
+        current = resetFile(u'01-11- Restart.mp3')
+        proposed = os.path.join(RENAMED_DIRECTORY, u'foo.mp3')
+        actual = self.target.needsMove(current, proposed)
+        self.assertEqual(True, actual)
 
 if __name__ == '__main__':
     unittest.main()
