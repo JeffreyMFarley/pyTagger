@@ -1,0 +1,12 @@
+doc-warnings: no
+test-warnings: no
+strictness: medium
+max-line-length: 80
+autodetect: yes
+requirements:
+    - setup.py
+ignore-patterns:
+    - .*__init__.py
+python-targets:
+    - 2
+    - 3

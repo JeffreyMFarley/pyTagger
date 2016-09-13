@@ -6,11 +6,12 @@ except ImportError:
     from mock import patch
 from pyTagger.echonest_proxy import EchoNestProxy
 
+
 @unittest.skip('Echonest API has deprecated and moved to Spotify 2016-05')
 class Test_EchoNestProxy(unittest.TestCase):
     fields = {'artist', 'title', 'key', 'length', 'bpm',
-              'id_musicbrainz_artist', 'id_musicbrainz_song', 
-              'id_echonest_artist', 'id_echonest_song', 
+              'id_musicbrainz_artist', 'id_musicbrainz_song',
+              'id_echonest_artist', 'id_echonest_song',
               'acousticness', 'danceability', 'energy', 'instrumentalness',
               'liveness', 'loudness', 'speechiness', 'valence'
               }
@@ -41,7 +42,7 @@ class Test_EchoNestProxy(unittest.TestCase):
     def test_offline(self, requests):
         r = self.load('simple')
         r.status_code = 404
-        requests.get.return_value = r 
+        requests.get.return_value = r
 
         actual = list(self.target.getByArtist(u'Foo'))
 
@@ -52,7 +53,7 @@ class Test_EchoNestProxy(unittest.TestCase):
     @patch('pyTagger.echonest_proxy.requests')
     def test_rateLimit(self, requests):
         r = self.load('rateLimit')
-        requests.get.return_value = r 
+        requests.get.return_value = r
 
         actual = list(self.target.getByArtist(u'Foo'))
 
@@ -64,7 +65,7 @@ class Test_EchoNestProxy(unittest.TestCase):
     @patch('pyTagger.echonest_proxy.requests')
     def test_tooManyResults(self, requests):
         r = self.load('tooManyResults')
-        requests.get.return_value = r 
+        requests.get.return_value = r
 
         actual = list(self.target.getByArtist(u'Foo'))
 
@@ -76,7 +77,7 @@ class Test_EchoNestProxy(unittest.TestCase):
     @patch('pyTagger.echonest_proxy.requests')
     def test_getByArtist_simple(self, requests):
         r = self.load('simple')
-        requests.get.return_value = r 
+        requests.get.return_value = r
 
         actual = list(self.target.getByArtist(u'Foo'))
 
@@ -93,7 +94,7 @@ class Test_EchoNestProxy(unittest.TestCase):
             offset = str(kwargs['params']['start'])
             return self.load('chunks-' + offset)
 
-        requests.get.side_effect = side_effect 
+        requests.get.side_effect = side_effect
 
         actual = list(self.target.getByArtist(u'Foo'))
 
@@ -103,6 +104,6 @@ class Test_EchoNestProxy(unittest.TestCase):
         for song in actual:
             self.assertEqual(self.fields, set(song.keys()))
             self.assertIn('Meat Beat Manifesto', song['artist'])
-               
+
 if __name__ == '__main__':
     unittest.main()
