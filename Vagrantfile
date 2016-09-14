@@ -15,8 +15,4 @@ Vagrant.configure(2) do |config|
 
   config.vm.provision "docker"
 
-  config.vm.provision "shell", inline: "docker build -t app .", run: "always"
-
-  #docker run -it -v /home/vagrant:/home/project app /bin/sh
-
 end
