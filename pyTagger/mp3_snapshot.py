@@ -10,7 +10,7 @@ import hashlib
 import logging
 if sys.version < '3':
     import eyed3
-    from eyed3 import main, mp3, id3, core
+    from eyed3 import main, mp3, id3
     import codecs
     import unicodedata
     _input = lambda fileName: codecs.open(fileName, 'r', encoding='utf-8')
@@ -24,7 +24,7 @@ else:
 # -----------------------------------------------------------------------------
 
 
-class Formatter():
+class Formatter(object):
     _projectionEyed3 = {
         'album': lambda x: x.tag.album,
         'albumArtist': lambda x: x.tag.album_artist,
@@ -68,7 +68,7 @@ class Formatter():
         'track': lambda x: x.tag.track_num[0],
         'ufid': lambda x: Formatter.extractFileIds(x),
         'vbr': lambda x: x.info.bit_rate[0] if x.info is not None else None,
-        'version' : lambda x: '.'.join([str(y) for y in x.tag.version]),
+        'version': lambda x: '.'.join([str(y) for y in x.tag.version]),
         'year': lambda x: Formatter.extractDate(x.tag.getBestDate()),
     }
     columns = list(_projectionEyed3.keys())
@@ -83,8 +83,8 @@ class Formatter():
                'group', 'subtitle', 'encodingDate', 'taggingDate']
     mp3Info = ['bitRate', 'vbr', 'fileHash', 'version']
 
-    def __init__(self, fieldSet=columns):
-        self.fieldSet = fieldSet
+    def __init__(self, fieldSet=None):
+        self.fieldSet = self.columns if fieldSet is None else fieldSet
         self.translateTable = []
 
     def format(self, obj):
@@ -143,12 +143,13 @@ class Formatter():
 
         return columns
 
-class Mp3Snapshot:
+
+class Mp3Snapshot(object):
     def __init__(self, compact=True):
         self.compact = compact
 
     def createFromScan(self, scanPath, outFileName,
-                       fieldSet=Formatter.columns, supressWarnings=True):
+                       fieldSet=None, supressWarnings=True):
         formatter = Formatter(fieldSet)
 
         if supressWarnings:
@@ -160,8 +161,9 @@ class Mp3Snapshot:
             fout.writelines('{')
             sep = ''
 
-            # make sure the scan path is unicode and the results will be returned in unicode
-            for currentDir, subdirs, files in os.walk(unicode(scanPath)):
+            # make sure the scan path is unicode and the results will be
+            # returned in unicode
+            for currentDir, _, files in os.walk(unicode(scanPath)):
                 # Get the absolute path of the currentDir parameter
                 currentDir = os.path.abspath(currentDir)
 
@@ -193,7 +195,7 @@ class Mp3Snapshot:
         if 'fileHash' in formatter.fieldSet:
             a['fileHash'] = self._calculateHash(track, mp3FileName)
         return a
-           
+
     def _extractTags(self, track, formatter):
         return formatter.format(track)
 
@@ -230,9 +232,9 @@ class Mp3Snapshot:
         with _input(fileName) as f:
             return json.load(f)
 
-    def save(self, fileName, object):
+    def save(self, fileName, o):
         with _output(fileName) as f:
-            return json.dump(object, f, indent=None if self.compact else 2)
+            return json.dump(o, f, indent=None if self.compact else 2)
 
 # -----------------------------------------------------------------------------
 # Main

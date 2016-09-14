@@ -5,13 +5,15 @@ import json
 import os
 import sys
 import argparse
-import unicodedata
 if sys.version < '3':
     import codecs
     _input_json = lambda fileName: codecs.open(fileName, 'r', encoding='utf-8')
-    _input_table = lambda fileName: codecs.open(fileName, 'r', encoding='utf_16_le')
-    _output_json = lambda fileName: codecs.open(fileName, 'w', encoding='utf-8')
-    _output_table = lambda fileName: codecs.open(fileName, 'w', encoding='utf_16_le')
+    _input_table = lambda fileName: codecs.open(fileName, 'r',
+                                                encoding='utf_16_le')
+    _output_json = lambda fileName: codecs.open(fileName, 'w',
+                                                encoding='utf-8')
+    _output_table = lambda fileName: codecs.open(fileName, 'w',
+                                                 encoding='utf_16_le')
 else:
     _input_json = lambda fileName: open(fileName, 'r', encoding='utf-8')
     _input_table = lambda fileName: open(fileName, 'r', encoding='utf_16_le')
@@ -23,12 +25,15 @@ from pyTagger.mp3_snapshot import Formatter
 # State Machine
 # -----------------------------------------------------------------------------
 
-class Context:
+
+class Context(object):
     def __init__(self):
         self._reset()
+
     def _reset(self):
         self._buffer = []
         self._state = State.Initial
+
     def push(self, c):
         self._buffer.append(c)
 
@@ -40,7 +45,7 @@ class Context:
         self._reset()
         self._separator = ',' if useCsv else '\t'
         with _input_table(inFile) as f:
-            f.seek(2) # skip BOM
+            f.seek(2)  # skip BOM
             c = f.read(1)
             while c:
                 self._state = self._state.onCharacter(self, c)
@@ -55,9 +60,10 @@ class Context:
                 c = f.read(1)
 
 
-class State:
+class State(object):
     def run(self, context, c):
         raise NotImplementedError
+
     def onCharacter(self, context, c):
         if c == context.separator:
             return State.EndOfField
@@ -67,6 +73,7 @@ class State:
             return State.NewLine
         else:
             return State.Raw
+
     @property
     def isEndOfRecord(self):
         return False
@@ -91,6 +98,7 @@ class DoubleQuoteState(State):
     def run(self, context, c):
         if c != '"':
             context.push(c)
+
     def onCharacter(self, context, c):
         if c == '"':
             return State.EscapingDoubleQuote
@@ -101,6 +109,7 @@ class DoubleQuoteState(State):
 class EscapingDoubleQuoteState(State):
     def run(self, context, c):
         pass
+
     def onCharacter(self, context, c):
         if c == context.separator:
             return State.EndOfField
@@ -116,8 +125,10 @@ class EscapingDoubleQuoteState(State):
 class NewLineState(State):
     def run(self, context, c):
         pass
+
     def onCharacter(self, context, c):
         return self
+
     def isEndOfRecord(self):
         return True
 
@@ -134,11 +145,11 @@ State.NewLine = NewLineState()
 # -----------------------------------------------------------------------------
 
 
-class SnapshotConverter:
+class SnapshotConverter(object):
     def __init__(self):
         pass
 
-    def convert(self, inFileName, outFileName, fieldSet=[], useCsv=False):
+    def convert(self, inFileName, outFileName, fieldSet=None, useCsv=False):
         with _input_json(inFileName) as f:
             snapshot = json.load(f)
 
@@ -147,7 +158,7 @@ class SnapshotConverter:
             fieldSet = self._extractColumns(snapshot)
         fieldSet.append('fullPath')
 
-        # not using csv.DictWriter since the Python 2.x version has a hard time 
+        # not using csv.DictWriter since the Python 2.x version has a hard time
         # supporting unicode
         with _output_table(outFileName) as f:
             sep = ',' if useCsv else '\t'
@@ -159,19 +170,19 @@ class SnapshotConverter:
             a = sep.join([self._encapsulate(col) for col in fieldSet])
             f.writelines([a, '\n'])
 
-            # write the rows                
+            # write the rows
             for k in sorted(snapshot):
                 row = snapshot[k]
                 row['fullPath'] = k
                 a = sep.join([self._encapsulate(row[col])
                               if col in row else ''
                               for col in fieldSet])
-                f.writelines([a, '\n'])                
+                f.writelines([a, '\n'])
 
     def _extractColumns(self, data):
         header = set()
 
-        for k, v in data.items():
+        for _, v in data.items():
             for j in v.keys():
                 if j not in header:
                     header.add(j)
@@ -192,47 +203,50 @@ class SnapshotConverter:
     def _encapsulate(self, field):
         try:
             if self._is_sequence(field):
-                return  '"' + self._seqrepr(field).replace('"', '""') + '"'
+                return '"' + self._seqrepr(field).replace('"', '""') + '"'
             if not field:
                 return ''
             needDoubleQuotes = [',', '"', '\r', '\n']
             addDoubleQuotes = any([x in field for x in needDoubleQuotes])
             if addDoubleQuotes:
-                return '"' + field.replace('"', '""') + '"' 
+                return '"' + field.replace('"', '""') + '"'
             return field
         except (TypeError, AttributeError):
             return str(field)
 
-    def _seqrepr(self, iter):
-        if isinstance(iter, (list, set)):
-            return '[' + '\n'.join(self._seqrepr(x) for x in iter) + ']'
-        if isinstance(iter, dict):
+    def _seqrepr(self, iterable):
+        if isinstance(iterable, (list, set)):
+            return '[' + '\n'.join(self._seqrepr(x) for x in iterable) + ']'
+        if isinstance(iterable, dict):
             return '{' + ', '.join([' : '.join([self._seqrepr(k),
                                                 self._seqrepr(v)])
-                                    for k,v in iter.items()
+                                    for k, v in iterable.items()
                                     ]) + '}'
-        return iter
+        return iterable
 
 
 class ConvertBack:
     _collectionTags = ['comments', 'lyrics', 'ufid']
-    _numberTags = ['bitRate', 'bpm', 'disc', 'length', 'totalDisc', 'totalTrack', 'track']
+    _numberTags = ['bitRate', 'bpm', 'disc', 'length', 'totalDisc',
+                   'totalTrack', 'track']
     _booleanTags = ['vbr']
 
-    def convert(self, inFileName, outFileName, fieldSet=[], useCsv=False):
+    def convert(self, inFileName, outFileName, fieldSet=None, useCsv=False):
         context = Context()
         rowgen = context.parse(inFileName, useCsv)
         columns = next(rowgen)
 
         # Make the set output columns
         #fieldSet
-        outputColumns = set(columns) - {'comments', 'lyrics', 'ufid', 'fullPath'}
+        outputColumns = set(columns) - {
+            'comments', 'lyrics', 'ufid', 'fullPath'
+        }
 
         result = {}
         for row in rowgen:
             value = {columns[i]: self._transform(x, columns[i])
-                     for (i,x) in enumerate(row)
-                     if columns[i] in outputColumns }
+                     for (i, x) in enumerate(row)
+                     if columns[i] in outputColumns}
             result[row[-1]] = value
 
         with _output_json(outFileName) as f:
@@ -251,7 +265,7 @@ class ConvertBack:
 
 
 def buildArgParser():
-    description = 'Convert between MP3 snapshot format and a row and column format'
+    description = 'Convert between MP3 snapshot format and a row/column format'
     p = argparse.ArgumentParser(description=description)
     p.add_argument('infile', metavar='infile', help='the snapshot to process')
     p.add_argument('outfile', nargs='?', metavar='outfile',
@@ -296,7 +310,7 @@ if __name__ == '__main__':
         columns = columns + Formatter.mp3Info
     if args.all:
         columns = Formatter.orderedAllColumns()
-         
+
     if not args.outfile:
         root, ext = os.path.splitext(args.infile)
         newext = '.csv' if args.csv else '.txt'

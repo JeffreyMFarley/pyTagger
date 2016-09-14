@@ -14,14 +14,16 @@ else:
 from pyTagger.mp3_snapshot import Formatter, Mp3Snapshot
 
 winFileReserved = ['\\', '/', ':', '*', '?', '"', '<', '>', '|', '.']
-winFileTable = {ord(c):u'_' for c in winFileReserved}
+winFileTable = {ord(c): u'_' for c in winFileReserved}
 
 # -----------------------------------------------------------------------------
 # Functions
 # -----------------------------------------------------------------------------
 
+
 def RemoveBadFileNameChars(s):
     return s.translate(winFileTable)
+
 
 def Limit(s, maxChars):
     return s[:maxChars]
@@ -30,7 +32,8 @@ def Limit(s, maxChars):
 # Classes
 # -----------------------------------------------------------------------------
 
-class Rename():
+
+class Rename(object):
     def __init__(self, destDir):
         self.destDir = destDir if destDir else os.getcwd()
         if self.destDir[-1] != os.path.sep:
@@ -102,7 +105,7 @@ class Rename():
         reader = Mp3Snapshot()
         formatter = self._buildFormatter()
 
-        for currentDir, subdirs, files in os.walk(unicode(directory)):
+        for currentDir, _, files in os.walk(unicode(directory)):
             # Get the absolute path of the currentDir parameter
             currentDir = os.path.abspath(currentDir)
 
@@ -133,6 +136,7 @@ class Rename():
 # -----------------------------------------------------------------------------
 # Main
 # -----------------------------------------------------------------------------
+
 
 def buildArgParser():
     description = 'Rename MP3 files'

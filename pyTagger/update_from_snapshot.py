@@ -2,15 +2,13 @@
 
 from __future__ import print_function
 import json
-import os
 import sys
 import argparse
 import logging
-import datetime
 import binascii
 if sys.version < '3':
     import eyed3
-    from eyed3 import main, mp3, id3, core
+    from eyed3 import main, mp3, id3
     import codecs
     _input = lambda fileName: codecs.open(fileName, 'r', encoding='utf-8')
 else:
@@ -23,13 +21,13 @@ from pyTagger.mp3_snapshot import Formatter
 # -----------------------------------------------------------------------------
 
 
-class UpdateFromSnapshot:
+class UpdateFromSnapshot(object):
     _collectionTags = ['comments', 'lyrics', 'ufid']
 
     _useSetAttr = {
         'bpm': 'bpm',
         'playCount': 'play_count',
-        }
+    }
 
     _useSetAttrDate = {
         'encodingDate': 'encoding_date',
@@ -45,7 +43,7 @@ class UpdateFromSnapshot:
         'artist': 'artist',
         'publisher': 'publisher',
         'title': 'title'
-        }
+    }
 
     _useSetTextFrame = {
         'compilation': 'TCMP',
@@ -58,12 +56,13 @@ class UpdateFromSnapshot:
         'media': 'TMED',
         'remixer': 'TPE4',
         'subtitle': 'TIT3'
-        }
+    }
 
     def __init__(self):
         self.reader = pyTagger.Mp3Snapshot()
 
-    def update(self, inFileName, fieldSet=[], upgrade=False, supressWarnings=True):
+    def update(self, inFileName, fieldSet=None, upgrade=False,
+               supressWarnings=True):
         if supressWarnings:
             log = logging.getLogger('eyed3')
             log.setLevel(logging.ERROR)
@@ -77,13 +76,13 @@ class UpdateFromSnapshot:
             fieldSet = friend._extractColumns(snapshot)
         self.formatter = pyTagger.mp3_snapshot.Formatter(fieldSet)
 
-        for k,v in snapshot.items():
+        for k, v in snapshot.items():
             print("Updating", self.formatter.normalizeToAscii(k))
             try:
-                self._updateOne(k,v)
+                self._updateOne(k, v)
             except AssertionError as assertEx:
                 print('    Assertion Error', assertEx.args)
-            except:
+            except Exception:
                 print('    Error with', sys.exc_info()[0])
 
     def _updateOne(self, fileName, updates):
@@ -129,7 +128,7 @@ class UpdateFromSnapshot:
             track.tag.save()
         else:
             track.tag.save(version=version)
-        
+
     def _findDelta(self, a, b):
         '''Compare two file snapshots and return the difference
         ''a'' should be considered the source, like the JSON snapshot.
@@ -156,13 +155,13 @@ class UpdateFromSnapshot:
                 result[k] = self._findDeltaDLT(a[k], b[k])
             elif k == 'ufid':
                 result[k] = self._findDelta(a[k], b[k])
-            
+
             # if there are no members of a collection, remove the collection
             if k in self._collectionTags:
                 if not result[k]:
                     del result[k]
 
-        return result;
+        return result
 
     def _findDeltaDLT(self, a, b):
         ''' Compares collections of Description, Language, Text tuples
@@ -170,7 +169,12 @@ class UpdateFromSnapshot:
         result = []
 
         for a0 in a:
-            toTest = list(filter(lambda x: x['lang'] == a0['lang'] and x['description'] == a0['description'], b))
+            toTest = list(
+                filter(
+                    lambda x, y=a0: x['lang'] == y['lang']
+                    and x['description'] == y['description'], b
+                )
+            )
             if not toTest and a0['text']:
                 result.append(a0)
             else:
@@ -182,7 +186,7 @@ class UpdateFromSnapshot:
         return result
 
     def _writeSimple(self, track, tags):
-        for k,v in tags.items():
+        for k, v in tags.items():
             if k in self._collectionTags:
                 continue
 
@@ -214,7 +218,7 @@ class UpdateFromSnapshot:
                 track.tag.track_num = (v, track.tag.track_num[1])
 
     def _writeCollection(self, track, tags):
-        for k,v in tags.items():
+        for k, v in tags.items():
             if k == 'comments':
                 for v0 in v:
                     l = unicode(v0['lang'])
@@ -232,13 +236,14 @@ class UpdateFromSnapshot:
                     else:
                         track.tag.lyrics.set(unicode(v0['text']), d, l)
             elif k == 'ufid':
-                for id, value in v.items():
+                for ufid, value in v.items():
                     if not value:
-                        track.tag.unique_file_ids.remove(id)
+                        track.tag.unique_file_ids.remove(ufid)
                     else:
                         toBytes = binascii.a2b_base64(value)
-                        # str(id) is so Python doesn't try to do ASCII conversion on the whole string
-                        track.tag.unique_file_ids.set(toBytes, str(id))
+                        # str(ufid) is so Python doesn't try to do ASCII
+                        # conversion on the whole string
+                        track.tag.unique_file_ids.set(toBytes, str(ufid))
 
 # -----------------------------------------------------------------------------
 # Main
@@ -271,7 +276,8 @@ def buildArgParser():
 
     return p
 
-#sys.argv = ['update_from_snapshot', '--all', '--upgrade', r'c:\Users\Jeff\Music\update.json']
+#sys.argv = ['update_from_snapshot', '--all', '--upgrade',
+#            r'c:\Users\Jeff\Music\update.json']
 
 if __name__ == '__main__':
     parser = buildArgParser()
@@ -297,4 +303,4 @@ if __name__ == '__main__':
         columns = Formatter.basic
 
     pipeline = UpdateFromSnapshot()
-    pipeline.update(args.infile, columns, args.upgrade, args.supressWarnings);
+    pipeline.update(args.infile, columns, args.upgrade, args.supressWarnings)

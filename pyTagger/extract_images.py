@@ -9,7 +9,7 @@ import binascii
 import hashlib
 if sys.version < '3':
     import eyed3
-    from eyed3 import main, mp3, id3, core
+    from eyed3 import main, mp3, id3
     import codecs
     _input = lambda fileName: codecs.open(fileName, 'r', encoding='utf-8')
 else:
@@ -20,7 +20,8 @@ from pyTagger.mp3_snapshot import Formatter
 # Classes
 # -----------------------------------------------------------------------------
 
-class ExtractImages():
+
+class ExtractImages(object):
     def __init__(self, outputDir):
         self.outputDir = outputDir if outputDir else os.getcwd()
         self.captured = {}
@@ -34,8 +35,8 @@ class ExtractImages():
 
     def _writeImage(self, track, image):
         extension = image.mime_type.split("/")[1]
-        fileName = u'{0} - {1}.{2}'.format(track.tag.album, 
-                                           track.tag.title, 
+        fileName = u'{0} - {1}.{2}'.format(track.tag.album,
+                                           track.tag.title,
                                            extension)
         fullPath = os.path.join(self.outputDir, fileName)
 
@@ -66,7 +67,7 @@ class ExtractImages():
         log = logging.getLogger('eyed3')
         log.setLevel(logging.ERROR)
 
-        for currentDir, subdirs, files in os.walk(unicode(directory)):
+        for currentDir, _, files in os.walk(unicode(directory)):
             # Get the absolute path of the currentDir parameter
             currentDir = os.path.abspath(currentDir)
 

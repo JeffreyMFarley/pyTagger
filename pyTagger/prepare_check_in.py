@@ -5,9 +5,8 @@ import argparse
 import logging
 import datetime
 import uuid
-import unicodedata
 import binascii
-from pymonad.Reader import *
+from pymonad.Reader import curry
 
 if sys.version < '3':
     import codecs
@@ -19,11 +18,13 @@ else:
 from pyTagger import UpdateFromSnapshot, Mp3Snapshot
 from pyTagger.mp3_snapshot import Formatter
 
+
 @curry
 def strip(phrase, x):
     if phrase in x:
         return x.replace(phrase, '')
     return x
+
 
 @curry
 def stripBracketedText(regex, s):
@@ -37,7 +38,8 @@ def stripBracketedText(regex, s):
                 s = m.group(1).strip() + m.group(3).strip()
     return s
 
-class PrepareCheckIn():
+
+class PrepareCheckIn(object):
     """description of class"""
 
     def __init__(self):
@@ -58,22 +60,22 @@ class PrepareCheckIn():
         self.regexFeature = re.compile('\((feat|feat\.|featuring|with) (.*)\)')
 
         self.normalizers = [
-                            stripBracketedText(re.compile('^(.*)(\[.*\])+(.*)$')), 
-                            strip(' (Explicit Version)'),
-                            strip(' (Explicit)'),
-                            strip(' (Explicit Content)'),
-                            strip(' (US Version)'),
-                            strip(' (US Release)'),
-                            strip(' (Album Version)'),
-                            strip(' (LP Version)'),
-                            strip(' (Deluxe)'),
-                            strip(' (Deluxe Edition)'),
-                            strip(' (Deluxe Version)'),
-                            strip(' (Amazon MP3 Exclusive Version)'),
-                            strip(' (Amazon MP3 Exclusive - Deluxe Version)'),
-                            strip(' (Original Motion Picture Soundtrack)'),
-                            strip(' (Special Edition)')
-                            ]
+            stripBracketedText(re.compile('^(.*)(\[.*\])+(.*)$')),
+            strip(' (Explicit Version)'),
+            strip(' (Explicit)'),
+            strip(' (Explicit Content)'),
+            strip(' (US Version)'),
+            strip(' (US Release)'),
+            strip(' (Album Version)'),
+            strip(' (LP Version)'),
+            strip(' (Deluxe)'),
+            strip(' (Deluxe Edition)'),
+            strip(' (Deluxe Version)'),
+            strip(' (Amazon MP3 Exclusive Version)'),
+            strip(' (Amazon MP3 Exclusive - Deluxe Version)'),
+            strip(' (Original Motion Picture Soundtrack)'),
+            strip(' (Special Edition)')
+        ]
 
     # -------------------------------------------------------------------------
     # Helpers
@@ -92,7 +94,7 @@ class PrepareCheckIn():
             return s, m.group(2)
         else:
             return s, None
-        
+
     def getTags(self, fullPath):
         return self.reader.extractTags(fullPath, self.readerFormatter)
 
@@ -101,7 +103,7 @@ class PrepareCheckIn():
     # -------------------------------------------------------------------------
 
     def _walk(self, path):
-        for currentDir, subdirs, files in os.walk(unicode(path)):
+        for currentDir, _, files in os.walk(unicode(path)):
             # Get the absolute path of the currentDir parameter
             currentDir = os.path.abspath(currentDir)
 
@@ -116,17 +118,18 @@ class PrepareCheckIn():
             tags[k] = self.prepareText(tags[k])
 
         stamp = datetime.date.today()
-        id = uuid.uuid4()
-        asString = binascii.b2a_base64(id.bytes).strip()
+        ufid = uuid.uuid4()
+        asString = binascii.b2a_base64(ufid.bytes).strip()
         preparationTags = {
-            'media' : 'DIG',
-            'ufid' : {'DJTagger': asString},
-            'comments' : [{'lang': 'eng', 'text': '', 'description': ''},
-                            {'lang': '', 'text': '', 'description': ''}
-                            ],
-            'group' : '',
-            'subtitle' : stamp.isoformat()
-            }
+            'media': 'DIG',
+            'ufid': {'DJTagger': asString},
+            'comments': [
+                {'lang': 'eng', 'text': '', 'description': ''},
+                {'lang': '', 'text': '', 'description': ''}
+            ],
+            'group': '',
+            'subtitle': stamp.isoformat()
+        }
         tags.update(preparationTags)
         self.updater._updateOne(fullPath, tags)
 
@@ -146,6 +149,7 @@ class PrepareCheckIn():
 # debugging
 #sys.argv = [sys.argv[0], r'C:\Users\Jeff\Music\Amazon MP3']
 
+
 def buildArgParser():
     description = 'Update basic fields in a directory'
     p = argparse.ArgumentParser(description=description)
@@ -162,8 +166,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     pipeline = PrepareCheckIn()
-    pipeline.run(args.path, args.supressWarnings);
-
-
-
- 
+    pipeline.run(args.path, args.supressWarnings)

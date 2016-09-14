@@ -1,12 +1,11 @@
 from __future__ import print_function
 import os
 import sys
-import csv
 import time
 import json
 import requests
-from functools import partial
-from operator import itemgetter, attrgetter
+from operator import itemgetter
+
 
 def relativeToAbsolute(path):
     # where is this script?
@@ -15,16 +14,17 @@ def relativeToAbsolute(path):
     # get the expected paths
     return os.path.join(thisScriptDir, path)
 
+
 def pickleForTesting(r, params, baseFile):
     import pickle
-    import urlparse
 
-    fileName = relativeToAbsolute('{0}-{1}.p'.format(baseFile, 
+    fileName = relativeToAbsolute('{0}-{1}.p'.format(baseFile,
                                                      params['start']))
     with open(fileName, 'wb') as f:
         pickle.dump(r, f)
-    
+
 # -----------------------------------------------------------------------------
+
 
 def apiKeys():
     '''
@@ -32,21 +32,21 @@ def apiKeys():
     '''
     envFileName = relativeToAbsolute('../.env')
     if not os.path.exists(envFileName):
-        print("ENV file '%s' not found." % envFileName, file=sys.stderr)
-        raise FileNotFoundError()
+        raise ValueError("ENV file '%s' not found." % envFileName)
 
     # get the keys
     with open(envFileName, 'r') as f:
         for line in f:
             k, v = line.strip().split('=', 1)
             if k[0] != '#':
-                yield (k,v)
+                yield (k, v)
+
 
 def getApiKey(name):
     '''
     Gets the one (and only!) api key with `name`
     '''
-    keys = [v for k,v in apiKeys() if k == name]
+    keys = [v for k, v in apiKeys() if k == name]
     assert len(keys) > 0
     assert len(keys) == 1
     return keys[0]
@@ -55,6 +55,7 @@ def getApiKey(name):
 # Projections
 # -------------------------------------------------------------------------
 
+
 def musicBrainz(field):
     def curried(song):
         if field in song:
@@ -62,6 +63,7 @@ def musicBrainz(field):
                 if o['catalog'] == 'musicbrainz':
                     return o['foreign_id'].split(':')[-1]
     return curried
+
 
 def audioSummary(field):
     def curried(song):
@@ -74,31 +76,33 @@ def audioSummary(field):
 _songProjection = {
     'artist': lambda x: x['artist_name'],
     'bpm': audioSummary('tempo'),
-    'id_musicbrainz_artist' : musicBrainz('artist_foreign_ids'),
-    'id_musicbrainz_song' : musicBrainz('tracks'),
-    'id_echonest_artist' : lambda x: x['artist_id'],
-    'id_echonest_song' : lambda x: x['id'],
+    'id_musicbrainz_artist': musicBrainz('artist_foreign_ids'),
+    'id_musicbrainz_song': musicBrainz('tracks'),
+    'id_echonest_artist': lambda x: x['artist_id'],
+    'id_echonest_song': lambda x: x['id'],
     'key': audioSummary('key'),
     'length': audioSummary('duration'),
     'title': lambda x: x['title'],
-    'acousticness' : audioSummary('acousticness'),
-    'danceability' : audioSummary('danceability'),
-    'energy' : audioSummary('energy'),
-    'instrumentalness' : audioSummary('instrumentalness'),
-    'liveness' : audioSummary('liveness'),
-    'loudness' : audioSummary('loudness'),
-    'speechiness' : audioSummary('speechiness'),
-    'valence' : audioSummary('valence')
-                    }
+    'acousticness': audioSummary('acousticness'),
+    'danceability': audioSummary('danceability'),
+    'energy': audioSummary('energy'),
+    'instrumentalness': audioSummary('instrumentalness'),
+    'liveness': audioSummary('liveness'),
+    'loudness': audioSummary('loudness'),
+    'speechiness': audioSummary('speechiness'),
+    'valence': audioSummary('valence')
+}
+
 
 def projection(song):
-    return {k:_songProjection[k](song) for k in sorted(_songProjection)}
+    return {k: _songProjection[k](song) for k in sorted(_songProjection)}
 
 # -----------------------------------------------------------------------------
 # Class
 # -----------------------------------------------------------------------------
 
-class EchoNestProxy():
+
+class EchoNestProxy(object):
     """
     Encapsulates calling the EchoNest Web Service
     """
@@ -121,9 +125,9 @@ class EchoNestProxy():
             raise StopIteration
 
         # The URL parameters
-        params.update({'api_key' : self.api_key,
-                       'results' : self.step,
-                       'start' : 0,
+        params.update({'api_key': self.api_key,
+                       'results': self.step,
+                       'start': 0,
                        'bucket': ['audio_summary', 'tracks', 'id:musicbrainz']
                        })
 
@@ -159,8 +163,7 @@ class EchoNestProxy():
             if len(songs) < 100:
                 raise StopIteration
 
-            time.sleep(60/self.maxCallsPerMinute)  
-
+            time.sleep(60/self.maxCallsPerMinute)
 
     # -------------------------------------------------------------------------
 
@@ -185,10 +188,11 @@ class EchoNestProxy():
 
 if __name__ == '__main__':
     service = EchoNestProxy()
-    #service.requestHook = partial(pickleForTesting, baseFile='../tests/echonest-chunks')
+    #service.requestHook = partial(pickleForTesting,
+    #                              baseFile='../tests/echonest-chunks')
     #l = list(service.getByArtist(u'Meat Beat Manifesto'))
 
-    songs = sorted(service.getByArtist(u'The Future Sound of London'), 
+    songs = sorted(service.getByArtist(u'The Future Sound of London'),
                    key=itemgetter('artist', 'title', 'length'))
 
     columns = sorted(_songProjection.keys())
