@@ -9,3 +9,6 @@ ignore-patterns:
     - .*__init__.py
 python-targets:
     - 2
+pylint:
+  disable:
+    - no-value-for-parameter
