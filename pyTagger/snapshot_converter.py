@@ -225,13 +225,13 @@ class SnapshotConverter(object):
         return iterable
 
 
-class ConvertBack:
+class ConvertBack(object):
     _collectionTags = ['comments', 'lyrics', 'ufid']
     _numberTags = ['bitRate', 'bpm', 'disc', 'length', 'totalDisc',
                    'totalTrack', 'track']
     _booleanTags = ['vbr']
 
-    def convert(self, inFileName, outFileName, fieldSet=None, useCsv=False):
+    def convert(self, inFileName, outFileName, useCsv=False):
         context = Context()
         rowgen = context.parse(inFileName, useCsv)
         columns = next(rowgen)
@@ -323,4 +323,4 @@ if __name__ == '__main__':
         pipeline.convert(args.infile, args.outfile, columns, args.csv)
     else:
         pipeline = ConvertBack()
-        pipeline.convert(args.infile, args.outfile, columns, args.csv)
+        pipeline.convert(args.infile, args.outfile, args.csv)

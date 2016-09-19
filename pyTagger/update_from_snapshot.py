@@ -8,7 +8,6 @@ import logging
 import binascii
 if sys.version < '3':
     import eyed3
-    from eyed3 import main, mp3, id3
     import codecs
     _input = lambda fileName: codecs.open(fileName, 'r', encoding='utf-8')
 else:

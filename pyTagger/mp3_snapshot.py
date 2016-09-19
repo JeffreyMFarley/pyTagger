@@ -10,7 +10,7 @@ import hashlib
 import logging
 if sys.version < '3':
     import eyed3
-    from eyed3 import main, mp3, id3
+    from eyed3 import mp3
     import codecs
     import unicodedata
     _input = lambda fileName: codecs.open(fileName, 'r', encoding='utf-8')
