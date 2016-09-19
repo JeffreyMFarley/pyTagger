@@ -11,4 +11,4 @@ python-targets:
     - 2
 pylint:
   disable:
-    - no-value-for-parameter
+    - E1120
