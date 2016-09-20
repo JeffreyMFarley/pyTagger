@@ -1,0 +1,149 @@
+{
+  "mappings": {
+    "track": {
+      "_all": {
+        "enabled": false
+      },
+      "properties": {
+        "album": {
+          "type": "string",
+          "copy_to": "basic"
+        },
+        "albumArtist": {
+          "type": "string",
+          "copy_to": "basic"
+        },
+        "artist": {
+          "type": "string",
+          "copy_to": "basic"
+        },
+        "basic": {
+          "type": "string"
+        },
+        "bitRate": {
+          "type": "string"
+        },
+        "bpm": {
+          "type": "string"
+        },
+        "comments": {
+          "dynamic": true,
+          "properties": {}
+        },
+        "compilation": {
+          "type": "string"
+        },
+        "composer": {
+          "type": "string"
+        },
+        "conductor": {
+          "type": "string"
+        },
+        "disc": {
+          "type": "string"
+        },
+        "encodingDate": {
+          "type": "date",
+          "ignore_malformed": true
+        },
+        "fileHash": {
+          "type": "string"
+        },
+        "genre": {
+          "type": "string"
+        },
+        "group": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "language": {
+          "type": "string"
+        },
+        "length": {
+          "type": "integer",
+          "ignore_malformed": true
+        },
+        "lyrics": {
+          "dynamic": true,
+          "properties": {}
+        },
+        "media": {
+          "type": "string"
+        },
+        "originalReleaseDate": {
+          "type": "date",
+          "ignore_malformed": true
+        },
+        "path": {
+          "type": "string"
+        },
+        "playCount": {
+          "type": "integer",
+          "ignore_malformed": true
+        },
+        "publisher": {
+          "type": "string"
+        },
+        "recordingDate": {
+          "type": "date",
+          "ignore_malformed": true
+        },
+        "releaseDate": {
+          "type": "date",
+          "ignore_malformed": true
+        },
+        "remixer": {
+          "type": "string"
+        },
+        "subtitle": {
+          "type": "string",
+          "fields": {
+            "djtagger": { 
+              "type":  "date",
+              "ignore_malformed": true
+            }
+          }
+        },
+        "taggingDate": {
+          "type": "date",
+          "ignore_malformed": true
+        },
+        "title": {
+          "type": "string",
+          "copy_to": "basic"
+        },
+        "totalDisc": {
+          "type": "integer",
+          "ignore_malformed": true
+        },
+        "totalTrack": {
+          "type": "integer",
+          "ignore_malformed": true
+        },
+        "track": {
+          "type": "integer",
+          "ignore_malformed": true
+        },
+        "ufid": {
+          "dynamic": true,
+          "properties": {}
+        },
+        "vbr": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "year": {
+          "type": "date",
+          "ignore_malformed": true
+        }
+      }
+    }
+  }
+}
