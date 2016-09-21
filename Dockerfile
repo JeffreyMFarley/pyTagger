@@ -1,10 +1,10 @@
 FROM jeffreymfarley/pytagger
 
-RUN ["pip", "install", "eyed3", "nose"]
+RUN ["pip", "install", "eyed3", "nose", "python-coveralls"]
 
 # Copy over the local directory
 ADD . /home/project
 WORKDIR /home/project
 
 # Run the tests
-CMD ["python", "setup.py", "test"]
+CMD ["coverage", "run", "setup.py", "test"]

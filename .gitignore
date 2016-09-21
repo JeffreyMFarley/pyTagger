@@ -17,6 +17,7 @@
 
 # Don't store api keys in source control
 .env
+.coveralls.yml
 
 # Docker & Vagrant
 /.bundle
@@ -29,3 +30,10 @@
 
 # Mac
 .DS_Store
+
+# Coverage
+.coverage
+htmlcov/
+
+# This may appear in the root a lot, don't check in 
+mp3s.json
