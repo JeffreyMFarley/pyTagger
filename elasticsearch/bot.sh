@@ -12,9 +12,7 @@ docker_tag="elasticsearch"
 
 run() {
     docker run -d -p "9200:9200" \
-    --name "$image_name" "$docker_tag" && \
-    sleep 10 && \
-    curl -XPUT 'localhost:9200/library' -d @/home/vagrant/elasticsearch/mapping.json
+    --name "$image_name" "$docker_tag"
     return $?
 }
 

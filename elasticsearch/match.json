@@ -1,0 +1,20 @@
+{
+    "from" : 0, "size" : 100,
+    "sort" : [
+        { "year" : "desc" },
+        "artist",
+        "album",
+        "track",
+        "_score"
+    ],
+    "_source": [
+        "title", "track", "artist", "albumArtist", "album", 
+        "length", "subtitle", "genre", "path"
+    ],
+    "query" : {
+        "match" : {"basic": {"query": "Meat Beat Manifesto"}}
+        "fuzzy" : {"basic": "beat"}
+        "match_phrase_prefix": {"basic": "Telepop"}
+        "terms" : {"basic": ["Meat", "beat"]}
+    }
+}

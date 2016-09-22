@@ -1,0 +1,53 @@
+{
+  "/Users/farleyj/Music/SampleData/10 δp·δq≥h⁄4π.mp3": {
+    "album": "Genetic World",
+    "albumArtist": "Télépopmusik",
+    "artist": "Télépopmusik",
+    "bitRate": 256,
+    "bpm": 169,
+    "comments": [
+      {
+        "description": "",
+        "lang": "eng",
+        "text": "Backcatalog"
+      },
+      {
+        "description": "iTunNORM",
+        "lang": "eng",
+        "text": " 0000034B 00000304 000045C1 00004158 0003DAD9 000236CD 00007FA7 00007F8C 00042650 00042AAA"
+      }
+    ],
+    "compilation": null,
+    "composer": "Stephan Haeri",
+    "conductor": null,
+    "disc": null,
+    "encodingDate": "",
+    "fileHash": "dTvrtHhxL8/3oMZhcRqpuVxPo1U=",
+    "genre": "Electronica,Breaks,Ambient",
+    "group": "40",
+    "id": "MYYg5QXkfUCgaxZ/6TbUMw==",
+    "key": null,
+    "language": null,
+    "length": 526,
+    "lyrics": [],
+    "media": null,
+    "originalReleaseDate": "",
+    "playCount": null,
+    "publisher": "Capitol",
+    "recordingDate": "2001",
+    "releaseDate": "",
+    "remixer": null,
+    "subtitle": "2003-02-06",
+    "taggingDate": "",
+    "title": "δp·δq≥h⁄4π",
+    "totalDisc": null,
+    "totalTrack": null,
+    "track": 10,
+    "ufid": {
+      "DJTagger": "MYYg5QXkfUCgaxZ/6TbUMw=="
+    },
+    "vbr": false,
+    "version": "2.3.0",
+    "year": "2001"
+  }
+}

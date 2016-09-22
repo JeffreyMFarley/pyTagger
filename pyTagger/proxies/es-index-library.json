@@ -1,4 +1,31 @@
 {
+  "settings": {
+    "analysis": {
+      "char_filter": {
+        "mapping_char_filter": {
+          "type": "mapping",
+          "mappings": [
+            "&=> and ",
+            "+=> and "
+          ]
+        }
+      },
+      "analyzer": {
+        "normalized": {
+          "type": "custom",
+          "char_filter": ["mapping_char_filter"],
+          "tokenizer": "whitespace",
+          "filter": [
+            "word_delimiter",
+            "lowercase",
+            "asciifolding",
+            "stop",
+            "unique"
+          ]
+        }
+      }
+    }
+  },
   "mappings": {
     "track": {
       "_all": {
@@ -7,18 +34,37 @@
       "properties": {
         "album": {
           "type": "string",
-          "copy_to": "basic"
+          "copy_to": "basic",
+          "fields": {
+            "raw": {
+              "index": "not_analyzed",
+              "type": "string"
+            }
+          }
         },
         "albumArtist": {
           "type": "string",
-          "copy_to": "basic"
+          "copy_to": "basic",
+          "fields": {
+            "raw": {
+              "index": "not_analyzed",
+              "type": "string"
+            }
+          }
         },
         "artist": {
           "type": "string",
-          "copy_to": "basic"
+          "copy_to": "basic",
+          "fields": {
+            "raw": {
+              "index": "not_analyzed",
+              "type": "string"
+            }
+          }
         },
         "basic": {
-          "type": "string"
+          "type": "string",
+          "analyzer": "normalized"
         },
         "bitRate": {
           "type": "string"
@@ -47,16 +93,24 @@
           "ignore_malformed": true
         },
         "fileHash": {
-          "type": "string"
+          "type": "string",
+          "index": "not_analyzed"
         },
         "genre": {
-          "type": "string"
+          "type": "string",
+          "fields": {
+            "raw": {
+              "index": "not_analyzed",
+              "type": "string"
+            }
+          }
         },
         "group": {
           "type": "string"
         },
         "id": {
-          "type": "string"
+          "type": "string",
+          "index": "not_analyzed"
         },
         "key": {
           "type": "string"
@@ -80,14 +134,21 @@
           "ignore_malformed": true
         },
         "path": {
-          "type": "string"
+          "type": "string",
+          "index": "not_analyzed"
         },
         "playCount": {
           "type": "integer",
           "ignore_malformed": true
         },
         "publisher": {
-          "type": "string"
+          "type": "string",
+          "fields": {
+            "raw": {
+              "index": "not_analyzed",
+              "type": "string"
+            }
+          }
         },
         "recordingDate": {
           "type": "date",
@@ -98,7 +159,13 @@
           "ignore_malformed": true
         },
         "remixer": {
-          "type": "string"
+          "type": "string",
+          "fields": {
+            "raw": {
+              "index": "not_analyzed",
+              "type": "string"
+            }
+          }
         },
         "subtitle": {
           "type": "string",
@@ -115,7 +182,13 @@
         },
         "title": {
           "type": "string",
-          "copy_to": "basic"
+          "copy_to": "basic",
+          "fields": {
+            "raw": {
+              "index": "not_analyzed",
+              "type": "string"
+            }
+          }
         },
         "totalDisc": {
           "type": "integer",
