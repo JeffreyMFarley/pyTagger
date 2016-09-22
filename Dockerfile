@@ -1,10 +1,14 @@
 FROM jeffreymfarley/pytagger
 
-RUN ["pip", "install", "eyed3", "nose", "python-coveralls"]
+ENV SRC_HOME /home/project/
+
+WORKDIR $SRC_HOME
+
+ADD requirements.txt $SRC_HOME
+RUN pip install -r requirements.txt
 
 # Copy over the local directory
-ADD . /home/project
-WORKDIR /home/project
+ADD . $SRC_HOME
 
 # Run the tests
 CMD ["coverage", "run", "setup.py", "test"]

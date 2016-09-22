@@ -36,4 +36,4 @@
 htmlcov/
 
 # This may appear in the root a lot, don't check in 
-mp3s.json
+/*.json
