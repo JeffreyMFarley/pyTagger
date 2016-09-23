@@ -37,7 +37,7 @@ class Client(object):
             for k, v in snapshot.items():
                 v['path'] = k
                 try:
-                    r = self.es.create(
+                    self.es.create(
                         index=self.index,
                         doc_type=self.doc_type,
                         body=v
@@ -53,6 +53,11 @@ class Client(object):
             raise
 
         return (success, error)
+
+    def search(self, dsl):
+        return self.es.search(
+            index=self.index, doc_type=self.doc_type, body=dsl
+        )
 
 if __name__ == '__main__':
     snapshot = loadJson(toAbsolute('../mp3s.json'))

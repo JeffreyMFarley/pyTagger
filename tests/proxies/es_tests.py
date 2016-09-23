@@ -68,5 +68,16 @@ class TestElasticsearchClient(unittest.TestCase):
         actual = self.target.load(self.snapshot)
         self.assertEqual(actual, (0, 1))
 
+    def test_search(self):
+        expected = {'foo': 'bar'}
+        data = {'baz': 'qaz'}
+        self.target.es.search = Mock(return_value=expected)
+
+        actual = self.target.search(data)
+        self.assertEqual(actual, expected)
+        self.target.es.search.assert_called_once_with(
+            index='foo', doc_type='bar', body=data
+        )
+
 if __name__ == '__main__':
     unittest.main()
