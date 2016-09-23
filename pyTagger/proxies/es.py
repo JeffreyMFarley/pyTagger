@@ -28,6 +28,8 @@ class Client(object):
         if not snapshot or not isinstance(snapshot, dict):
             raise TypeError("'snapshot' must be dictionary")
 
+        success, error = 0, 0
+
         try:
             if not self.exists() and not self.create():
                 raise Exception('Cannot create index')
@@ -40,17 +42,20 @@ class Client(object):
                         doc_type=self.doc_type,
                         body=v
                     )
+                    success += 1
+
                 except RequestError as e:
-                    self.log.warning(
-                        "'{0}' could not be loaded {1}".format(k, e)
-                    )
+                    self.log.warning("'%s' could not be loaded %s", k, e)
+                    error += 1
 
         except ConnectionError:
             self.log.error('Cannot connect to Elasticsearch')
             raise
 
+        return (success, error)
+
 if __name__ == '__main__':
     snapshot = loadJson(toAbsolute('../mp3s.json'))
 
     cli = Client()
-    cli.load(snapshot)
+    print(cli.load(snapshot))

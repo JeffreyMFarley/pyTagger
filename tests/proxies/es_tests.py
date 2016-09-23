@@ -11,6 +11,7 @@ class TestElasticsearchClient(unittest.TestCase):
     @patch('pyTagger.proxies.es.Elasticsearch')
     def setUp(self, elasticsearch):
         self.target = Client('foo', 'bar')
+        self.target.es.create = Mock(return_value={u'created': True})
         self.snapshot = {'foo': {'bar': 'baz'}}
 
     def test_exists(self):
@@ -30,7 +31,8 @@ class TestElasticsearchClient(unittest.TestCase):
         )
 
     def test_load_happy(self):
-        self.target.load(self.snapshot)
+        actual = self.target.load(self.snapshot)
+        self.assertEqual(actual, (1, 0))
 
     def test_load_null_input(self):
         with self.assertRaises(TypeError):
@@ -48,8 +50,9 @@ class TestElasticsearchClient(unittest.TestCase):
     def test_load_when_not_exists(self):
         self.target.exists = Mock(return_value=False)
         self.target.create = Mock(return_value=True)
-        self.target.load(self.snapshot)
+        actual = self.target.load(self.snapshot)
         self.target.create.assert_called_once()
+        self.assertEqual(actual, (1, 0))
 
     def test_load_create_fails(self):
         with self.assertRaises(Exception):
@@ -58,9 +61,12 @@ class TestElasticsearchClient(unittest.TestCase):
             self.target.load(self.snapshot)
 
     def test_load_bad_document(self):
-        self.target.es.create = Mock(side_effect=RequestError)
-        with self.assertRaises(IndexError):
-            self.target.load(self.snapshot)
+        def raiseRequestError(*args, **kwargs):
+            raise RequestError(400, 'error', {'a': 'b'})
+
+        self.target.es.create = Mock(side_effect=raiseRequestError)
+        actual = self.target.load(self.snapshot)
+        self.assertEqual(actual, (0, 1))
 
 if __name__ == '__main__':
     unittest.main()

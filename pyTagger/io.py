@@ -2,10 +2,10 @@ import os
 import json
 import sys
 
-if sys.version < '3':
+if sys.version < '3':  # pragma: no cover
     import codecs
     _input = lambda fileName: codecs.open(fileName, 'r', encoding='utf-8')
-else:
+else:  # pragma: no cover
     _input = lambda fileName: open(fileName, 'r', encoding='utf-8')
 
 
