@@ -11,6 +11,8 @@ Vagrant.configure(2) do |config|
 
   config.vm.provider "virtualbox" do |v|
     v.name = "pyTagger"
+    v.memory = 2000
+    v.cpus = 2
   end
 
   config.vm.provision "docker"

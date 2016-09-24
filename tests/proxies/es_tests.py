@@ -31,8 +31,9 @@ class TestElasticsearchClient(unittest.TestCase):
         )
 
     def test_load_happy(self):
-        actual = self.target.load(self.snapshot)
-        self.assertEqual(actual, (1, 0))
+        data = {k: {'baz': 'qaz'} for k in range(1, 102)}
+        actual = self.target.load(data)
+        self.assertEqual(actual, (101, 0))
 
     def test_load_null_input(self):
         with self.assertRaises(TypeError):
@@ -67,6 +68,32 @@ class TestElasticsearchClient(unittest.TestCase):
         self.target.es.create = Mock(side_effect=raiseRequestError)
         actual = self.target.load(self.snapshot)
         self.assertEqual(actual, (0, 1))
+
+    def test_load_ufid_has_dots(self):
+        data = {
+            'foo': {
+                'ufid': {'http://musicbrainz.org': 'bar'}
+            }
+        }
+        actual = self.target.load(data)
+        self.assertEqual(actual, (1, 0))
+        self.target.es.create.assert_called_once_with(
+            index='foo', doc_type='bar', body={
+                'path': 'foo',
+                'ufid': {'http://musicbrainz_org': 'bar'}
+            }
+        )
+
+    def test_replaceDots(self):
+        data = {
+            'abdef': 'ghijkl',
+            'a.b.c': 'mnopqr'
+        }
+        actual = self.target._replaceDots(data)
+        self.assertEqual(actual, {
+            'abdef': 'ghijkl',
+            'a_b_c': 'mnopqr'
+        })
 
     def test_search(self):
         expected = {'foo': 'bar'}

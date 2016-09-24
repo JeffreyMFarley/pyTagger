@@ -15,6 +15,15 @@ class Client(object):
         es_log = logging.getLogger('elasticsearch')
         es_log.setLevel(logging.ERROR)
 
+    def _replaceDots(self, ids):
+        result = {}
+        for k, v in ids.items():
+            if '.' in k:
+                result[k.replace('.', '_')] = v
+            else:
+                result[k] = v
+        return result
+
     def exists(self):
         return self.es.indices.exists(index=self.index)
 
@@ -36,6 +45,11 @@ class Client(object):
 
             for k, v in snapshot.items():
                 v['path'] = k
+
+                # Fix dots in field names
+                if 'ufid' in v:
+                    v['ufid'] = self._replaceDots(v['ufid'])
+
                 try:
                     self.es.create(
                         index=self.index,
@@ -43,6 +57,8 @@ class Client(object):
                         body=v
                     )
                     success += 1
+                    if (success + error) % 100 == 0:
+                        self.log.info("%d records loaded", success + error)
 
                 except RequestError as e:
                     self.log.warning("'%s' could not be loaded %s", k, e)
@@ -63,4 +79,5 @@ if __name__ == '__main__':
     snapshot = loadJson(toAbsolute('../mp3s.json'))
 
     cli = Client()
+    cli.log.setLevel(logging.INFO)
     print(cli.load(snapshot))
