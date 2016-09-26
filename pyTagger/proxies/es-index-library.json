@@ -67,10 +67,12 @@
           "analyzer": "normalized"
         },
         "bitRate": {
-          "type": "string"
+          "type": "integer",
+          "ignore_malformed": true
         },
         "bpm": {
-          "type": "string"
+          "type": "integer",
+          "ignore_malformed": true
         },
         "comments": {
           "dynamic": true,
@@ -106,7 +108,8 @@
           }
         },
         "group": {
-          "type": "string"
+          "type": "integer",
+          "ignore_malformed": true
         },
         "id": {
           "type": "string",
