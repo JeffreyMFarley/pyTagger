@@ -6,7 +6,7 @@ from pyTagger.io import loadJson, toAbsolute
 
 class Client(object):
     def __init__(self, index='library', doc_type='track'):
-        self.host = os.getenv('ES_HOST', 'localhost')
+        self.host = os.getenv('ES_HOST', '192.168.50.20')
         self.index = index
         self.doc_type = doc_type
         self.es = Elasticsearch([self.host])
