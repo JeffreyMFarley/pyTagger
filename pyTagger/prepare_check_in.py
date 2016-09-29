@@ -7,14 +7,6 @@ import datetime
 import uuid
 import binascii
 from pymonad.Reader import curry
-
-if sys.version < '3':
-    import codecs
-    _input = lambda fileName: codecs.open(fileName, 'r', encoding='utf-8')
-    _output = lambda fileName: codecs.open(fileName, 'w', encoding='utf-8')
-else:
-    _input = lambda fileName: open(fileName, 'r', encoding='utf-8')
-    _output = lambda fileName: open(fileName, 'w', encoding='utf-8')
 from pyTagger import UpdateFromSnapshot, Mp3Snapshot
 from pyTagger.mp3_snapshot import Formatter
 
