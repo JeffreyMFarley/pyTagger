@@ -1,16 +1,9 @@
-﻿
-from __future__ import print_function
-import os
+﻿import os
 import sys
 import argparse
 import itertools
 import logging
 import shutil
-if sys.version < '3':
-    import codecs
-    _input = lambda fileName: codecs.open(fileName, 'r', encoding='utf-8')
-else:
-    _input = lambda fileName: open(fileName, 'r', encoding='utf-8')
 from pyTagger.mp3_snapshot import Formatter, Mp3Snapshot
 
 winFileReserved = ['\\', '/', ':', '*', '?', '"', '<', '>', '|', '.']
@@ -35,6 +28,7 @@ def Limit(s, maxChars):
 
 class Rename(object):
     def __init__(self, destDir):
+        self.log = logging.getLogger(__name__)
         self.destDir = destDir if destDir else os.getcwd()
         if self.destDir[-1] != os.path.sep:
             self.destDir += os.path.sep
@@ -116,7 +110,8 @@ class Rename(object):
                 # Check if the file has an extension of typical music files
                 if fullPath[-3:].lower() in ['mp3']:
                     try:
-                        print("Reading", formatter.normalizeToAscii(fullPath))
+                        asciified = formatter.normalizeToAscii(fullPath)
+                        self.log.info("Reading '%s'", asciified)
                         tags = reader.extractTags(fullPath, formatter)
                         relativePath = self.buildPath(tags, fullPath[-3:])
                         proposed = os.path.join(self.destDir, *relativePath)
@@ -126,13 +121,13 @@ class Rename(object):
                                                    relativePath[1], '')
                             if not os.path.exists(newPath):
                                 os.makedirs(newPath)
-                            print('  Moving to', proposed)
+                            self.log.info("Moving to '%s'", proposed)
                             shutil.move(fullPath, proposed)
                         else:
-                            print('  Same name... Skipping')
+                            self.log.info('Same name... Skipping')
 
                     except ValueError as ve:
-                        print('  Error', ve)
+                        self.log.error("%s", ve)
 # -----------------------------------------------------------------------------
 # Main
 # -----------------------------------------------------------------------------
@@ -155,4 +150,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     pipeline = Rename(args.destDir)
+    pipeline.log.setLevel(logging.INFO)
     pipeline.run(args.sourceDir)

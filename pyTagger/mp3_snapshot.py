@@ -12,10 +12,8 @@ if sys.version < '3':  # pragma: no cover
     from eyed3 import mp3
     import codecs
     import unicodedata
-    _input = lambda fileName: codecs.open(fileName, 'r', encoding='utf-8')
     _output = lambda fileName: codecs.open(fileName, 'w', encoding='utf-8')
 else:  # pragma: no cover
-    _input = lambda fileName: open(fileName, 'r', encoding='utf-8')
     _output = lambda fileName: open(fileName, 'w', encoding='utf-8')
 
 # -----------------------------------------------------------------------------

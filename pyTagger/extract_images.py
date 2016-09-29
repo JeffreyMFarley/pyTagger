@@ -1,17 +1,16 @@
 # -*- coding: utf-8 -*
 
-from __future__ import print_function
 import os
 import sys
 import argparse
 import logging
 import binascii
 import hashlib
-if sys.version < '3':
+if sys.version < '3':  # pragma: no cover
     import eyed3
     import codecs
     _input = lambda fileName: codecs.open(fileName, 'r', encoding='utf-8')
-else:
+else:  # pragma: no cover
     _input = lambda fileName: open(fileName, 'r', encoding='utf-8')
 from pyTagger.mp3_snapshot import Formatter
 
@@ -22,6 +21,7 @@ from pyTagger.mp3_snapshot import Formatter
 
 class ExtractImages(object):
     def __init__(self, outputDir):
+        self.log = logging.getLogger(__name__)
         self.outputDir = outputDir if outputDir else os.getcwd()
         self.captured = {}
         if not os.path.exists(self.outputDir):
@@ -49,7 +49,7 @@ class ExtractImages(object):
         try:
             track = eyed3.load(mp3FileName)
         except (IOError, ValueError):
-            print('Error with ID3 Load', mp3FileName, file=sys.stderr)
+            self.log.error("Cannot load MP3 '%s'", mp3FileName)
             return
 
         if not track.tag or not track.tag.images:
@@ -76,7 +76,8 @@ class ExtractImages(object):
 
                 # Check if the file has an extension of typical music files
                 if fullPath[-3:].lower() in ['mp3']:
-                    print("Extracting", formatter.normalizeToAscii(fullPath))
+                    asciified = formatter.normalizeToAscii(fullPath)
+                    self.log.info("Extracting '%s'", asciified)
                     self._extract(fullPath)
 
     def extractFrom(self, fileList):
@@ -94,7 +95,8 @@ class ExtractImages(object):
 
                 # Check if the file has an extension of typical music files
                 if fullPath[-3:].lower() in ['mp3']:
-                    print("Extracting", formatter.normalizeToAscii(fullPath))
+                    asciified = formatter.normalizeToAscii(fullPath)
+                    self.log.info("Extracting '%s'", asciified)
                     self._extract(fullPath)
 
 # -----------------------------------------------------------------------------
@@ -122,6 +124,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     pipeline = ExtractImages(args.outputDir)
+    pipeline.log.setLevel(logging.INFO)
     if args.useFile:
         pipeline.extractFrom(args.useFile)
     else:

@@ -1,19 +1,13 @@
 # -*- coding: utf-8 -*
 
-from __future__ import print_function
 import json
 import sys
 import argparse
 import logging
 import binascii
-if sys.version < '3':
-    import eyed3
-    import codecs
-    _input = lambda fileName: codecs.open(fileName, 'r', encoding='utf-8')
-else:
-    _input = lambda fileName: open(fileName, 'r', encoding='utf-8')
-import pyTagger
-from pyTagger.mp3_snapshot import Formatter
+from pyTagger.io import loadJson
+from pyTagger.snapshot_converter import SnapshotConverter
+from pyTagger.mp3_snapshot import Formatter, Mp3Snapshot
 
 # -----------------------------------------------------------------------------
 # Classes
@@ -58,7 +52,8 @@ class UpdateFromSnapshot(object):
     }
 
     def __init__(self):
-        self.reader = pyTagger.Mp3Snapshot()
+        self.reader = Mp3Snapshot()
+        self.log = logging.getLogger(__name__)
 
     def update(self, inFileName, fieldSet=None, upgrade=False,
                supressWarnings=True):
@@ -67,22 +62,22 @@ class UpdateFromSnapshot(object):
             log.setLevel(logging.ERROR)
         self.upgrade = upgrade
 
-        with _input(inFileName) as f:
-            snapshot = json.load(f)
+        snapshot = loadJson(inFileName)
 
         if not fieldSet:
-            friend = pyTagger.SnapshotConverter()
+            friend = SnapshotConverter()
             fieldSet = friend._extractColumns(snapshot)
-        self.formatter = pyTagger.mp3_snapshot.Formatter(fieldSet)
+        self.formatter = Formatter(fieldSet)
 
         for k, v in snapshot.items():
-            print("Updating", self.formatter.normalizeToAscii(k))
+            k0 = self.formatter.normalizeToAscii(k)
+            self.log.info("Updating '%s'", k0)
             try:
                 self._updateOne(k, v)
             except AssertionError as assertEx:
-                print('    Assertion Error', assertEx.args)
+                self.log.error("'%s' Assertion Error %s", k0, assertEx.args)
             except Exception:
-                print('    Error with', sys.exc_info()[0])
+                self.log.error("'%s' Error %s", k0, sys.exc_info()[0])
 
     def _updateOne(self, fileName, updates):
         track = self._loadID3(fileName)
@@ -116,10 +111,11 @@ class UpdateFromSnapshot(object):
         return version
 
     def _loadID3(self, fileName):
+        import eyed3
         try:
             return eyed3.load(fileName)
         except (IOError, ValueError):
-            print('Error with ID3 Load', fileName, file=sys.stderr)
+            self.log.error("Could not load '%s'", fileName)
             return None
 
     def _saveID3(self, track, version=None):
@@ -185,6 +181,8 @@ class UpdateFromSnapshot(object):
         return result
 
     def _writeSimple(self, track, tags):
+        import eyed3
+
         for k, v in tags.items():
             if k in self._collectionTags:
                 continue
@@ -302,4 +300,5 @@ if __name__ == '__main__':
         columns = Formatter.basic
 
     pipeline = UpdateFromSnapshot()
+    pipeline.log.setLevel(logging.INFO)
     pipeline.update(args.infile, columns, args.upgrade, args.supressWarnings)
