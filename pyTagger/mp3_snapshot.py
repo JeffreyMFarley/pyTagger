@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*
 
-from __future__ import print_function
 import json
 import os
 import sys
@@ -8,14 +7,14 @@ import argparse
 import binascii
 import hashlib
 import logging
-if sys.version < '3':
+if sys.version < '3':  # pragma: no cover
     import eyed3
     from eyed3 import mp3
     import codecs
     import unicodedata
     _input = lambda fileName: codecs.open(fileName, 'r', encoding='utf-8')
     _output = lambda fileName: codecs.open(fileName, 'w', encoding='utf-8')
-else:
+else:  # pragma: no cover
     _input = lambda fileName: open(fileName, 'r', encoding='utf-8')
     _output = lambda fileName: open(fileName, 'w', encoding='utf-8')
 
@@ -147,6 +146,7 @@ class Formatter(object):
 class Mp3Snapshot(object):
     def __init__(self, compact=True):
         self.compact = compact
+        self.log = logging.getLogger(__name__)
 
     def createFromScan(self, scanPath, outFileName,
                        fieldSet=None, supressWarnings=True):
@@ -173,7 +173,9 @@ class Mp3Snapshot(object):
 
                     # Check if the file has an extension of typical music files
                     if fullPath[-3:].lower() in ['mp3']:
-                        print("Scanning", formatter.normalizeToAscii(fullPath))
+                        self.log.info(
+                            "Scanning %s", formatter.normalizeToAscii(fullPath)
+                        )
                         row = self.extractTags(fullPath, formatter)
                         if row:
                             fout.writelines([sep, '"',
@@ -203,7 +205,7 @@ class Mp3Snapshot(object):
         try:
             return eyed3.load(mp3FileName)
         except (IOError, ValueError):
-            print('Error with ID3 Load', mp3FileName, file=sys.stderr)
+            self.log.error("Cannot load ID3 '%s'", mp3FileName)
             return None
 
     def _calculateHash(self, track, mp3FileName):
@@ -220,21 +222,9 @@ class Mp3Snapshot(object):
                     shaAccum.update(byte)
                     byte = f.read(chunk_size)
         except IOError:
-            print('Cannot Hash', mp3FileName, file=sys.stderr)
+            self.log.error("Cannot Hash '%s'", mp3FileName)
             return ''
         return binascii.b2a_base64(shaAccum.digest()).strip()
-
-    # -------------------------------------------------------------------------
-    # I/O
-    # -------------------------------------------------------------------------
-
-    def load(self, fileName):
-        with _input(fileName) as f:
-            return json.load(f)
-
-    def save(self, fileName, o):
-        with _output(fileName) as f:
-            return json.dump(o, f, indent=None if self.compact else 2)
 
 # -----------------------------------------------------------------------------
 # Main
@@ -293,4 +283,5 @@ if __name__ == '__main__':
         columns = Formatter.basic
 
     pipeline = Mp3Snapshot(args.compact)
+    pipeline.log.setLevel(logging.INFO)
     pipeline.createFromScan(args.path, args.outfile, list(set(columns)))

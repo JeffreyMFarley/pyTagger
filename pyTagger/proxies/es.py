@@ -31,6 +31,7 @@ class Client(object):
         absPath = toAbsolute('proxies/es-index-library.json')
         body = loadJson(absPath)
         result = self.es.indices.create(index=self.index, body=body)
+        self.log.info("index '%s' created", self.index)
         return result[u'acknowledged']
 
     def load(self, snapshot):
