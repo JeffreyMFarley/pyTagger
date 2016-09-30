@@ -34,7 +34,7 @@ def resetFile(fileName):
     return os.path.join(CHECKED_DIRECTORY, fileName)
 
 def setUpModule():
-    if not os.path.exists(CHECKED_DIRECTORY):
+    if sampleFilesExist and not os.path.exists(CHECKED_DIRECTORY):
         os.makedirs(CHECKED_DIRECTORY)
 
     for fullPath in walk(unicode(CHECKIN_DIRECTORY)):

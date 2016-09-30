@@ -31,8 +31,6 @@ class Rename(object):
         self.destDir = destDir if destDir else os.getcwd()
         if self.destDir[-1] != os.path.sep:
             self.destDir += os.path.sep
-        if not os.path.exists(self.destDir):
-            os.makedirs(self.destDir)
 
     def _buildFormatter(self):
         fields = list(itertools.chain(Formatter.basic, Formatter.distribution))

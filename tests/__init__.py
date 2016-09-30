@@ -11,7 +11,7 @@ else:
     RESULT_DIRECTORY = '/var/test_output'
     SOURCE_DIRECTORY = '/SampleData'
 
-if not os.path.exists(RESULT_DIRECTORY):
-    os.makedirs(RESULT_DIRECTORY)
-
 sampleFilesExist = os.path.exists(SOURCE_DIRECTORY)
+
+if sampleFilesExist and not os.path.exists(RESULT_DIRECTORY):
+    os.makedirs(RESULT_DIRECTORY)

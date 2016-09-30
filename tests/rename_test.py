@@ -1,28 +1,34 @@
 ﻿import unittest
 import os
-import sys
 import shutil
-import random
-import uuid
-import binascii
 import itertools
 import pyTagger
 from tests import *
+try:
+    from unittest.mock import patch
+except ImportError:
+    from mock import patch
 
-RENAMED_DIRECTORY = os.path.join(RESULT_DIRECTORY, u'renamed')
+RENAMED_DIRECTORY = os.path.join(RESULT_DIRECTORY, u'renamed', '')
 CHECKIN_DIRECTORY = os.path.join(SOURCE_DIRECTORY, u'Checkin')
 
 # -----------------------------------------------------------------------------
 # Module-Wide Routines
 # -----------------------------------------------------------------------------
 
+
 def resetFile(fileName):
+    if not os.path.exists(RENAMED_DIRECTORY):
+        os.makedirs(RENAMED_DIRECTORY)
+
     fromFile = os.path.join(CHECKIN_DIRECTORY, fileName)
     shutil.copy(fromFile, RENAMED_DIRECTORY)
     return os.path.join(RENAMED_DIRECTORY, fileName)
 
+
 def setUpModule():
     pass
+
 
 def tearDownModule():
     #shutil.rmtree(unicode(RENAMED_DIRECTORY))
@@ -32,10 +38,12 @@ def tearDownModule():
 # Test Class
 # -----------------------------------------------------------------------------
 
+
 class TestRename(unittest.TestCase):
 
     def setUp(self):
-        self.target = pyTagger.Rename(RENAMED_DIRECTORY)
+        targetDir = os.path.join(RESULT_DIRECTORY, u'renamed')
+        self.target = pyTagger.Rename(targetDir)
 
     def _buildTags(self, **kwargs):
         t = {
@@ -167,7 +175,9 @@ class TestRename(unittest.TestCase):
         self.assertEqual(False, actual)
 
     @unittest.skipUnless(sampleFilesExist, 'MP3 Files missing')
-    def test_needsMove_collision(self):
+    @patch('pyTagger.rename.os.path.exists')
+    def test_needsMove_collision(self, mocked):
+        mocked.return_value = True
         proposed = resetFile(u'01-11- Restart.mp3')
         with self.assertRaises(ValueError):
             self.target.needsMove(u'foo', proposed)

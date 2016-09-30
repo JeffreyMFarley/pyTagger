@@ -35,7 +35,7 @@ def walk(path):
 
 
 def setUpModule():
-    if not os.path.exists(INTEGRATION_TEST_DIRECTORY):
+    if sampleFilesExist and not os.path.exists(INTEGRATION_TEST_DIRECTORY):
         os.makedirs(INTEGRATION_TEST_DIRECTORY)
 
     for fullPath in walk(unicode(SOURCE_DIRECTORY)):
@@ -44,7 +44,8 @@ def setUpModule():
 
 
 def tearDownModule():
-    shutil.rmtree(unicode(INTEGRATION_TEST_DIRECTORY))
+    if os.path.exists(INTEGRATION_TEST_DIRECTORY):
+        shutil.rmtree(unicode(INTEGRATION_TEST_DIRECTORY))
 
 
 class TestIntegration(unittest.TestCase):
@@ -90,6 +91,7 @@ class TestIntegration(unittest.TestCase):
         target.createFromScan(INTEGRATION_TEST_DIRECTORY, outFile, columns)
         assert os.path.getsize(outFile) > 0
 
+    @unittest.skipUnless(sampleFilesExist, 'Files missing')
     def test_03_convert(self):
         target = pyTagger.SnapshotConverter()
         inFile = os.path.join(RESULT_DIRECTORY, r'snapshot.json')
@@ -98,6 +100,7 @@ class TestIntegration(unittest.TestCase):
         target.convert(inFile, outFile)
         assert os.path.getsize(outFile) > 0
 
+    @unittest.skipUnless(sampleFilesExist, 'Files missing')
     def test_04_convertBack(self):
         target = pyTagger.ConvertBack()
         inFile = os.path.join(RESULT_DIRECTORY, r'snapshot.txt')
@@ -141,13 +144,18 @@ class TestIntegration(unittest.TestCase):
 
         target = pyTagger.Rename(targetDir)
 
-        # Copy over files
+        # Clone over files
+        cloneDir = os.path.join(RESULT_DIRECTORY, u'checked_in', '')
+        if os.path.exists(cloneDir):
+            shutil.rmtree(cloneDir)
+
+        os.makedirs(cloneDir)
         for f in walk(os.path.join(SOURCE_DIRECTORY, u'Checkin')):
-            shutil.copy(f, targetDir)
+            shutil.copy(f, cloneDir)
 
         prepare = pyTagger.PrepareCheckIn()
-        prepare.run(targetDir)
-        target.run(targetDir)
+        prepare.run(cloneDir)
+        target.run(cloneDir)
 
         files = [name for name in os.listdir(targetDir)]
         self.assertEqual(7, len(files))

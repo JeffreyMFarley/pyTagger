@@ -13,11 +13,12 @@ from contextlib import contextmanager
 SANDBOX_DIRECTORY = os.path.join(RESULT_DIRECTORY, r'mp3s')
 
 def setUpModule():
-    if not os.path.exists(SANDBOX_DIRECTORY):
+    if sampleFilesExist and not os.path.exists(SANDBOX_DIRECTORY):
         os.makedirs(SANDBOX_DIRECTORY)
 
 def tearDownModule():
-    shutil.rmtree(SANDBOX_DIRECTORY)
+    if os.path.exists(SANDBOX_DIRECTORY):
+        shutil.rmtree(SANDBOX_DIRECTORY)
 
 class BaseSpecifications(unittest.TestCase):
     stringFields = ['title',  'artist', 'albumArtist', 'album',
