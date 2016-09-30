@@ -3,14 +3,6 @@ python:
   - "2.7"
   - "3.3"
 
-#sudo: required
-
-before_install:
-- git clone https://github.com/JeffreyMFarley/hew.git ${HOME}/hew
-- cd ${HOME}/hew
-- python setup.py develop
-- cd ${HOME}/
-
 install:
 - pip install -r requirements.txt
 
