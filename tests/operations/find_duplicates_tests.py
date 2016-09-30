@@ -26,7 +26,7 @@ class TestFindDuplicates(unittest.TestCase):
         }
 
         actual = list(findDuplicates(client))
-        client.search.assert_called_once()
+        self.assertEqual(client.search.call_count, 1)
         self.assertEqual(actual, [
             (u'foo', u'bar'),
             (u'foo', u'baz')

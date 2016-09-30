@@ -15,6 +15,7 @@ if sys.version < '3':
 else:
     _input = lambda fileName: open(fileName, 'r', encoding='utf-8')
     _output = lambda fileName: open(fileName, 'w', encoding='utf-8')
+    unicode = lambda x: x
 import pyTagger
 from tests import *
 

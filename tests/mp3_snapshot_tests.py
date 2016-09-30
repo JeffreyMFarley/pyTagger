@@ -169,8 +169,9 @@ class TestMp3Snapshot(unittest.TestCase):
         assert hash == 'Bf4eOMgTeKkeNxKH345RQHF2GLU=', 'actual:' + hash
 
     @patch(coreOpenFn)
-    @patch('pyTagger.mp3_snapshot.eyed3.mp3.Mp3AudioFile')
-    def test_calculate_hash_badfile(self, track, mocked_open):
+    def test_calculate_hash_badfile(self, mocked_open):
+        Track = namedtuple('track', 'tag')
+        track = Track(tag=None)
         mocked_open.side_effect = IOError()
         actual = self.target._calculateHash(track, 'foo.mp3')
         self.assertEqual(actual, '')

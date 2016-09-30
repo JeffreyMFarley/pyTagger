@@ -8,7 +8,7 @@ sudo: required
 before_install:
 - git clone https://github.com/JeffreyMFarley/hew.git ${HOME}/JeffreyMFarley/hew
 - cd ${HOME}/JeffreyMFarley/hew
-- python setup.py install
+- python setup.py develop
 - cd ${TRAVIS_BUILD_DIR}
 
 install:

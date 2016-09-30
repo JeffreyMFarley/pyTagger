@@ -25,7 +25,7 @@ class TestElasticsearchClient(unittest.TestCase):
 
         self.target.create()
 
-        loadJson.assert_called_once()
+        self.assertEqual(loadJson.call_count, 1)
         self.target.es.indices.create.assert_called_once_with(
             index='foo', body=data
         )
@@ -52,7 +52,7 @@ class TestElasticsearchClient(unittest.TestCase):
         self.target.exists = Mock(return_value=False)
         self.target.create = Mock(return_value=True)
         actual = self.target.load(self.snapshot)
-        self.target.create.assert_called_once()
+        self.assertEqual(self.target.create.call_count, 1)
         self.assertEqual(actual, (1, 0))
 
     def test_load_create_fails(self):

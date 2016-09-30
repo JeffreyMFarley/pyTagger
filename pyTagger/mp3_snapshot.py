@@ -7,11 +7,9 @@ import argparse
 import binascii
 import hashlib
 import logging
+import unicodedata
 if sys.version < '3':  # pragma: no cover
-    import eyed3
-    from eyed3 import mp3
     import codecs
-    import unicodedata
     _output = lambda fileName: codecs.open(fileName, 'w', encoding='utf-8')
 else:  # pragma: no cover
     _output = lambda fileName: open(fileName, 'w', encoding='utf-8')
@@ -85,6 +83,7 @@ class Formatter(object):
         self.translateTable = []
 
     def format(self, obj):
+        from eyed3 import mp3
         if isinstance(obj, mp3.Mp3AudioFile) and obj.tag:
             # Python 2.6 does not like dictionary comprehensions
             row = {}
@@ -200,6 +199,7 @@ class Mp3Snapshot(object):
         return formatter.format(track)
 
     def _loadID3(self, mp3FileName):
+        import eyed3
         try:
             return eyed3.load(mp3FileName)
         except (IOError, ValueError):

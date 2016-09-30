@@ -10,6 +10,8 @@ import pyTagger
 from tests import *
 from contextlib import contextmanager
 from pyTagger.io import loadJson
+if sys.version >= '3':
+    unicode = lambda x: x
 
 CHECKIN_DIRECTORY = os.path.join(SOURCE_DIRECTORY, 'Checkin')
 CHECKED_DIRECTORY = os.path.join(RESULT_DIRECTORY, 'checked_in')
