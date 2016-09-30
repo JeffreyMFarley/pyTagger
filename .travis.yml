@@ -6,11 +6,10 @@ python:
 #sudo: required
 
 before_install:
-- mkdir src && cd src
-- git clone https://github.com/JeffreyMFarley/hew.git
-- cd hew
+- git clone https://github.com/JeffreyMFarley/hew.git ${HOME}/hew
+- cd ${HOME}/hew
 - python setup.py develop
-- cd ..
+- cd ${HOME}/
 
 install:
 - pip install -r requirements.txt
