@@ -6,13 +6,10 @@ python:
 sudo: required
 
 before_install:
-- echo $TRAVIS_BUILD_DIR
-- echo $pwd
-
 - git clone https://github.com/JeffreyMFarley/hew.git ${HOME}/JeffreyMFarley/hew
 - cd ${HOME}/JeffreyMFarley/hew
 - python setup.py install
-- cd ${TRAVIS_BUILD_DIR}/JeffreyMFarley/pyTagger
+- cd ${TRAVIS_BUILD_DIR}
 
 install:
 - pip install -r requirements.txt
