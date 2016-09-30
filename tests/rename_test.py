@@ -38,16 +38,17 @@ class TestRename(unittest.TestCase):
         self.target = pyTagger.Rename(RENAMED_DIRECTORY)
 
     def _buildTags(self, **kwargs):
-        t =  {
-        'album': u'Bar',
-        'artist': u'Foo (with Qaz)',
-        'track': 1,
-        'totalTrack': 14,
-        'compilation': None,
-        'title': u'Baz',
-        'albumArtist': u'Foo',
-        'totalDisc': 1,
-        'disc': 1}
+        t = {
+            'album': u'Bar',
+            'artist': u'Foo (with Qaz)',
+            'track': 1,
+            'totalTrack': 14,
+            'compilation': None,
+            'title': u'Baz',
+            'albumArtist': u'Foo',
+            'totalDisc': 1,
+            'disc': 1
+        }
         t.update(**kwargs)
         return t
 
@@ -159,16 +160,19 @@ class TestRename(unittest.TestCase):
         actual = self.target.buildPath(tags)
         self.assertSequenceEqual(expected, actual)
 
+    @unittest.skipUnless(sampleFilesExist, 'MP3 Files missing')
     def test_needsMove_bothEqual(self):
         current = resetFile(u'01-11- Restart.mp3')
         actual = self.target.needsMove(current, current)
         self.assertEqual(False, actual)
 
+    @unittest.skipUnless(sampleFilesExist, 'MP3 Files missing')
     def test_needsMove_collision(self):
         proposed = resetFile(u'01-11- Restart.mp3')
         with self.assertRaises(ValueError):
             self.target.needsMove(u'foo', proposed)
 
+    @unittest.skipUnless(sampleFilesExist, 'MP3 Files missing')
     def test_needsMove_notEqual(self):
         current = resetFile(u'01-11- Restart.mp3')
         proposed = os.path.join(RENAMED_DIRECTORY, u'foo.mp3')

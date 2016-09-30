@@ -51,7 +51,7 @@ def tearDownModule():
 
 class TestPrepareCheckIn(unittest.TestCase):
 
-    @unittest.skipIf(sys.version >= '3', 'This test must be run in Python 2.x')
+    @unittest.skipUnless(sampleFilesExist, 'MP3 Files missing')
     def setUp(self):
         self.target = pyTagger.PrepareCheckIn()
         self.snapshot = self.target.reader

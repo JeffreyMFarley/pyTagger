@@ -56,6 +56,7 @@ class TestMp3Snapshot(unittest.TestCase):
     def setUp(self):
         self.target = Mp3Snapshot()
 
+    @unittest.skipUnless(sampleFilesExist, 'MP3 Files missing')
     def test_extract_basic(self):
         formatter = Formatter(Formatter.basic)
         file = os.path.join(
@@ -68,6 +69,7 @@ class TestMp3Snapshot(unittest.TestCase):
         assert row['title'] == 'Lotus Flower'
         assert 'fileHash' not in row
 
+    @unittest.skipUnless(sampleFilesExist, 'MP3 Files missing')
     def test_extract_full_v10(self):
         formatter = Formatter()
         file = os.path.join(SOURCE_DIRECTORY, 'Test Files', 'ID3V1.mp3')
@@ -79,6 +81,7 @@ class TestMp3Snapshot(unittest.TestCase):
         assert row['title'] == 'West End Girls', row['title']
         assert row['artist'] == 'Petshop Boys', row['artist']
 
+    @unittest.skipUnless(sampleFilesExist, 'MP3 Files missing')
     def test_extract_full_v22(self):
         formatter = Formatter()
         file = os.path.join(
@@ -94,6 +97,7 @@ class TestMp3Snapshot(unittest.TestCase):
         assert row['artist'] == 'Geggy Tah', row['artist']
         assert row['year'] == '1996', row['year']
 
+    @unittest.skipUnless(sampleFilesExist, 'MP3 Files missing')
     def test_extract_full_v23(self):
         formatter = Formatter()
         file = os.path.join(SOURCE_DIRECTORY, '01 - Bust A Move.mp3')
@@ -107,6 +111,7 @@ class TestMp3Snapshot(unittest.TestCase):
         assert row['artist'] == 'Young MC', row['artist']
         assert row['year'] == '1989', row['year']
 
+    @unittest.skipUnless(sampleFilesExist, 'MP3 Files missing')
     def test_extract_full_v24(self):
         formatter = Formatter()
         file = os.path.join(
@@ -132,6 +137,7 @@ class TestMp3Snapshot(unittest.TestCase):
 
         assert not row
 
+    @unittest.skipUnless(sampleFilesExist, 'MP3 Files missing')
     def test_extract_utf8(self):
         formatter = Formatter(Formatter.basic)
         file = os.path.join(SOURCE_DIRECTORY, '08 - Aeroplane.mp3')
@@ -141,6 +147,7 @@ class TestMp3Snapshot(unittest.TestCase):
         assert row
         assert row['artist'] == u'Bj\xf6rk'
 
+    @unittest.skipUnless(sampleFilesExist, 'MP3 Files missing')
     def test_extract_non_ascii_filename(self):
         formatter = Formatter(Formatter.basic)
         title = buildFormula()
@@ -152,6 +159,7 @@ class TestMp3Snapshot(unittest.TestCase):
         assert row['title'] == title
         assert row['artist'] == u'T\xe9l\xe9popmusik'
 
+    @unittest.skipUnless(sampleFilesExist, 'MP3 Files missing')
     def test_calculate_hash(self):
         file = os.path.join(SOURCE_DIRECTORY, '10 World\'s Famous.mp3')
         track = self.target._loadID3(file)

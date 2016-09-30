@@ -13,3 +13,5 @@ else:
 
 if not os.path.exists(RESULT_DIRECTORY):
     os.makedirs(RESULT_DIRECTORY)
+
+sampleFilesExist = os.path.exists(SOURCE_DIRECTORY)

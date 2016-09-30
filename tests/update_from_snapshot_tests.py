@@ -20,22 +20,22 @@ def tearDownModule():
     shutil.rmtree(SANDBOX_DIRECTORY)
 
 class BaseSpecifications(unittest.TestCase):
-    stringFields = ['title',  'artist', 'albumArtist', 'album', 
+    stringFields = ['title',  'artist', 'albumArtist', 'album',
                     'composer', 'conductor', 'remixer', 'publisher',
                     'genre', 'group', 'subtitle']
-    numberFields = ['track', 'totalTrack', 'bpm', 'disc', 'totalDisc', 
+    numberFields = ['track', 'totalTrack', 'bpm', 'disc', 'totalDisc',
                     'playCount']
     dateFields = ['releaseDate', 'originalReleaseDate',
                   'recordingDate', 'encodingDate', 'taggingDate']
     readOnlyFields = ['bitRate', 'fileHash', 'length', 'vbr']
     collectionFields = ['comments', 'id', 'lyrics', 'ufid']
-    enumFields = {'key' : ['A', 'B', 'C', 'D', 'E', 'F', 'G'],
-                  'language' : ['ENG', 'DEU'],
-                  'media' : ['DIG', 'CD', 'TT/33'],
-                  'compilation' : ['0', '1'] }
+    enumFields = {'key': ['A', 'B', 'C', 'D', 'E', 'F', 'G'],
+                  'language': ['ENG', 'DEU'],
+                  'media': ['DIG', 'CD', 'TT/33'],
+                  'compilation': ['0', '1']}
     text = ['abc', 'def', 'ghi', 'jkl', u'Bj\xf6rk']
 
-    @unittest.skipIf(sys.version > '3', 'This test must be run in Python 2.x')
+    @unittest.skipUnless(sampleFilesExist, 'MP3 Files missing')
     def setUp(self):
         self.target = pyTagger.update_from_snapshot.UpdateFromSnapshot()
 
@@ -106,10 +106,13 @@ class BaseSpecifications(unittest.TestCase):
 
 class ID3V10_Snapshot(BaseSpecifications):
     def test_adds_missing_simple_tags(self):
-        pass  
+        pass
 
     def test_updates_simple_tags(self):
-        tags = {'title': 'abc', 'artist': 'def', 'album': 'ghi', 'year': '1999', 'genre': 'Blues'}
+        tags = {
+            'title': 'abc', 'artist': 'def', 'album': 'ghi', 'year': '1999',
+            'genre': 'Blues'
+        }
         actual = {}
 
         with self.useFile(r'Her Majesty.mp3', tags, actual) as track:
@@ -137,7 +140,10 @@ class ID3V10_Snapshot(BaseSpecifications):
         pass
 
     def test_updates_comment_when_some_exist(self):
-        tags = { 'comments' : [{'lang': 'eng', 'text': 'here is some text', 'description': 'ID3v1.x Comment'}]}
+        tags = {'comments': [{
+            'lang': 'eng', 'text': 'here is some text',
+            'description': 'ID3v1.x Comment'
+        }]}
         actual = {}
 
         with self.useFile(r'Her Majesty.mp3', tags, actual) as track:
@@ -172,7 +178,10 @@ class ID3V10_Snapshot(BaseSpecifications):
 
 class ID3V11_Snapshot(ID3V10_Snapshot):
     def test_updates_simple_tags(self):
-        tags = {'track': 1, 'title': 'abc', 'artist': 'def', 'album': 'ghi', 'year': '1983', 'genre': 'Blues'}
+        tags = {
+            'track': 1, 'title': 'abc', 'artist': 'def', 'album': 'ghi',
+            'year': '1983', 'genre': 'Blues'
+        }
         actual = {}
 
         with self.useFile('13 aussois.mp3', tags, actual) as track:
@@ -183,7 +192,9 @@ class ID3V11_Snapshot(ID3V10_Snapshot):
     def test_removes_simple_tags(self):
         tags = {'track': '', 'title': '', 'artist': '', 'album': ''}
         actual = {}
-        expected = {'track': None, 'title': None, 'artist': None, 'album': None}
+        expected = {
+            'track': None, 'title': None, 'artist': None, 'album': None
+        }
 
         with self.useFile('13 aussois.mp3', tags, actual) as track:
             self.target._writeSimple(track, tags)
@@ -191,7 +202,10 @@ class ID3V11_Snapshot(ID3V10_Snapshot):
         self.assertDictEqual(expected, actual, repr(actual))
 
     def test_updates_comment_when_some_exist(self):
-        tags = { 'comments' : [{'lang': 'eng', 'text': 'here is some text', 'description': 'ID3v1.x Comment'}]}
+        tags = {'comments': [{
+            'lang': 'eng', 'text': 'here is some text',
+            'description': 'ID3v1.x Comment'
+        }]}
         actual = {}
 
         with self.useFile('13 aussois.mp3', tags, actual) as track:
@@ -204,24 +218,27 @@ class ID3V22_Snapshot(BaseSpecifications):
     minimal = '05 Mr. Zebra.mp3'
     hasComments = '06 Getting Ahead In The Lucrative Field Of Artist Managmt.mp3'
     hasLyrics = '06 Getting Ahead In The Lucrative Field Of Artist Managmt.mp3'
-    hasUfid = os.sep.join(['Test Files','iTunes 9 256 kbps.mp3'])
+    hasUfid = os.sep.join(['Test Files', 'iTunes 9 256 kbps.mp3'])
 
     def buildSimpleTags(self):
         tags = {}
         for k in self.stringFields:
             tags[k] = random.choice(self.text)
         for k in self.numberFields:
-            tags[k] = random.randint(1,5)
+            tags[k] = random.randint(1, 5)
         for k, values in self.enumFields.items():
             tags[k] = random.choice(values)
         tags['year'] = '2015'
         return tags
 
     def saveTrack(self, track):
-        self.target._saveID3(track, (2,3,0))
+        self.target._saveID3(track, (2, 3, 0))
 
     def test_adds_missing_simple_tags(self):
-        tags = {'albumArtist': 'abc', 'bpm': 120, 'composer': 'ghi', 'key': 'G', 'language': 'ENG', 'disc': 1, 'totalDisc': 1}
+        tags = {
+            'albumArtist': 'abc', 'bpm': 120, 'composer': 'ghi', 'key': 'G',
+            'language': 'ENG', 'disc': 1, 'totalDisc': 1
+        }
         actual = {}
 
         with self.useFile(self.minimal, tags, actual) as track:
@@ -239,10 +256,10 @@ class ID3V22_Snapshot(BaseSpecifications):
         self.assertDictEqual(tags, actual, repr(actual))
 
     def test_removes_simple_tags(self):
-        tags = {k : None for k in itertools.chain(self.stringFields,
-                                                  self.numberFields,
-                                                  self.enumFields.keys(),
-                                                  ['year'])
+        tags = {k: None for k in itertools.chain(self.stringFields,
+                                                 self.numberFields,
+                                                 self.enumFields.keys(),
+                                                 ['year'])
                 if k not in ['bpm', 'playCount']}
         expected = dict(tags)
         expected.update({'track': 0, 'year': '', 'genre': ''})
@@ -250,25 +267,29 @@ class ID3V22_Snapshot(BaseSpecifications):
 
         with self.useFile(self.minimal, tags, actual) as track:
             self.target._writeSimple(track, tags)
-            
+
         self.assertDictEqual(expected, actual, repr(actual))
 
     def test_adds_comment_when_none_exist(self):
-        tags = { 'comments' : [{'lang': 'eng', 'text': 'here is some text', 'description': ''}]}
+        tags = {'comments': [{
+            'lang': 'eng', 'text': 'here is some text', 'description': ''
+        }]}
         actual = {}
 
         with self.useFile(self.minimal, tags, actual) as track:
             self.target._writeCollection(track, tags)
-            
+
         self.assertDictEqual(tags, actual, repr(actual))
 
     def test_adds_comment_when_some_exist(self):
-        tags = { 'comments' : [{'lang': 'eng', 'text': 'here is some text', 'description': 'other'}]}
+        tags = {'comments': [{
+            'lang': 'eng', 'text': 'here is some text', 'description': 'other'
+        }]}
         actual = {}
 
         with self.useFile(self.hasComments, tags, actual) as track:
             self.target._writeCollection(track, tags)
-        
+
         innerActual = actual['comments']
         assert len(innerActual) == 3
         expected = [x for x in innerActual if x['description'] == 'other']
@@ -276,23 +297,28 @@ class ID3V22_Snapshot(BaseSpecifications):
         assert 'here is some text' == expected[0]['text']
 
     def test_removes_comment_when_some_exist(self):
-        tags = { 'comments' : [{'lang': 'eng', 'text': '', 'description': 'iTunNORM'},
-                               {'lang': 'eng', 'text': '', 'description': 'iTunes_CDDB_IDs'}]}
+        tags = {'comments': [
+            {'lang': 'eng', 'text': '', 'description': 'iTunNORM'},
+            {'lang': 'eng', 'text': '', 'description': 'iTunes_CDDB_IDs'}
+        ]}
         actual = {}
-        expected = {'comments' : []}
+        expected = {'comments': []}
 
         with self.useFile(self.hasComments, tags, actual) as track:
             self.target._writeCollection(track, tags)
-            
+
         self.assertDictEqual(expected, actual, repr(actual))
 
     def test_updates_comment_when_some_exist(self):
-        tags = { 'comments' : [{'lang': 'eng', 'text': 'here is some text', 'description': 'iTunNORM'}]}
+        tags = {'comments': [{
+            'lang': 'eng', 'text': 'here is some text',
+            'description': 'iTunNORM'
+        }]}
         actual = {}
 
         with self.useFile(self.hasComments, tags, actual) as track:
             self.target._writeCollection(track, tags)
-            
+
         innerActual = actual['comments']
         assert len(innerActual) == 2
         expected = [x for x in innerActual if x['description'] == 'iTunNORM']
@@ -300,21 +326,25 @@ class ID3V22_Snapshot(BaseSpecifications):
         assert 'here is some text' == expected[0]['text']
 
     def test_adds_lyric_when_none_exist(self):
-        tags = { 'lyrics' : [{'lang': 'eng', 'text': 'here is some text', 'description': ''}]}
+        tags = {'lyrics': [{
+            'lang': 'eng', 'text': 'here is some text', 'description': ''
+        }]}
         actual = {}
 
         with self.useFile(self.minimal, tags, actual) as track:
             self.target._writeCollection(track, tags)
-            
+
         self.assertDictEqual(tags, actual, repr(actual))
 
     def test_adds_lyric_when_some_exist(self):
-        tags = { 'lyrics' : [{'lang': 'eng', 'text': 'here is some text', 'description': 'other'}]}
+        tags = {'lyrics': [{
+            'lang': 'eng', 'text': 'here is some text', 'description': 'other'
+        }]}
         actual = {}
 
         with self.useFile(self.hasLyrics, tags, actual) as track:
             self.target._writeCollection(track, tags)
-        
+
         innerActual = actual['lyrics']
         assert len(innerActual) == 2
         expected = [x for x in innerActual if x['description'] == 'other']
@@ -322,28 +352,32 @@ class ID3V22_Snapshot(BaseSpecifications):
         assert 'here is some text' == expected[0]['text']
 
     def test_removes_lyric_when_some_exist(self):
-        tags = { 'lyrics' : [{'lang': 'eng', 'text': '', 'description': ''}]}
+        tags = {'lyrics': [{
+            'lang': 'eng', 'text': '', 'description': ''
+        }]}
         actual = {}
-        expected = {'lyrics' : []}
+        expected = {'lyrics': []}
 
         with self.useFile(self.hasLyrics, tags, actual) as track:
             self.target._writeCollection(track, tags)
-            
+
         self.assertDictEqual(expected, actual, repr(actual))
 
     def test_updates_lyric_when_some_exist(self):
-        tags = { 'lyrics' : [{'lang': 'eng', 'text': 'here is some text', 'description': ''}]}
+        tags = {'lyrics': [{
+            'lang': 'eng', 'text': 'here is some text', 'description': ''
+        }]}
         actual = {}
 
         with self.useFile(self.hasComments, tags, actual) as track:
             self.target._writeCollection(track, tags)
-            
+
         self.assertDictEqual(tags, actual, repr(actual))
 
     def test_adds_ufid_when_none_exist(self):
         id = uuid.uuid1()
         asString = binascii.b2a_base64(id.bytes).strip()
-        tags = { 'ufid' : {'DJTagger': asString}}
+        tags = {'ufid': {'DJTagger': asString}}
         actual = {}
 
         with self.useFile(self.minimal, tags, actual) as track:
@@ -355,7 +389,7 @@ class ID3V22_Snapshot(BaseSpecifications):
     def test_adds_ufid_when_some_exist(self):
         id = uuid.uuid1()
         asString = binascii.b2a_base64(id.bytes).strip()
-        tags = { 'ufid' : {'DJTagger': asString}}
+        tags = {'ufid': {'DJTagger': asString}}
         actual = {}
 
         with self.useFile(self.hasUfid, tags, actual) as track:
@@ -363,35 +397,35 @@ class ID3V22_Snapshot(BaseSpecifications):
 
         innerActual = actual['ufid']
         assert len(innerActual) == 2
-        expected = {k:innerActual[k] for k in innerActual if k == 'DJTagger'}
+        expected = {k: innerActual[k] for k in innerActual if k == 'DJTagger'}
         assert len(expected) == 1
         assert expected['DJTagger'] == asString
 
     def test_removes_ufid_when_some_exist(self):
-        tags = { 'ufid' : {'http://www.cddb.com/id3/taginfo1.html': None}}
+        tags = {'ufid': {'http://www.cddb.com/id3/taginfo1.html': None}}
         actual = {}
-        expected = {'ufid' : {}}
+        expected = {'ufid': {}}
 
         with self.useFile(self.hasUfid, tags, actual) as track:
             self.target._writeCollection(track, tags)
-            
+
         self.assertDictEqual(expected, actual, repr(actual))
 
     def test_updates_ufid_when_some_exist(self):
         id = uuid.uuid1()
         asString = binascii.b2a_base64(id.bytes).strip()
-        tags = { 'ufid' : {'http://www.cddb.com/id3/taginfo1.html': asString}}
+        tags = {'ufid': {'http://www.cddb.com/id3/taginfo1.html': asString}}
         actual = {}
         expected = tags
 
         with self.useFile(self.hasUfid, tags, actual) as track:
             self.target._writeCollection(track, tags)
-            
+
         self.assertDictEqual(expected, actual, repr(actual))
 
 
 class ID3V23_Snapshot(BaseSpecifications):
-    minimal = os.sep.join(['Test Files','WMP 10 256kbps.mp3'])
+    minimal = os.sep.join(['Test Files', 'WMP 10 256kbps.mp3'])
     hasComments = '05 - In Da Club.mp3'
     hasLyrics = '05 - In Da Club.mp3'
     hasUfid = '05 - In Da Club.mp3'
@@ -401,14 +435,17 @@ class ID3V23_Snapshot(BaseSpecifications):
         for k in self.stringFields:
             tags[k] = random.choice(self.text)
         for k in self.numberFields:
-            tags[k] = random.randint(1,5)
+            tags[k] = random.randint(1, 5)
         for k, values in self.enumFields.items():
             tags[k] = random.choice(values)
         tags['year'] = '2015'
         return tags
 
     def test_adds_missing_simple_tags(self):
-        tags = {'albumArtist': 'abc', 'bpm': 120, 'composer': 'ghi', 'key': 'G', 'language': 'ENG', 'disc': 1, 'totalDisc': 1}
+        tags = {
+            'albumArtist': 'abc', 'bpm': 120, 'composer': 'ghi', 'key': 'G',
+            'language': 'ENG', 'disc': 1, 'totalDisc': 1
+        }
         actual = {}
 
         with self.useFile(self.minimal, tags, actual) as track:
@@ -426,10 +463,10 @@ class ID3V23_Snapshot(BaseSpecifications):
         self.assertDictEqual(tags, actual, repr(actual))
 
     def test_removes_simple_tags(self):
-        tags = {k : None for k in itertools.chain(self.stringFields,
-                                                  self.numberFields,
-                                                  self.enumFields.keys(),
-                                                  ['year'])
+        tags = {k: None for k in itertools.chain(self.stringFields,
+                                                 self.numberFields,
+                                                 self.enumFields.keys(),
+                                                 ['year'])
                 if k not in ['bpm', 'playCount']}
         expected = dict(tags)
         expected.update({'year': '', 'genre': ''})
@@ -437,25 +474,29 @@ class ID3V23_Snapshot(BaseSpecifications):
 
         with self.useFile(self.minimal, tags, actual) as track:
             self.target._writeSimple(track, tags)
-            
+
         self.assertDictEqual(expected, actual, repr(actual))
 
     def test_adds_comment_when_none_exist(self):
-        tags = { 'comments' : [{'lang': 'eng', 'text': 'here is some text', 'description': ''}]}
+        tags = {'comments': [{
+            'lang': 'eng', 'text': 'here is some text', 'description': ''
+        }]}
         actual = {}
 
         with self.useFile(self.minimal, tags, actual) as track:
             self.target._writeCollection(track, tags)
-            
+
         self.assertDictEqual(tags, actual, repr(actual))
 
     def test_adds_comment_when_some_exist(self):
-        tags = { 'comments' : [{'lang': 'eng', 'text': 'here is some text', 'description': 'other'}]}
+        tags = {'comments': [{
+            'lang': 'eng', 'text': 'here is some text', 'description': 'other'
+        }]}
         actual = {}
 
         with self.useFile(self.hasComments, tags, actual) as track:
             self.target._writeCollection(track, tags)
-        
+
         innerActual = actual['comments']
         assert len(innerActual) == 2
         expected = [x for x in innerActual if x['description'] == 'other']
@@ -615,6 +656,9 @@ class ID3V24_Snapshot(ID3V23_Snapshot):
             
         self.assertDictEqual(expected, actual, repr(actual))
 
+    @unittest.skip('The test file does not contain an existing UFID')
+    def test_adds_ufid_when_some_exist(self):
+        pass
 
 class TestFindDelta(unittest.TestCase):
     def setUp(self):
@@ -940,5 +984,4 @@ class TestFindDelta(unittest.TestCase):
 del(BaseSpecifications)
 
 if __name__ == '__main__':
-
     unittest.main()
