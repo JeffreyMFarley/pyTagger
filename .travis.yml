@@ -1,0 +1,19 @@
+language: python
+python:
+  - "2.7"
+  - "3.3"
+
+#sudo: required
+
+before_install:
+- mkdir src && cd src
+- git clone https://github.com/JeffreyMFarley/hew.git
+- cd hew
+- python setup.py develop
+- cd ..
+
+install:
+- pip install -r requirements.txt
+
+# command to run tests
+script: python setup.py test
