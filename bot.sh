@@ -43,14 +43,12 @@ push() {
 
 run() {
     docker run -it \
-    --env-file /home/vagrant/.env \
     --name "$image_name" "$docker_tag" /bin/sh
     return $?
 }
 
 run-test() {
     docker run -it \
-    --env-file /home/vagrant/.env \
     --name "$image_name" "$docker_tag"
     return $?
 }

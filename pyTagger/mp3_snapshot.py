@@ -80,7 +80,7 @@ class Formatter(object):
 
     def __init__(self, fieldSet=None):
         self.fieldSet = self.columns if fieldSet is None else fieldSet
-        self.translateTable = []
+        self.normalizer = None
 
     def format(self, obj):
         from eyed3 import mp3
@@ -93,19 +93,10 @@ class Formatter(object):
         return {}
 
     def normalizeToAscii(self, text):
-        if not self.translateTable:
-            self.translateTable = self.buildTranslateTable()
-        b = unicodedata.normalize('NFKD', text)
-        return b.translate(self.translateTable).encode('ascii', 'replace')
-
-    @classmethod
-    def buildTranslateTable(cls):
-        if sys.version >= '3':
-            return dict.fromkeys(c for c in range(sys.maxunicode)
-                                 if unicodedata.combining(chr(c)))
-        else:
-            return dict.fromkeys(c for c in range(sys.maxunicode)
-                                 if unicodedata.combining(unichr(c)))
+        from hew import Normalizer
+        if not self.normalizer:
+            self.normalizer = Normalizer()
+        return self.normalizer.to_ascii(text)
 
     @classmethod
     def extractTaggerId(cls, track):

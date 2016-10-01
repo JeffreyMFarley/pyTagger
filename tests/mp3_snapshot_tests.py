@@ -48,7 +48,7 @@ class TestFormatter(unittest.TestCase):
     def test_normalizeToAsciiHard(self):
         title = buildFormula()
         result = self.target.normalizeToAscii(title)
-        assert result == '?p??q?h?4?', result
+        self.assertEqual(result, u'dpdqh/4\u03c0')
 
 
 class TestMp3Snapshot(unittest.TestCase):

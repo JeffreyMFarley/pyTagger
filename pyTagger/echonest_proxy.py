@@ -6,51 +6,6 @@ import json
 import requests
 from operator import itemgetter
 
-
-def relativeToAbsolute(path):
-    # where is this script?
-    thisScriptDir = os.path.dirname(__file__)
-
-    # get the expected paths
-    return os.path.join(thisScriptDir, path)
-
-
-def pickleForTesting(r, params, baseFile):
-    import pickle
-
-    fileName = relativeToAbsolute('{0}-{1}.p'.format(baseFile,
-                                                     params['start']))
-    with open(fileName, 'wb') as f:
-        pickle.dump(r, f)
-
-# -----------------------------------------------------------------------------
-
-
-def apiKeys():
-    '''
-    Generator for the list of keys in the .env file
-    '''
-    envFileName = relativeToAbsolute('../.env')
-    if not os.path.exists(envFileName):
-        raise ValueError("ENV file '%s' not found." % envFileName)
-
-    # get the keys
-    with open(envFileName, 'r') as f:
-        for line in f:
-            k, v = line.strip().split('=', 1)
-            if k[0] != '#':
-                yield (k, v)
-
-
-def getApiKey(name):
-    '''
-    Gets the one (and only!) api key with `name`
-    '''
-    keys = [v for k, v in apiKeys() if k == name]
-    assert len(keys) > 0
-    assert len(keys) == 1
-    return keys[0]
-
 # -------------------------------------------------------------------------
 # Projections
 # -------------------------------------------------------------------------
@@ -109,7 +64,7 @@ class EchoNestProxy(object):
     def __init__(self):
         from hew import Normalizer
 
-        self.api_key = getApiKey('ECHONEST_API_KEY')
+        self.api_key = os.getenv('ECHONEST_API_KEY')
         self.maxCallsPerMinute = 200
         self.step = 100
         self.status_code = 0
@@ -122,7 +77,7 @@ class EchoNestProxy(object):
         ''' Retrieves a full set of data from an API
         '''
         if not self.api_key:
-            raise StopIteration
+            raise ValueError("Missing environment variable ECHONEST_API_KEY")
 
         # The URL parameters
         params.update({'api_key': self.api_key,
