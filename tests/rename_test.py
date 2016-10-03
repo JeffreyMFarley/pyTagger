@@ -31,7 +31,7 @@ def setUpModule():
 
 
 def tearDownModule():
-    #shutil.rmtree(unicode(RENAMED_DIRECTORY))
+    #shutil.rmtree(RENAMED_DIRECTORY)
     pass
 
 # -----------------------------------------------------------------------------

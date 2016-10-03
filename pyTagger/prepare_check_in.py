@@ -7,6 +7,7 @@ import uuid
 import binascii
 from pymonad.Reader import curry
 from pyTagger import UpdateFromSnapshot, Mp3Snapshot
+from pyTagger.io import walk
 from pyTagger.mp3_snapshot import Formatter
 
 
@@ -93,16 +94,6 @@ class PrepareCheckIn(object):
     # Process
     # -------------------------------------------------------------------------
 
-    def _walk(self, path):
-        for currentDir, _, files in os.walk(unicode(path)):
-            # Get the absolute path of the currentDir parameter
-            currentDir = os.path.abspath(currentDir)
-
-            # Traverse through all files
-            for fileName in files:
-                fullPath = os.path.join(currentDir, fileName)
-                yield fullPath
-
     def _process(self, fullPath):
         tags = self.getTags(fullPath)
         for k in self.stripFields:
@@ -129,9 +120,8 @@ class PrepareCheckIn(object):
             log = logging.getLogger('eyed3')
             log.setLevel(logging.ERROR)
 
-        for fullPath in self._walk(unicode(path)):
-            if fullPath[-3:].lower() in ['mp3']:
-                self._process(fullPath)
+        for fullPath in walk(path):
+            self._process(fullPath)
 
 # -----------------------------------------------------------------------------
 # Main

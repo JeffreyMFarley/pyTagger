@@ -7,11 +7,11 @@ import logging
 import binascii
 import hashlib
 if sys.version < '3':  # pragma: no cover
-    import eyed3
     import codecs
     _input = lambda fileName: codecs.open(fileName, 'r', encoding='utf-8')
 else:  # pragma: no cover
     _input = lambda fileName: open(fileName, 'r', encoding='utf-8')
+from pyTagger.io import walk
 from pyTagger.mp3_snapshot import Formatter
 
 # -----------------------------------------------------------------------------
@@ -45,6 +45,7 @@ class ExtractImages(object):
         return fullPath
 
     def _extract(self, mp3FileName):
+        import eyed3
         track = None
         try:
             track = eyed3.load(mp3FileName)
@@ -65,20 +66,10 @@ class ExtractImages(object):
         formatter = Formatter([])
         log = logging.getLogger('eyed3')
         log.setLevel(logging.ERROR)
-
-        for currentDir, _, files in os.walk(unicode(directory)):
-            # Get the absolute path of the currentDir parameter
-            currentDir = os.path.abspath(currentDir)
-
-            # Traverse through all files
-            for fileName in files:
-                fullPath = os.path.join(currentDir, fileName)
-
-                # Check if the file has an extension of typical music files
-                if fullPath[-3:].lower() in ['mp3']:
-                    asciified = formatter.normalizeToAscii(fullPath)
-                    self.log.info("Extracting '%s'", asciified)
-                    self._extract(fullPath)
+        for fullPath in walk(directory):
+            asciified = formatter.normalizeToAscii(fullPath)
+            self.log.info("Extracting '%s'", asciified)
+            self._extract(fullPath)
 
     def extractFrom(self, fileList):
         formatter = Formatter([])

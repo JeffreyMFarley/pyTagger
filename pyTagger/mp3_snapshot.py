@@ -7,12 +7,12 @@ import argparse
 import binascii
 import hashlib
 import logging
-import unicodedata
 if sys.version < '3':  # pragma: no cover
     import codecs
     _output = lambda fileName: codecs.open(fileName, 'w', encoding='utf-8')
 else:  # pragma: no cover
     _output = lambda fileName: open(fileName, 'w', encoding='utf-8')
+from pyTagger.io import walk
 
 # -----------------------------------------------------------------------------
 # Classes
@@ -149,29 +149,18 @@ class Mp3Snapshot(object):
             fout.writelines('{')
             sep = ''
 
-            # make sure the scan path is unicode and the results will be
-            # returned in unicode
-            for currentDir, _, files in os.walk(unicode(scanPath)):
-                # Get the absolute path of the currentDir parameter
-                currentDir = os.path.abspath(currentDir)
-
-                # Traverse through all files
-                for fileName in files:
-                    fullPath = os.path.join(currentDir, fileName)
-
-                    # Check if the file has an extension of typical music files
-                    if fullPath[-3:].lower() in ['mp3']:
-                        self.log.info(
-                            "Scanning %s", formatter.normalizeToAscii(fullPath)
-                        )
-                        row = self.extractTags(fullPath, formatter)
-                        if row:
-                            fout.writelines([sep, '"',
-                                             fullPath.replace('\\', '\\\\'),
-                                             '":'])
-                            json.dump(row, fout,
-                                      indent=None if self.compact else 2)
-                            sep = ','
+            for fullPath in walk(scanPath):
+                self.log.info(
+                    "Scanning %s", formatter.normalizeToAscii(fullPath)
+                )
+                row = self.extractTags(fullPath, formatter)
+                if row:
+                    fout.writelines([sep, '"',
+                                     fullPath.replace('\\', '\\\\'),
+                                     '":'])
+                    json.dump(row, fout,
+                              indent=None if self.compact else 2)
+                    sep = ','
 
         finally:
             fout.writelines('}')

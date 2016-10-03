@@ -5,6 +5,10 @@ import time
 import json
 import requests
 from operator import itemgetter
+if sys.version < '3':  # pragma: no cover
+    _unicode = unicode
+else:  # pragma: no cover
+    _unicode = lambda x: x
 
 # -------------------------------------------------------------------------
 # Projections
@@ -153,7 +157,7 @@ if __name__ == '__main__':
     columns = sorted(_songProjection.keys())
     print('\t'.join(columns))
     for song in songs:
-        cells = [unicode(song[col]) if col in song else '' for col in columns]
+        cells = [_unicode(song[col]) if col in song else '' for col in columns]
         print(service.normalizer.to_ascii(u'\t'.join(cells)))
 
     #for song in songs:

@@ -5,7 +5,7 @@ import json
 import os
 import sys
 import argparse
-if sys.version < '3':
+if sys.version < '3':  # pragma: no cover
     import codecs
     _input_json = lambda fileName: codecs.open(fileName, 'r', encoding='utf-8')
     _input_table = lambda fileName: codecs.open(fileName, 'r',
@@ -14,11 +14,13 @@ if sys.version < '3':
                                                 encoding='utf-8')
     _output_table = lambda fileName: codecs.open(fileName, 'w',
                                                  encoding='utf_16_le')
-else:
+    _unicode = unicode
+else:  # pragma: no cover
     _input_json = lambda fileName: open(fileName, 'r', encoding='utf-8')
     _input_table = lambda fileName: open(fileName, 'r', encoding='utf_16_le')
     _output_json = lambda fileName: open(fileName, 'w', encoding='utf-8')
     _output_table = lambda fileName: open(fileName, 'w', encoding='utf_16_le')
+    _unicode = lambda x: x
 from pyTagger.mp3_snapshot import Formatter
 
 # -----------------------------------------------------------------------------
@@ -51,10 +53,7 @@ class Context(object):
                 self._state = self._state.onCharacter(self, c)
                 self._state.run(self, c)
                 if self._state.isEndOfRecord:
-                    if sys.version < '3':
-                        row = unicode(''.join(self._buffer))
-                    else:
-                        row = ''.join(self._buffer)
+                    row = _unicode(''.join(self._buffer))
                     yield row.split('\x1f')
                     self._reset()
                 c = f.read(1)

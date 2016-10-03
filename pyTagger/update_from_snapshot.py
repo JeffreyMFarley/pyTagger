@@ -4,6 +4,10 @@ import sys
 import argparse
 import logging
 import binascii
+if sys.version < '3':  # pragma: no cover
+    _unicode = unicode
+else:  # pragma: no cover
+    _unicode = lambda x: x
 from pyTagger.io import loadJson
 from pyTagger.snapshot_converter import SnapshotConverter
 from pyTagger.mp3_snapshot import Formatter, Mp3Snapshot
@@ -187,7 +191,7 @@ class UpdateFromSnapshot(object):
                 continue
 
             assert not isinstance(v, (list, set, dict))
-            text = unicode(v) if v else None
+            text = _unicode(v) if v else None
 
             # pick setting the value based on a strategy
             if k in self._useSetAttr and v:
@@ -217,20 +221,20 @@ class UpdateFromSnapshot(object):
         for k, v in tags.items():
             if k == 'comments':
                 for v0 in v:
-                    l = unicode(v0['lang'])
-                    d = unicode(v0['description'])
+                    l = _unicode(v0['lang'])
+                    d = _unicode(v0['description'])
                     if not v0['text']:
                         track.tag.comments.remove(d, l)
                     else:
-                        track.tag.comments.set(unicode(v0['text']), d, l)
+                        track.tag.comments.set(_unicode(v0['text']), d, l)
             elif k == 'lyrics':
                 for v0 in v:
-                    l = unicode(v0['lang'])
-                    d = unicode(v0['description'])
+                    l = _unicode(v0['lang'])
+                    d = _unicode(v0['description'])
                     if not v0['text']:
                         track.tag.lyrics.remove(d, l)
                     else:
-                        track.tag.lyrics.set(unicode(v0['text']), d, l)
+                        track.tag.lyrics.set(_unicode(v0['text']), d, l)
             elif k == 'ufid':
                 for ufid, value in v.items():
                     if not value:

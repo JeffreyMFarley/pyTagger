@@ -3,6 +3,7 @@ import argparse
 import itertools
 import logging
 import shutil
+from pyTagger.io import walk
 from pyTagger.mp3_snapshot import Formatter, Mp3Snapshot
 
 winFileReserved = ['\\', '/', ':', '*', '?', '"', '<', '>', '|', '.']
@@ -96,35 +97,26 @@ class Rename(object):
         reader = Mp3Snapshot()
         formatter = self._buildFormatter()
 
-        for currentDir, _, files in os.walk(unicode(directory)):
-            # Get the absolute path of the currentDir parameter
-            currentDir = os.path.abspath(currentDir)
+        for fullPath in walk(directory):
+            try:
+                asciified = formatter.normalizeToAscii(fullPath)
+                self.log.info("Reading '%s'", asciified)
+                tags = reader.extractTags(fullPath, formatter)
+                relativePath = self.buildPath(tags, fullPath[-3:])
+                proposed = os.path.join(self.destDir, *relativePath)
+                if self.needsMove(fullPath, proposed):
+                    newPath = os.path.join(self.destDir,
+                                           relativePath[0],
+                                           relativePath[1], '')
+                    if not os.path.exists(newPath):
+                        os.makedirs(newPath)
+                    self.log.info("Moving to '%s'", proposed)
+                    shutil.move(fullPath, proposed)
+                else:
+                    self.log.info('Same name... Skipping')
 
-            # Traverse through all files
-            for fileName in files:
-                fullPath = os.path.join(currentDir, fileName)
-
-                # Check if the file has an extension of typical music files
-                if fullPath[-3:].lower() in ['mp3']:
-                    try:
-                        asciified = formatter.normalizeToAscii(fullPath)
-                        self.log.info("Reading '%s'", asciified)
-                        tags = reader.extractTags(fullPath, formatter)
-                        relativePath = self.buildPath(tags, fullPath[-3:])
-                        proposed = os.path.join(self.destDir, *relativePath)
-                        if self.needsMove(fullPath, proposed):
-                            newPath = os.path.join(self.destDir,
-                                                   relativePath[0],
-                                                   relativePath[1], '')
-                            if not os.path.exists(newPath):
-                                os.makedirs(newPath)
-                            self.log.info("Moving to '%s'", proposed)
-                            shutil.move(fullPath, proposed)
-                        else:
-                            self.log.info('Same name... Skipping')
-
-                    except ValueError as ve:
-                        self.log.error("%s", ve)
+            except ValueError as ve:
+                self.log.error("%s", ve)
 # -----------------------------------------------------------------------------
 # Main
 # -----------------------------------------------------------------------------

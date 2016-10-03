@@ -15,38 +15,26 @@ if sys.version < '3':
 else:
     _input = lambda fileName: open(fileName, 'r', encoding='utf-8')
     _output = lambda fileName: open(fileName, 'w', encoding='utf-8')
-    unicode = lambda x: x
 import pyTagger
+from pyTagger.io import walk
 from tests import *
 
 INTEGRATION_TEST_DIRECTORY = os.path.join(
-    RESULT_DIRECTORY, r'integration-test'
+    RESULT_DIRECTORY, u'integration-test'
 )
-
-
-def walk(path):
-    for currentDir, subdirs, files in os.walk(unicode(path)):
-        # Get the absolute path of the currentDir parameter
-        currentDir = os.path.abspath(currentDir)
-
-        # Traverse through all files
-        for fileName in files:
-            fullPath = os.path.join(currentDir, fileName)
-            yield fullPath
 
 
 def setUpModule():
     if sampleFilesExist and not os.path.exists(INTEGRATION_TEST_DIRECTORY):
         os.makedirs(INTEGRATION_TEST_DIRECTORY)
 
-    for fullPath in walk(unicode(SOURCE_DIRECTORY)):
-        if fullPath[-3:].lower() in ['mp3']:
-            shutil.copy(fullPath, INTEGRATION_TEST_DIRECTORY)
+    for fullPath in walk(SOURCE_DIRECTORY, True):
+        shutil.copy(fullPath, INTEGRATION_TEST_DIRECTORY)
 
 
 def tearDownModule():
     if os.path.exists(INTEGRATION_TEST_DIRECTORY):
-        shutil.rmtree(unicode(INTEGRATION_TEST_DIRECTORY))
+        shutil.rmtree(INTEGRATION_TEST_DIRECTORY)
 
 
 class TestIntegration(unittest.TestCase):
@@ -56,7 +44,7 @@ class TestIntegration(unittest.TestCase):
 
         snapshot = {}
         stamp = datetime.date.today()
-        for fullPath in walk(unicode(INTEGRATION_TEST_DIRECTORY)):
+        for fullPath in walk(INTEGRATION_TEST_DIRECTORY):
             id = uuid.uuid1()
             asString = binascii.b2a_base64(id.bytes).strip()
             snapshot[fullPath] = {
@@ -151,7 +139,7 @@ class TestIntegration(unittest.TestCase):
             shutil.rmtree(cloneDir)
 
         os.makedirs(cloneDir)
-        for f in walk(os.path.join(SOURCE_DIRECTORY, u'Checkin')):
+        for f in walk(os.path.join(SOURCE_DIRECTORY, u'Checkin'), True):
             shutil.copy(f, cloneDir)
 
         prepare = pyTagger.PrepareCheckIn()
