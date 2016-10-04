@@ -3,5 +3,5 @@ eyed3
 mock
 nose
 pymonad
-python-coveralls
 requests
+configargparse

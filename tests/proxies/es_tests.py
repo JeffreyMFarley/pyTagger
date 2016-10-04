@@ -10,9 +10,12 @@ except ImportError:
 class TestElasticsearchClient(unittest.TestCase):
     @patch('pyTagger.proxies.es.Elasticsearch')
     def setUp(self, elasticsearch):
-        self.target = Client('foo', 'bar')
-        self.target.es.create = Mock(return_value={u'created': True})
-        self.snapshot = {'foo': {'bar': 'baz'}}
+        import sys
+        args = ['test', '--es-index', 'foo', '--es-type', 'bar']
+        with patch.object(sys, 'argv', args):
+            self.target = Client()
+            self.target.es.create = Mock(return_value={u'created': True})
+            self.snapshot = {'foo': {'bar': 'baz'}}
 
     def test_exists(self):
         self.target.exists()

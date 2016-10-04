@@ -3,7 +3,7 @@ from setuptools import setup
 
 install_requires = [
     'eyed3', 'pymonad', 'requests', 'elasticsearch>=2.0.0,<3.0.0',
-    'python-coveralls'
+    'configargparse'
 ]  # 'hew'
 
 if sys.version < '3.0':
