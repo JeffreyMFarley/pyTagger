@@ -1,6 +1,7 @@
 import os
 import json
 import sys
+from configargparse import getArgumentParser
 
 if sys.version < '3':  # pragma: no cover
     import codecs
@@ -9,6 +10,22 @@ if sys.version < '3':  # pragma: no cover
 else:  # pragma: no cover
     _input = lambda fileName: open(fileName, 'r', encoding='utf-8')
     _unicode = lambda x: x
+
+# -----------------------------------------------------------------------------
+
+rootParser = getArgumentParser(
+    default_config_files=['./config.ini'],
+    args_for_setting_config_path=['--config'],
+    args_for_writing_out_config_file=['--save-config']
+)
+
+
+def configurationOptions(name):
+    p = getArgumentParser(name)
+    options, _ = p.parse_known_args()
+    return options
+
+# -----------------------------------------------------------------------------
 
 
 def toAbsolute(path):

@@ -1,12 +1,13 @@
 import logging
 from configargparse import getArgumentParser
 from elasticsearch import Elasticsearch, ConnectionError, RequestError
-from pyTagger.utils import loadJson, toAbsolute
+from pyTagger.utils import loadJson, toAbsolute, configurationOptions
 
 # -----------------------------------------------------------------------------
 # Configuration
 
-p = getArgumentParser()
+p = getArgumentParser('elasticsearch', parents=[getArgumentParser()],
+                      description='settings for connecting to Elasticsearch')
 group = p.add_argument_group('Elasticsearch')
 group.add('--es-host', env_var='ES_HOST', default='192.168.50.20',
           help='the IP or domain name')
@@ -21,7 +22,7 @@ group.add('--es-type', env_var='ES_TYPE', default='track',
 
 class Client(object):
     def __init__(self):
-        options, _ = p.parse_known_args()
+        options = configurationOptions('elasticsearch')
 
         self.host = options.es_host
         self.index = options.es_index
@@ -94,8 +95,8 @@ class Client(object):
         )
 
 if __name__ == '__main__':
-    snapshot = loadJson(toAbsolute('../mp3s.json'))
+#    snapshot = loadJson(toAbsolute('../mp3s.json'))
 
     cli = Client()
     cli.log.setLevel(logging.INFO)
-    print(cli.load(snapshot))
+#    print(cli.load(snapshot))

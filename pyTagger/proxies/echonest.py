@@ -1,11 +1,11 @@
 from __future__ import print_function
-import os
 import sys
 import time
 import json
 import requests
 from configargparse import getArgumentParser
 from operator import itemgetter
+from pyTagger.utils import configurationOptions
 if sys.version < '3':  # pragma: no cover
     _unicode = unicode
 else:  # pragma: no cover
@@ -14,7 +14,8 @@ else:  # pragma: no cover
 # -----------------------------------------------------------------------------
 # Configuration
 
-p = getArgumentParser()
+p = getArgumentParser('echonest', parents=[getArgumentParser()],
+                      description='settings for connecting to Echonest')
 group = p.add_argument_group('Echonest')
 group.add('--echonest-api-key', env_var='ECHONEST_API_KEY',
           help='the API Key used to access EchoNest')
@@ -76,7 +77,7 @@ class EchoNestProxy(object):
     """
     def __init__(self):
         from hew import Normalizer
-        options, _ = p.parse_known_args()
+        options = configurationOptions('echonest')
 
         self.api_key = options.echonest_api_key
         self.maxCallsPerMinute = 200
