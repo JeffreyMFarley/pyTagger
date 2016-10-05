@@ -8,7 +8,7 @@ if sys.version < '3':  # pragma: no cover
     _unicode = unicode
 else:  # pragma: no cover
     _unicode = lambda x: x
-from pyTagger.io import loadJson
+from pyTagger.utils import loadJson
 from pyTagger.snapshot_converter import SnapshotConverter
 from pyTagger.mp3_snapshot import Formatter, Mp3Snapshot
 

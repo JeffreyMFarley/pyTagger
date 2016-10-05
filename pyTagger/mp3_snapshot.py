@@ -12,7 +12,7 @@ if sys.version < '3':  # pragma: no cover
     _output = lambda fileName: codecs.open(fileName, 'w', encoding='utf-8')
 else:  # pragma: no cover
     _output = lambda fileName: open(fileName, 'w', encoding='utf-8')
-from pyTagger.io import walk
+from pyTagger.utils import walk
 
 # -----------------------------------------------------------------------------
 # Classes

@@ -1,19 +1,19 @@
-import os
 import logging
-import configargparse
+from configargparse import getArgumentParser
 from elasticsearch import Elasticsearch, ConnectionError, RequestError
-from pyTagger.io import loadJson, toAbsolute
+from pyTagger.utils import loadJson, toAbsolute
 
 # -----------------------------------------------------------------------------
 # Configuration
 
-p = configargparse.getArgumentParser()
-p.add_argument('--es-host', env_var='ES_HOST', default='192.168.50.20',
-               help='the url of elasticsearch')
-p.add_argument('--es-index', env_var='ES_INDEX', default='library',
-               help='the index where the library has been stored')
-p.add_argument('--es-type', env_var='ES_TYPE', default='track',
-               help='the doc_type for the tracks')
+p = getArgumentParser()
+group = p.add_argument_group('Elasticsearch')
+group.add('--es-host', env_var='ES_HOST', default='192.168.50.20',
+          help='the IP or domain name')
+group.add('--es-index', env_var='ES_INDEX', default='library',
+          help='the index where the library has been stored')
+group.add('--es-type', env_var='ES_TYPE', default='track',
+          help='the doc_type for the tracks')
 
 # -----------------------------------------------------------------------------
 # Class

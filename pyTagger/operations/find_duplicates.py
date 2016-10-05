@@ -1,7 +1,7 @@
 from __future__ import print_function
 from __future__ import unicode_literals
 from collections import namedtuple
-from pyTagger.io import loadJson, toAbsolute
+from pyTagger.utils import loadJson, toAbsolute
 from pyTagger.proxies.es import Client
 
 # -----------------------------------------------------------------------------

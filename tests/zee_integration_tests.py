@@ -16,7 +16,7 @@ else:
     _input = lambda fileName: open(fileName, 'r', encoding='utf-8')
     _output = lambda fileName: open(fileName, 'w', encoding='utf-8')
 import pyTagger
-from pyTagger.io import walk
+from pyTagger.utils import walk
 from tests import *
 
 INTEGRATION_TEST_DIRECTORY = os.path.join(

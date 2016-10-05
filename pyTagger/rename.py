@@ -3,7 +3,7 @@ import argparse
 import itertools
 import logging
 import shutil
-from pyTagger.io import walk
+from pyTagger.utils import walk
 from pyTagger.mp3_snapshot import Formatter, Mp3Snapshot
 
 winFileReserved = ['\\', '/', ':', '*', '?', '"', '<', '>', '|', '.']

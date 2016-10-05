@@ -5,7 +5,7 @@ try:
     from unittest.mock import patch
 except ImportError:
     from mock import patch
-from pyTagger.echonest_proxy import EchoNestProxy
+from pyTagger.proxies.echonest import EchoNestProxy
 
 
 # 'Echonest API has deprecated and moved to Spotify 2016-05'
@@ -40,7 +40,7 @@ class Test_EchoNestProxy(unittest.TestCase):
     # Test Methods
     # -------------------------------------------------------------------------
 
-    @patch('pyTagger.echonest_proxy.requests')
+    @patch('pyTagger.proxies.echonest.requests')
     def test_offline(self, requests):
         r = self.load('simple')
         r.status_code = 404
@@ -52,7 +52,7 @@ class Test_EchoNestProxy(unittest.TestCase):
         self.assertEqual(1, requests.get.call_count)
         self.assertEqual(0, len(actual))
 
-    @patch('pyTagger.echonest_proxy.requests')
+    @patch('pyTagger.proxies.echonest.requests')
     def test_rateLimit(self, requests):
         r = self.load('rateLimit')
         requests.get.return_value = r
@@ -64,7 +64,7 @@ class Test_EchoNestProxy(unittest.TestCase):
         self.assertEqual(0, len(actual))
         self.assertEqual(429, self.target.status_code)
 
-    @patch('pyTagger.echonest_proxy.requests')
+    @patch('pyTagger.proxies.echonest.requests')
     def test_tooManyResults(self, requests):
         r = self.load('tooManyResults')
         requests.get.return_value = r
@@ -76,7 +76,7 @@ class Test_EchoNestProxy(unittest.TestCase):
         self.assertEqual(0, len(actual))
         self.assertEqual(400, self.target.status_code)
 
-    @patch('pyTagger.echonest_proxy.requests')
+    @patch('pyTagger.proxies.echonest.requests')
     def test_getByArtist_simple(self, requests):
         r = self.load('simple')
         requests.get.return_value = r
@@ -90,7 +90,7 @@ class Test_EchoNestProxy(unittest.TestCase):
             self.assertEqual(self.fields, set(song.keys()))
             self.assertIn('Die Antwoord', song['artist'])
 
-    @patch('pyTagger.echonest_proxy.requests')
+    @patch('pyTagger.proxies.echonest.requests')
     def test_getByArtist_multiple(self, requests):
         def side_effect(*args, **kwargs):
             offset = str(kwargs['params']['start'])

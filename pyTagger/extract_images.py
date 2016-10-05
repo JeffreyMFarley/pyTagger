@@ -11,7 +11,7 @@ if sys.version < '3':  # pragma: no cover
     _input = lambda fileName: codecs.open(fileName, 'r', encoding='utf-8')
 else:  # pragma: no cover
     _input = lambda fileName: open(fileName, 'r', encoding='utf-8')
-from pyTagger.io import walk
+from pyTagger.utils import walk
 from pyTagger.mp3_snapshot import Formatter
 
 # -----------------------------------------------------------------------------

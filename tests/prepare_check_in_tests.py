@@ -9,7 +9,7 @@ import itertools
 import pyTagger
 from tests import *
 from contextlib import contextmanager
-from pyTagger.io import loadJson, walk
+from pyTagger.utils import loadJson, walk
 if sys.version >= '3':
     unicode = lambda x: x
 

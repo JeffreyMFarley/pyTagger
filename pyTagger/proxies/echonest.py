@@ -4,11 +4,20 @@ import sys
 import time
 import json
 import requests
+from configargparse import getArgumentParser
 from operator import itemgetter
 if sys.version < '3':  # pragma: no cover
     _unicode = unicode
 else:  # pragma: no cover
     _unicode = lambda x: x
+
+# -----------------------------------------------------------------------------
+# Configuration
+
+p = getArgumentParser()
+group = p.add_argument_group('Echonest')
+group.add('--echonest-api-key', env_var='ECHONEST_API_KEY',
+          help='the API Key used to access EchoNest')
 
 # -------------------------------------------------------------------------
 # Projections
@@ -67,8 +76,9 @@ class EchoNestProxy(object):
     """
     def __init__(self):
         from hew import Normalizer
+        options, _ = p.parse_known_args()
 
-        self.api_key = os.getenv('ECHONEST_API_KEY')
+        self.api_key = options.echonest_api_key
         self.maxCallsPerMinute = 200
         self.step = 100
         self.status_code = 0

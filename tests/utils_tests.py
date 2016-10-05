@@ -1,5 +1,5 @@
 import unittest
-from pyTagger.io import toAbsolute, loadJson
+from pyTagger.utils import toAbsolute, loadJson
 try:
     from unittest.mock import patch
 except ImportError:
@@ -7,7 +7,7 @@ except ImportError:
 
 
 class TestIO(unittest.TestCase):
-    @patch('pyTagger.io.os.path.dirname')
+    @patch('pyTagger.utils.os.path.dirname')
     def test_toAbsolute(self, dirname):
         path = 'foo.txt'
         dirname.return_value = '/bar/baz/qaz/'

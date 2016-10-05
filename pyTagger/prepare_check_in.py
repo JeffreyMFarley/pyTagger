@@ -7,7 +7,7 @@ import uuid
 import binascii
 from pymonad.Reader import curry
 from pyTagger import UpdateFromSnapshot, Mp3Snapshot
-from pyTagger.io import walk
+from pyTagger.utils import walk
 from pyTagger.mp3_snapshot import Formatter
 
 
