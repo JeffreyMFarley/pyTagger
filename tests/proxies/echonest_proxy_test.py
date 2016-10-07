@@ -19,7 +19,10 @@ class Test_EchoNestProxy(unittest.TestCase):
               }
 
     def setUp(self):
-        self.target = EchoNestProxy()
+        import sys
+        args = ['test', '--echonest-api-key', 'foobarbazqaz']
+        with patch.object(sys, 'argv', args):
+            self.target = EchoNestProxy()
 
     # -------------------------------------------------------------------------
     # Helper Methods

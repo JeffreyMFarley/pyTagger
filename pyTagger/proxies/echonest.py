@@ -5,7 +5,7 @@ import json
 import requests
 from configargparse import getArgumentParser
 from operator import itemgetter
-from pyTagger.utils import configurationOptions
+from pyTagger.utils import configurationOptions, defaultConfigFiles
 if sys.version < '3':  # pragma: no cover
     _unicode = unicode
 else:  # pragma: no cover
@@ -14,7 +14,9 @@ else:  # pragma: no cover
 # -----------------------------------------------------------------------------
 # Configuration
 
-p = getArgumentParser('echonest', parents=[getArgumentParser()],
+p = getArgumentParser('echonest',
+                      default_config_files=defaultConfigFiles,
+                      parents=[getArgumentParser()],
                       description='settings for connecting to Echonest')
 group = p.add_argument_group('Echonest')
 group.add('--echonest-api-key', env_var='ECHONEST_API_KEY',

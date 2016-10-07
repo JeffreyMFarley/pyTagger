@@ -29,9 +29,18 @@ for m in modules:
     subs._name_parser_map[m] = p
 
 if __name__ == "__main__":
+    import configargparse
     if len(sys.argv) < 2:
         parser.print_help()
         exit(2)
 
-    args = parser.parse()
-    parser.print_values()
+    action = sys.argv[1].lower()
+    if action in modules:
+        sys.argv.pop(1)
+        p = getArgumentParser(action)
+        args = p.parse()
+        p.print_values()
+
+    else:
+        args = parser.parse()
+        parser.print_values()

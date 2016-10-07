@@ -4,6 +4,8 @@ ENV SRC_HOME /home/project/
 
 WORKDIR $SRC_HOME
 
+RUN pip install python-coveralls
+
 ADD requirements.txt $SRC_HOME
 RUN pip install -r requirements.txt
 

@@ -13,8 +13,10 @@ else:  # pragma: no cover
 
 # -----------------------------------------------------------------------------
 
+defaultConfigFiles = ['./config.ini', '~/pyTagger.ini']
+
 rootParser = getArgumentParser(
-    default_config_files=['./config.ini'],
+    default_config_files=defaultConfigFiles,
     args_for_setting_config_path=['--config'],
     args_for_writing_out_config_file=['--save-config']
 )
