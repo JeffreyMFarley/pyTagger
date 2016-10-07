@@ -1,8 +1,10 @@
+from __future__ import print_function
+import logging
+import os
 import sys
+from pyTagger.actions.upload import uploadToElasticsearch
 from pyTagger.utils import rootParser as parser
 from configargparse import getArgumentParser
-from pyTagger.proxies.echonest import EchoNestProxy
-from pyTagger.proxies.es import Client
 
 actions = {
     'to-csv': 'export snapshot to CSV',
@@ -12,24 +14,25 @@ actions = {
     'prepare': 'groom MP3s before adding to house library',
     'rename': 'apply naming standards to MP3s',
     'scan': 'create a snapshot from directories of MP3s',
-    'update': 'update ID3 fields from a snapshot',
-    'upload': 'load a snapshot into Elasticsearch'
+    'update': 'update ID3 fields from a snapshot'
 }
 
 subs = parser.add_subparsers(help='available commands')
 for k in sorted(actions):
     sub = subs.add_parser(k, help=actions[k])
 
-modules = ['echonest', 'elasticsearch']
+modules = {'upload': uploadToElasticsearch}
 
-for m in modules:
+for m in sorted(modules):
     p = getArgumentParser(m)
     sub = subs.add_parser(m, help=p.description)
     del subs._name_parser_map[m]
     subs._name_parser_map[m] = p
 
 if __name__ == "__main__":
-    import configargparse
+    logging.basicConfig()
+    os.system('cls' if os.name == 'nt' else 'clear')
+
     if len(sys.argv) < 2:
         parser.print_help()
         exit(2)
@@ -39,7 +42,15 @@ if __name__ == "__main__":
         sys.argv.pop(1)
         p = getArgumentParser(action)
         args = p.parse()
+        print('=' * 31, ' Configuration ', '=' * 32)
         p.print_values()
+        print('=' * 80)
+        try:
+            print(modules[action](args))
+        except ValueError as ve:
+            print(ve)
+        except IOError as ioe:
+            print(ioe)
 
     else:
         args = parser.parse()

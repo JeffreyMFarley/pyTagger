@@ -20,6 +20,7 @@
 # Don't store api keys in source control
 .env
 .coveralls.yml
+config.ini
 
 # Docker & Vagrant
 /.bundle

@@ -14,7 +14,7 @@ class TestElasticsearchClient(unittest.TestCase):
         args = ['test', '--es-index', 'foo', '--es-type', 'bar']
         with patch.object(sys, 'argv', args):
             self.target = Client()
-            self.target.es.create = Mock(return_value={u'created': True})
+            self.target.es.create = Mock(return_value={'created': True})
             self.snapshot = {'foo': {'bar': 'baz'}}
 
     def test_exists(self):
@@ -34,9 +34,9 @@ class TestElasticsearchClient(unittest.TestCase):
         )
 
     def test_load_happy(self):
-        data = {k: {'baz': 'qaz'} for k in range(1, 102)}
+        data = {k: {'baz': 'qaz'} for k in range(1, 1002)}
         actual = self.target.load(data)
-        self.assertEqual(actual, (101, 0))
+        self.assertEqual(actual, (1001, 0))
 
     def test_load_null_input(self):
         with self.assertRaises(TypeError):
@@ -107,6 +107,16 @@ class TestElasticsearchClient(unittest.TestCase):
         self.assertEqual(actual, expected)
         self.target.es.search.assert_called_once_with(
             index='foo', doc_type='bar', body=data
+        )
+
+    def test_delete(self):
+        self.target.es.indices.delete = Mock(return_value={
+            'acknowledged': True
+        })
+
+        actual = self.target.delete()
+        self.target.es.indices.delete.assert_called_once_with(
+            index='foo'
         )
 
 if __name__ == '__main__':

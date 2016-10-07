@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import logging
 from configargparse import getArgumentParser
 from elasticsearch import Elasticsearch, ConnectionError, RequestError
@@ -18,7 +19,11 @@ group.add('--es-index', env_var='ES_INDEX', default='library',
           help='the index where the library has been stored')
 group.add('--es-type', env_var='ES_TYPE', default='track',
           help='the doc_type for the tracks')
-
+group.add('--es-logging',
+          choices=[logging.NOTSET, logging.INFO, logging.WARNING,
+                   logging.ERROR],
+          default=logging.WARNING, type=int,
+          help='how verbose the Elasticsearch client should be')
 # -----------------------------------------------------------------------------
 # Class
 
@@ -32,6 +37,7 @@ class Client(object):
         self.doc_type = options.es_type
         self.es = Elasticsearch([self.host])
         self.log = logging.getLogger(__name__)
+        self.log.setLevel(options.es_logging)
 
         es_log = logging.getLogger('elasticsearch')
         es_log.setLevel(logging.ERROR)
@@ -53,7 +59,7 @@ class Client(object):
         body = loadJson(absPath)
         result = self.es.indices.create(index=self.index, body=body)
         self.log.info("index '%s' created", self.index)
-        return result[u'acknowledged']
+        return result['acknowledged']
 
     def load(self, snapshot):
         if not snapshot or not isinstance(snapshot, dict):
@@ -79,7 +85,7 @@ class Client(object):
                         body=v
                     )
                     success += 1
-                    if (success + error) % 100 == 0:
+                    if (success + error) % 1000 == 0:
                         self.log.info("%d records loaded", success + error)
 
                 except RequestError as e:
@@ -97,7 +103,7 @@ class Client(object):
             index=self.index, doc_type=self.doc_type, body=dsl
         )
 
-if __name__ == '__main__':
-    cli = Client()
-    cli.log.setLevel(logging.INFO)
-    # print(cli.load(snapshot))
+    def delete(self):
+        result = self.es.indices.delete(index=self.index)
+        self.log.info("index '%s' deleted", self.index)
+        return result['acknowledged']
