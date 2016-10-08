@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 import unittest
 import json
 import pyTagger.operations.find_duplicates as sut
+from pyTagger.proxies.es import Client
 try:
     from unittest.mock import patch, Mock
 except ImportError:
@@ -9,8 +10,8 @@ except ImportError:
 
 
 class TestFindClones(unittest.TestCase):
-    @patch('pyTagger.operations.find_duplicates.Client', spec=True)
-    def test_findClones(self, client):
+    def test_findClones(self):
+        client = Mock(Client)
         client.search.return_value = {
             'aggregations': {
                 'primary': {
@@ -139,8 +140,8 @@ class TestFindIsonoms(unittest.TestCase):
         compound = actual['query']['bool']
         self.assertNotIn('must_not', compound)
 
-    @patch('pyTagger.operations.find_duplicates.Client', spec=True)
-    def test_findIsonomTracks(self, client):
+    def test_findIsonomTracks(self):
+        client = Mock(Client)
         client.search.return_value = self.qualityMatch
         gen = sut.findIsonomTracks(client, self.fixture)
         actual = list(gen)
@@ -150,8 +151,8 @@ class TestFindIsonoms(unittest.TestCase):
         self.assertEqual(actual[0][1], 12.1)
         self.assertEqual(actual[0][2], {"foo": "bar"})
 
-    @patch('pyTagger.operations.find_duplicates.Client', spec=True)
-    def test_findIsonomsInsufficient(self, client):
+    def test_findIsonomsInsufficient(self):
+        client = Mock(Client)
         client.search.side_effect = ValueError
         gen = sut.findIsonoms(client, {'foo': self.fixture})
         actual = list(gen)
@@ -159,8 +160,8 @@ class TestFindIsonoms(unittest.TestCase):
         self.assertEqual(len(actual), 1)
         self.assertEqual(actual[0].status, 'insufficient')
 
-    @patch('pyTagger.operations.find_duplicates.Client', spec=True)
-    def test_findIsonomsQualitySingle(self, client):
+    def test_findIsonomsQualitySingle(self):
+        client = Mock(Client)
         client.search.return_value = self.qualityMatch
         gen = sut.findIsonoms(client, {'foo': self.fixture})
         actual = list(gen)
@@ -168,8 +169,8 @@ class TestFindIsonoms(unittest.TestCase):
         self.assertEqual(len(actual), 1)
         self.assertEqual(actual[0].status, 'single')
 
-    @patch('pyTagger.operations.find_duplicates.Client', spec=True)
-    def test_findIsonomsSufficientSingle(self, client):
+    def test_findIsonomsSufficientSingle(self):
+        client = Mock(Client)
         client.search.return_value = {
             'hits': {
                 'hits': [{
@@ -187,8 +188,8 @@ class TestFindIsonoms(unittest.TestCase):
         self.assertEqual(len(actual), 1)
         self.assertEqual(actual[0].status, 'single')
 
-    @patch('pyTagger.operations.find_duplicates.Client', spec=True)
-    def test_findIsonomsMultiple(self, client):
+    def test_findIsonomsMultiple(self):
+        client = Mock(Client)
         client.search.return_value = {
             'hits': {
                 'hits': [
@@ -213,8 +214,8 @@ class TestFindIsonoms(unittest.TestCase):
         self.assertEqual(actual[0].status, 'multiple')
         self.assertEqual(actual[1].status, 'multiple')
 
-    @patch('pyTagger.operations.find_duplicates.Client', spec=True)
-    def test_findIsonomsNone(self, client):
+    def test_findIsonomsNone(self):
+        client = Mock(Client)
         client.search.return_value = {
             'hits': {
                 'hits': [],

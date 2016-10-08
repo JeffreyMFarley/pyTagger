@@ -2,6 +2,7 @@ from __future__ import print_function
 import logging
 import os
 import sys
+from pyTagger.actions.reripped import process as rerippedProcess
 from pyTagger.actions.upload import uploadToElasticsearch
 from pyTagger.utils import rootParser as parser
 from configargparse import getArgumentParser
@@ -21,7 +22,10 @@ subs = parser.add_subparsers(help='available commands')
 for k in sorted(actions):
     sub = subs.add_parser(k, help=actions[k])
 
-modules = {'upload': uploadToElasticsearch}
+modules = {
+    'reripped': rerippedProcess,
+    'upload': uploadToElasticsearch
+}
 
 for m in sorted(modules):
     p = getArgumentParser(m)
@@ -51,6 +55,9 @@ if __name__ == "__main__":
             print(ve)
         except IOError as ioe:
             print(ioe)
+
+    elif action in actions:
+        print(action, 'is not yet implemented')
 
     else:
         args = parser.parse()

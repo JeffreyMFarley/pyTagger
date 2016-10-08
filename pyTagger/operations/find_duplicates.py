@@ -1,8 +1,5 @@
-from __future__ import print_function
 from __future__ import unicode_literals
 from collections import namedtuple
-from pyTagger.utils import loadJson, toAbsolute
-from pyTagger.proxies.es import Client
 
 # -----------------------------------------------------------------------------
 # Clones = Exact Duplicates
@@ -116,22 +113,3 @@ def findIsonoms(client, snapshot):
                 yield Isonom('nothing', k, None, 0.0, v, None)
         except ValueError:
             yield Isonom('insufficient', k, None, 0.0, v, None)
-
-# -----------------------------------------------------------------------------
-
-
-if __name__ == '__main__':
-    import io
-    import json
-
-    snapshot = loadJson(toAbsolute('../mp3s-add-to-library.json'))
-    cli = Client()
-    sep = '\n'
-
-    with io.open('isonoms.json', 'w', encoding='utf-8') as f:
-        f.write('[')
-        for row in findIsonoms(cli, snapshot):
-            f.write(sep)
-            f.write(unicode(json.dumps(row.__dict__, ensure_ascii=False)))
-            sep = ',\n'
-        f.write('\n]')
