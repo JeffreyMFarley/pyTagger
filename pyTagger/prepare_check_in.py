@@ -5,20 +5,18 @@ import logging
 import datetime
 import uuid
 import binascii
-from pymonad.Reader import curry
+from functools import partial
 from pyTagger import UpdateFromSnapshot, Mp3Snapshot
 from pyTagger.utils import walk
 from pyTagger.mp3_snapshot import Formatter
 
 
-@curry
 def strip(phrase, x):
     if phrase in x:
         return x.replace(phrase, '')
     return x
 
 
-@curry
 def stripBracketedText(regex, s):
     if '[' in s:
         while '[' in s:
@@ -52,21 +50,22 @@ class PrepareCheckIn(object):
         self.regexFeature = re.compile('\((feat|feat\.|featuring|with) (.*)\)')
 
         self.normalizers = [
-            stripBracketedText(re.compile('^(.*)(\[.*\])+(.*)$')),
-            strip(' (Explicit Version)'),
-            strip(' (Explicit)'),
-            strip(' (Explicit Content)'),
-            strip(' (US Version)'),
-            strip(' (US Release)'),
-            strip(' (Album Version)'),
-            strip(' (LP Version)'),
-            strip(' (Deluxe)'),
-            strip(' (Deluxe Edition)'),
-            strip(' (Deluxe Version)'),
-            strip(' (Amazon MP3 Exclusive Version)'),
-            strip(' (Amazon MP3 Exclusive - Deluxe Version)'),
-            strip(' (Original Motion Picture Soundtrack)'),
-            strip(' (Special Edition)')
+            partial(stripBracketedText, re.compile('^(.*)(\[.*\])+(.*)$')),
+            partial(strip, ' (Explicit Version)'),
+            partial(strip, ' (Explicit)'),
+            partial(strip, ' (Explicit Content)'),
+            partial(strip, ' (US Version)'),
+            partial(strip, ' (US Release)'),
+            partial(strip, ' (Album Version)'),
+            partial(strip, ' (LP Version)'),
+            partial(strip, ' (Deluxe)'),
+            partial(strip, ' (Deluxe Edition)'),
+            partial(strip, ' (Deluxe Version)'),
+            partial(strip, ' (Amazon MP3 Exclusive Version)'),
+            partial(strip, ' (Amazon MP3 Exclusive - Deluxe Version)'),
+            partial(strip, ' (Original Motion Picture Soundtrack)'),
+            partial(strip, ' (Special Edition)'),
+            partial(strip, ' (Remastered)')
         ]
 
     # -------------------------------------------------------------------------

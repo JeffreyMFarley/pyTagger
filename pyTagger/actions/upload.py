@@ -1,7 +1,7 @@
 from configargparse import getArgumentParser
 from pyTagger.proxies.es import Client
 from pyTagger.utils import loadJson
-from pyTagger.utils import configurationOptions, defaultConfigFiles
+from pyTagger.utils import defaultConfigFiles
 
 # -----------------------------------------------------------------------------
 # Configuration
