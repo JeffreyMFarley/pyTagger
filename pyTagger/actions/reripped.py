@@ -50,7 +50,7 @@ def _step1(args, client):
             sep = ',\n'
         f.write('\n]')
 
-    return "Step 1: {1} tracks produced {0} rows".format(rows, len(snapshot))
+    return "Step 1: {1} track(s) produced {0} rows".format(rows, len(snapshot))
 
 
 def process(args):

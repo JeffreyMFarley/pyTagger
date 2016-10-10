@@ -7,7 +7,7 @@ except ImportError:
     from mock import patch, Mock
 
 
-class TestElasticsearchClient(unittest.TestCase):
+class TestUploadAction(unittest.TestCase):
     def setUp(self):
         self.snapshot = {'foo': 'bar'}
         self.options = configurationOptions('upload')
