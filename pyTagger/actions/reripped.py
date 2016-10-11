@@ -35,10 +35,10 @@ def _step1(args, client):
     snapshot = loadJson(args.intake_snapshot)
 
     output = saveJsonIncrementalArray(args.step1_output)
-    rows = output.next()
+    rows = next(output)
 
     for row in findIsonoms(client, snapshot):
-        rows = output.send(row.__dict__)
+        rows = output.send(row._asdict())
 
     output.close()
 

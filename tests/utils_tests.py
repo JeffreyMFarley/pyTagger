@@ -30,7 +30,7 @@ class TestIO(unittest.TestCase):
         with patch.object(io, 'open') as fmocked:
             fmocked.return_value = output
             gen = target.saveJsonIncrementalArray('foo.json')
-            row = gen.next()
+            row = next(gen)
             self.assertEqual(row, 0)
             self.assertEqual(output.getvalue(), '[')
             row = gen.send('T\u00e9l\u00e9popmusik')

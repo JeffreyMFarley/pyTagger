@@ -27,11 +27,15 @@ class TestRerippedAction(unittest.TestCase):
     def test_step1(self, client, loadJson, saveJson, findIsonoms):
         from collections import namedtuple
 
+        def noop_coroutine(file):
+            for i in [0, 1, 2, 3, 4, 5]:
+                x = yield i
+                self.assertEqual(x['status'], 'ready')
+
         Isonom = namedtuple('Isonom', ['status', 'oldPath', 'newPath'])
 
         loadJson.return_value = self.snapshot
-        saveJson.return_value = Mock(['next', 'send', 'close'])
-        saveJson.return_value.send.side_effect = [1, 2, 3]
+        saveJson.side_effect = noop_coroutine
         findIsonoms.return_value = [
             Isonom('ready', 'foo', 'bar'),
             Isonom('ready', 'foo', 'baz'),
@@ -41,9 +45,6 @@ class TestRerippedAction(unittest.TestCase):
         actual = target._step1(self.options, client)
         self.assertEqual(actual, 'Step 1: 1 track(s) produced 3 rows')
         self.assertEqual(loadJson.call_count, 1)
-        self.assertEqual(saveJson.return_value.next.call_count, 1)
-        self.assertEqual(saveJson.return_value.send.call_count, 3)
-        self.assertEqual(saveJson.return_value.close.call_count, 1)
 
     @patch('pyTagger.actions.reripped._step1')
     @patch('pyTagger.actions.reripped._step0')
