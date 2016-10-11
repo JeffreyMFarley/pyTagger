@@ -21,25 +21,29 @@ class TestRerippedAction(unittest.TestCase):
         uploader.assert_called_once_with(self.options)
 
     @patch('pyTagger.actions.reripped.findIsonoms')
+    @patch('pyTagger.actions.reripped.saveJsonIncrementalArray')
     @patch('pyTagger.actions.reripped.loadJson')
     @patch('pyTagger.actions.reripped.Client')
-    def test_step1(self, client, loadJson, findIsonoms):
-        import io
+    def test_step1(self, client, loadJson, saveJson, findIsonoms):
         from collections import namedtuple
 
         Isonom = namedtuple('Isonom', ['status', 'oldPath', 'newPath'])
 
         loadJson.return_value = self.snapshot
+        saveJson.return_value = Mock(['next', 'send', 'close'])
+        saveJson.return_value.send.side_effect = [1, 2, 3]
         findIsonoms.return_value = [
             Isonom('ready', 'foo', 'bar'),
             Isonom('ready', 'foo', 'baz'),
             Isonom('ready', 'foo', 'qaz')
         ]
 
-        with patch.object(io, 'open') as fmocked:
-            fmocked.return_value = io.StringIO()
-            actual = target._step1(self.options, client)
+        actual = target._step1(self.options, client)
         self.assertEqual(actual, 'Step 1: 1 track(s) produced 3 rows')
+        self.assertEqual(loadJson.call_count, 1)
+        self.assertEqual(saveJson.return_value.next.call_count, 1)
+        self.assertEqual(saveJson.return_value.send.call_count, 3)
+        self.assertEqual(saveJson.return_value.close.call_count, 1)
 
     @patch('pyTagger.actions.reripped._step1')
     @patch('pyTagger.actions.reripped._step0')

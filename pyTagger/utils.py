@@ -1,7 +1,10 @@
+from __future__ import unicode_literals
+import io
 import os
 import json
 import sys
 from configargparse import getArgumentParser
+from itertools import count
 
 if sys.version < '3':  # pragma: no cover
     import codecs
@@ -41,6 +44,20 @@ def toAbsolute(path):
 def loadJson(fileName):
     with _input(fileName) as f:
         return json.load(f)
+
+
+def saveJsonIncrementalArray(fileName):
+    sep = '\n'
+    with io.open(fileName, 'w', encoding='utf-8') as f:
+        f.write('[')
+        try:
+            for i in count():  # pragma: no branch
+                row = yield i
+                f.write(sep)
+                f.write(_unicode(json.dumps(row, ensure_ascii=False)))
+                sep = ',\n'
+        finally:
+            f.write('\n]')
 
 
 def walk(directory, showAll=False):

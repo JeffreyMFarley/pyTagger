@@ -1,5 +1,7 @@
+from __future__ import unicode_literals
 import unittest
-from pyTagger.utils import toAbsolute, loadJson
+import io
+import pyTagger.utils as target
 try:
     from unittest.mock import patch
 except ImportError:
@@ -12,16 +14,29 @@ class TestIO(unittest.TestCase):
         path = 'foo.txt'
         dirname.return_value = '/bar/baz/qaz/'
 
-        actual = toAbsolute(path)
+        actual = target.toAbsolute(path)
         self.assertEqual(actual, '/bar/baz/qaz/foo.txt')
 
     def test_loadJson(self):
-        absPath = toAbsolute('../tests/utf8.json')
+        absPath = target.toAbsolute('../tests/utf8.json')
 
-        snapshot = loadJson(absPath)
+        snapshot = target.loadJson(absPath)
         self.assertEqual(len(snapshot), 1)
         k, v = snapshot.popitem()
-        self.assertEqual(v['artist'], u'T\u00e9l\u00e9popmusik')
+        self.assertEqual(v['artist'], 'T\u00e9l\u00e9popmusik')
+
+    def test_saveJsonIncrementalArray(self):
+        output = io.StringIO()
+        with patch.object(io, 'open') as fmocked:
+            fmocked.return_value = output
+            gen = target.saveJsonIncrementalArray('foo.json')
+            row = gen.next()
+            self.assertEqual(row, 0)
+            self.assertEqual(output.getvalue(), '[')
+            row = gen.send('T\u00e9l\u00e9popmusik')
+            self.assertEqual(row, 1)
+            self.assertEqual(output.getvalue(), '[\n"T\u00e9l\u00e9popmusik"')
+            gen.close()
 
 if __name__ == '__main__':
     unittest.main()
