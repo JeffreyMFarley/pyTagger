@@ -219,7 +219,7 @@ class SnapshotConverter(object):
         if isinstance(iterable, dict):
             return '{' + ', '.join([' : '.join([self._seqrepr(k),
                                                 self._seqrepr(v)])
-                                    for k, v in iterable.items()
+                                    for k, v in sorted(iterable.items())
                                     ]) + '}'
         return iterable
 
