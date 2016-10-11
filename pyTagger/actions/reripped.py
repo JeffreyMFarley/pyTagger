@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+import os
 from configargparse import getArgumentParser
 from pyTagger.actions.upload import uploadToElasticsearch
 from pyTagger.operations.find_duplicates import findIsonoms
@@ -27,11 +28,11 @@ group.add('--step1-output', default='isonoms.json',
 # -----------------------------------------------------------------------------
 
 
-def _step0(args):
+def _buildIndex(args):
     uploadToElasticsearch(args)
 
 
-def _step1(args, client):
+def _findIsonoms(args, client):
     snapshot = loadJson(args.intake_snapshot)
 
     output = saveJsonIncrementalArray(args.step1_output)
@@ -42,7 +43,7 @@ def _step1(args, client):
 
     output.close()
 
-    return "Step 1: {1} track(s) produced {0} rows".format(rows, len(snapshot))
+    return "{1} track(s) produced {0} rows".format(rows, len(snapshot))
 
 
 def process(args):
@@ -50,8 +51,17 @@ def process(args):
         cli = Client()
 
         if not cli.exists():
-            _step0(args)
+            print('Building Index')
+            _buildIndex(args)
+        else:
+            print('Index Already Built')
 
-        return _step1(args, cli)
+        if not os.path.exists(args.step1_output):
+            print('Finding Isonoms')
+            print(_findIsonoms(args, cli))
+        else:
+            print('Using existing isonoms file')
+
+        return "Success"
 
     return "Not Implemented"

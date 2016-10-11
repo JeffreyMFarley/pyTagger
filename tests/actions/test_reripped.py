@@ -3,9 +3,9 @@ import unittest
 import pyTagger.actions.reripped as target
 from pyTagger.utils import configurationOptions
 try:
-    from unittest.mock import patch, Mock
+    from unittest.mock import patch, Mock, MagicMock
 except ImportError:
-    from mock import patch, Mock
+    from mock import patch, Mock, MagicMock
 
 
 class TestRerippedAction(unittest.TestCase):
@@ -15,16 +15,25 @@ class TestRerippedAction(unittest.TestCase):
         with patch.object(sys, 'argv', ['test', '1']):
             self.options = configurationOptions('reripped')
 
+        p = patch('pyTagger.actions.reripped.Client')
+        self.addCleanup(p.stop)
+        self.client = p.start()
+        self.client.return_value.exists.return_value = True
+
+        p = patch('pyTagger.actions.reripped.os.path.exists')
+        self.addCleanup(p.stop)
+        self.path_exists = p.start()
+        self.path_exists.return_value = True
+
     @patch('pyTagger.actions.reripped.uploadToElasticsearch')
-    def test_step0(self, uploader):
-        target._step0(self.options)
+    def test_buildIndex(self, uploader):
+        target._buildIndex(self.options)
         uploader.assert_called_once_with(self.options)
 
     @patch('pyTagger.actions.reripped.findIsonoms')
     @patch('pyTagger.actions.reripped.saveJsonIncrementalArray')
     @patch('pyTagger.actions.reripped.loadJson')
-    @patch('pyTagger.actions.reripped.Client')
-    def test_step1(self, client, loadJson, saveJson, findIsonoms):
+    def test_findIsonoms(self, loadJson, saveJson, findIsonoms):
         from collections import namedtuple
 
         def noop_coroutine(file):
@@ -42,39 +51,30 @@ class TestRerippedAction(unittest.TestCase):
             Isonom('ready', 'foo', 'qaz')
         ]
 
-        actual = target._step1(self.options, client)
-        self.assertEqual(actual, 'Step 1: 1 track(s) produced 3 rows')
+        actual = target._findIsonoms(self.options, self.client)
+        self.assertEqual(actual, '1 track(s) produced 3 rows')
         self.assertEqual(loadJson.call_count, 1)
 
-    @patch('pyTagger.actions.reripped._step1')
-    @patch('pyTagger.actions.reripped._step0')
-    @patch('pyTagger.actions.reripped.Client')
-    def test_process_step1_index_not_exist(self, client, step0, step1):
-        client.return_value.exists.return_value = False
-        step0.return_value = None
-        step1.return_value = 'foo'
+    @patch('pyTagger.actions.reripped._buildIndex')
+    def test_process_step1_index_not_exist(self, _buildIndex):
+        self.client.return_value.exists.return_value = False
+        target.process(self.options)
+        target._buildIndex.assert_called_once_with(self.options)
+
+    @patch('pyTagger.actions.reripped._findIsonoms')
+    def test_process_step1_isonoms_not_exist(self, findIsonoms):
+        self.path_exists.return_value = False
+        findIsonoms.return_value = 'foo'
 
         actual = target.process(self.options)
 
-        self.assertEqual(actual, 'foo')
-        target._step0.assert_called_once_with(self.options)
-        target._step1.assert_called_once_with(self.options,
-                                              client.return_value)
+        self.assertEqual(actual, 'Success')
+        target._findIsonoms.assert_called_once_with(self.options,
+                                                    self.client.return_value)
 
-    @patch('pyTagger.actions.reripped._step1')
-    @patch('pyTagger.actions.reripped._step0')
-    @patch('pyTagger.actions.reripped.Client')
-    def test_process_step1_index_exist(self, client, step0, step1):
-        client.return_value.exists.return_value = True
-        step0.return_value = None
-        step1.return_value = 'foo'
-
+    def test_process_step1_all_exist(self):
         actual = target.process(self.options)
-
-        self.assertEqual(actual, 'foo')
-        self.assertEqual(target._step0.call_count, 0)
-        target._step1.assert_called_once_with(self.options,
-                                              client.return_value)
+        self.assertEqual(actual, 'Success')
 
     def test_process_step2(self):
         self.options.step = 2
