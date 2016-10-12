@@ -25,6 +25,11 @@ class TestRerippedAction(unittest.TestCase):
         self.path_exists = p.start()
         self.path_exists.return_value = True
 
+        p = patch('pyTagger.actions.reripped.loadJson')
+        self.addCleanup(p.stop)
+        self.loadJson = p.start()
+        self.loadJson.side_effect = AssertionError
+
     @patch('pyTagger.actions.reripped.uploadToElasticsearch')
     def test_buildIndex(self, uploader):
         target._buildIndex(self.options)
@@ -32,8 +37,7 @@ class TestRerippedAction(unittest.TestCase):
 
     @patch('pyTagger.actions.reripped.findIsonoms')
     @patch('pyTagger.actions.reripped.saveJsonIncrementalArray')
-    @patch('pyTagger.actions.reripped.loadJson')
-    def test_findIsonoms(self, loadJson, saveJson, findIsonoms):
+    def test_findIsonoms(self, saveJson, findIsonoms):
         from pyTagger.models import TrackMatch
 
         def noop_coroutine(file):
@@ -41,7 +45,7 @@ class TestRerippedAction(unittest.TestCase):
                 x = yield i
                 self.assertEqual(x['status'], 'ready')
 
-        loadJson.return_value = self.snapshot
+        self.loadJson.side_effect = [self.snapshot]
         saveJson.side_effect = noop_coroutine
         findIsonoms.return_value = [
             TrackMatch('ready', 'foo', 'bar', 11.0, None, None),
@@ -51,12 +55,13 @@ class TestRerippedAction(unittest.TestCase):
 
         actual = target._findIsonoms(self.options, self.client)
         self.assertEqual(actual, '1 track(s) produced 3 rows')
-        self.assertEqual(loadJson.call_count, 1)
+        self.assertEqual(self.loadJson.call_count, 1)
 
     @patch('pyTagger.actions.reripped._buildIndex')
     def test_process_step1_index_not_exist(self, _buildIndex):
         self.client.return_value.exists.return_value = False
-        target.process(self.options)
+        with self.assertRaises(AssertionError):
+            target.process(self.options)
         target._buildIndex.assert_called_once_with(self.options)
 
     @patch('pyTagger.actions.reripped._findIsonoms')
@@ -64,15 +69,15 @@ class TestRerippedAction(unittest.TestCase):
         self.path_exists.return_value = False
         findIsonoms.return_value = 'foo'
 
-        actual = target.process(self.options)
+        with self.assertRaises(AssertionError):
+            target.process(self.options)
 
-        self.assertEqual(actual, 'Success')
         target._findIsonoms.assert_called_once_with(self.options,
                                                     self.client.return_value)
 
     def test_process_step1_all_exist(self):
-        actual = target.process(self.options)
-        self.assertEqual(actual, 'Success')
+        with self.assertRaises(AssertionError):
+            target.process(self.options)
 
     def test_process_step2(self):
         self.options.step = 2

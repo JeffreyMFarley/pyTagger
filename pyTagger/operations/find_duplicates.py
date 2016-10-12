@@ -43,7 +43,7 @@ def findClones(client):
 
 def _isonomQuery(track):
     query = {
-        'from': 0, 'size': 10,
+        'from': 0, 'size': 6,
         'sort': '_score',
         'query': {'bool': {}},
         'min_score': 4

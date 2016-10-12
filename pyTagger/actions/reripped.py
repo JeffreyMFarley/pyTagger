@@ -1,8 +1,10 @@
+from __future__ import print_function
 from __future__ import unicode_literals
 import os
 from configargparse import getArgumentParser
 from pyTagger.actions.upload import uploadToElasticsearch
 from pyTagger.operations.find_duplicates import findIsonoms
+from pyTagger.operations.interview import Interview
 from pyTagger.proxies.es import Client
 from pyTagger.utils import loadJson, saveJsonIncrementalArray
 from pyTagger.utils import defaultConfigFiles
@@ -22,8 +24,8 @@ group.add('--library-snapshot', default='library.json',
           help='a snapshot of the current library')
 group.add('--intake-snapshot', default='mp3s.json',
           help='the newly ripped files')
-group.add('--step1-output', default='isonoms.json',
-          help='the output from step one')
+group.add('--interview', default='interview.json',
+          help='communcation with the user about the match results')
 
 # -----------------------------------------------------------------------------
 
@@ -35,7 +37,7 @@ def _buildIndex(args):
 def _findIsonoms(args, client):
     snapshot = loadJson(args.intake_snapshot)
 
-    output = saveJsonIncrementalArray(args.step1_output)
+    output = saveJsonIncrementalArray(args.interview)
     rows = next(output)
 
     for row in findIsonoms(client, snapshot):
@@ -56,11 +58,20 @@ def process(args):
         else:
             print('Index Already Built')
 
-        if not os.path.exists(args.step1_output):
+        if not os.path.exists(args.interview):
             print('Finding Isonoms')
             print(_findIsonoms(args, cli))
         else:
             print('Using existing isonoms file')
+
+        rows = loadJson(args.interview)
+        interview = Interview(rows)
+
+        if not interview.isComplete():
+            interview.conduct()
+            interview.saveState(args.interview)
+        else:
+            raise AssertionError
 
         return "Success"
 
