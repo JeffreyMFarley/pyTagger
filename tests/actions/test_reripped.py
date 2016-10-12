@@ -34,21 +34,19 @@ class TestRerippedAction(unittest.TestCase):
     @patch('pyTagger.actions.reripped.saveJsonIncrementalArray')
     @patch('pyTagger.actions.reripped.loadJson')
     def test_findIsonoms(self, loadJson, saveJson, findIsonoms):
-        from collections import namedtuple
+        from pyTagger.models import TrackMatch
 
         def noop_coroutine(file):
             for i in [0, 1, 2, 3, 4, 5]:
                 x = yield i
                 self.assertEqual(x['status'], 'ready')
 
-        Isonom = namedtuple('Isonom', ['status', 'oldPath', 'newPath'])
-
         loadJson.return_value = self.snapshot
         saveJson.side_effect = noop_coroutine
         findIsonoms.return_value = [
-            Isonom('ready', 'foo', 'bar'),
-            Isonom('ready', 'foo', 'baz'),
-            Isonom('ready', 'foo', 'qaz')
+            TrackMatch('ready', 'foo', 'bar', 11.0, None, None),
+            TrackMatch('ready', 'foo', 'baz', 7.0, None, None),
+            TrackMatch('ready', 'foo', 'qaz', 3.0, None, None)
         ]
 
         actual = target._findIsonoms(self.options, self.client)

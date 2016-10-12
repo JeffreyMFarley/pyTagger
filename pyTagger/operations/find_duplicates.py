@@ -1,5 +1,5 @@
 from __future__ import unicode_literals
-from collections import namedtuple
+from pyTagger.models import TrackMatch
 
 # -----------------------------------------------------------------------------
 # Clones = Exact Duplicates
@@ -39,10 +39,6 @@ def findClones(client):
 
 # -----------------------------------------------------------------------------
 # Isonom = Name based matches
-
-Isonom = namedtuple('Isonom', [
-    'status', 'oldPath', 'newPath', 'score', 'oldTags', 'newTags'
-])
 
 
 def _isonomQuery(track):
@@ -102,14 +98,14 @@ def findIsonoms(client, snapshot):
 
             if len(quality) == 1:
                 path, score, tags = quality[0]
-                yield Isonom('single', k, path, score, v, tags)
+                yield TrackMatch('single', k, path, score, v, tags)
             elif len(matches) == 1:
                 path, score, tags = matches[0]
-                yield Isonom('single', k, path, score, v, tags)
+                yield TrackMatch('single', k, path, score, v, tags)
             elif len(matches) > 1:
                 for path, score, tags in matches:
-                    yield Isonom('multiple', k, path, score, v, tags)
+                    yield TrackMatch('multiple', k, path, score, v, tags)
             else:
-                yield Isonom('nothing', k, None, 0.0, v, None)
+                yield TrackMatch('nothing', k, None, 0.0, v, None)
         except ValueError:
-            yield Isonom('insufficient', k, None, 0.0, v, None)
+            yield TrackMatch('insufficient', k, None, 0.0, v, None)
