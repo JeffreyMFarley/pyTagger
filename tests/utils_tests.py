@@ -1,7 +1,9 @@
 from __future__ import unicode_literals
 import unittest
 import io
+import os
 import pyTagger.utils as target
+from tests import *
 try:
     from unittest.mock import patch
 except ImportError:
@@ -24,6 +26,16 @@ class TestIO(unittest.TestCase):
         self.assertEqual(len(snapshot), 1)
         k, v = snapshot.popitem()
         self.assertEqual(v['artist'], 'T\u00e9l\u00e9popmusik')
+
+    @unittest.skipUnless(sampleFilesExist, 'No results directory to use')
+    def test_saveJson(self):
+        outFile = os.path.join(RESULT_DIRECTORY, r'foo.json')
+        absPath = target.toAbsolute('../tests/utf8.json')
+        expected = target.loadJson(absPath)
+
+        target.saveJson(outFile, expected)
+        actual = target.loadJson(outFile)
+        self.assertEqual(actual, expected)
 
     def test_saveJsonIncrementalArray(self):
         output = io.StringIO()

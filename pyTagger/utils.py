@@ -46,6 +46,11 @@ def loadJson(fileName):
         return json.load(f)
 
 
+def saveJson(fileName, o):
+    with io.open(fileName, 'w', encoding='utf-8') as f:
+        f.write(_unicode(json.dumps(o, ensure_ascii=False)))
+
+
 def saveJsonIncrementalArray(fileName):
     sep = '\n'
     with io.open(fileName, 'w', encoding='utf-8') as f:

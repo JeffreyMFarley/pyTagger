@@ -5,18 +5,26 @@ import sys
 import textwrap
 
 
+def get_input():  # pragma: no cover
+    if sys.version < '3':
+        return raw_input('> ').upper()
+    else:
+        return input('> ').upper()
+
+
 def wrapped_out(i, s):
-    lead = '{0}. '.format(i)
+    lead = '{0}. '.format(i) if i else ''
     wrapper = textwrap.TextWrapper(width=80, initial_indent=lead,
                                    subsequent_indent=' ' * len(lead))
     s = wrapper.fill(s)
     print(s)
 
 
-def askMultipleChoice(i, title, choices):
+def askMultipleChoice(i, title, choices, clear=True):
     a = None
     while a not in choices:
-        os.system('cls' if os.name == 'nt' else 'clear')
+        if clear:
+            os.system('cls' if os.name == 'nt' else 'clear')
 
         wrapped_out(i, title)
         print('\n')
@@ -25,9 +33,6 @@ def askMultipleChoice(i, title, choices):
             wrapped_out(k, choices[k])
         print('\n')
 
-        if sys.version < '3':
-            a = raw_input('> ').upper()
-        else:
-            a = input('> ').upper()
+        a = get_input()
 
     return a

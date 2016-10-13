@@ -1,8 +1,8 @@
-from __future__ import print_function
+from __future__ import unicode_literals
 import collections
 import itertools
 from pyTagger.operations.ask import askMultipleChoice
-from pyTagger.utils import saveJsonIncrementalArray
+from pyTagger.utils import saveJson
 
 basicOptions = {
     'D': 'Drop this row',
@@ -21,7 +21,7 @@ def _scan(rows):
             raise ValueError("Missing status field.  Is this an interview?")
         tally[row['status']] += 1
 
-    return tally, sum([
+    return sum([
         1
         for x in tally.keys()
         if x in ['single', 'multiple', 'nothing', 'insufficient']
@@ -33,44 +33,62 @@ def _handleSingle(context):
 
 
 def _handleMultiple(context):
-    key = context.fillAccum()
+    key = context.loadCurrent()
 
     options = dict(basicOptions)
     del options['M']
-    for i, row in enumerate(context.accum):
+    for i, row in enumerate(context.current):
         options[str(i + 1)] = row['oldPath']
 
     try:
         a = askMultipleChoice(context.step, key, options)
         try:
-            context.choose(int(a))
+            context.chooseCurrent(int(a) - 1)
         except:
             if a == 'D':
-                context.dropAccum()
+                context.dropCurrent()
             elif a == 'I':
-                context.accumToOutput()
+                context.currentToOutput()
             elif a == 'X':
                 context.quit()
             elif a == 'Z':
                 context.discard()
+            else:
+                raise AssertionError("askMultipleChoice failed to enforce")
     except KeyboardInterrupt:
         context.discard()
 
 
 def _handleNothing(context):
-    key = context.fillAccum()
+    key = context.loadCurrent()
     try:
         a = askMultipleChoice(context.step, key, basicOptions)
         if a == 'M':
-            context.choose(0, 'manual')
+            context.chooseCurrent(0, 'manual')
         elif a == 'D':
-            context.dropAccum()
+            context.dropCurrent()
         elif a == 'X':
             context.quit()
         elif a == 'Z':
             context.discard()
+        else:
+            raise AssertionError("askMultipleChoice failed to enforce")
     except KeyboardInterrupt:
         context.discard()
+
+
+def _handlePass(context):
+    context.inputToOutput()
+
+
+routes = {
+    'single': _handleSingle,
+    'multiple': _handleMultiple,
+    'nothing': _handleNothing,
+    'insufficient': _handleNothing,
+    'ready': _handlePass,
+    'manual': _handlePass
+}
 
 # -----------------------------------------------------------------------------
 
@@ -78,27 +96,18 @@ def _handleNothing(context):
 class Interview(object):
     def __init__(self, rows):
         self.input = rows
-        self.accum = []
+        self.current = []
         self.output = []
-        self.tally, self.unfinished = _scan(rows)
+        self.unfinished = _scan(rows)
         self.userQuit = False
         self.userDiscard = False
         self.step = 0
-
-        self.routes = {
-            'single': _handleSingle,
-            'multiple': _handleMultiple,
-            'nothing': _handleNothing,
-            'insufficient': _handleNothing,
-            'ready': self.inputToOutput,
-            'manual': self.inputToOutput
-        }
 
     # -------------------------------------------------------------------------
     # Private Methods
 
     def _route(self):
-        for self.step in itertools.count():
+        for self.step in itertools.count(1):  # pragma: no branch
             if self.userQuit or self.userDiscard:
                 raise StopIteration
 
@@ -106,7 +115,7 @@ class Interview(object):
                 raise StopIteration
 
             peek = self.input[0]['status']
-            yield self.routes[peek]
+            yield routes[peek]
 
     # -------------------------------------------------------------------------
     # Public Methods
@@ -115,20 +124,32 @@ class Interview(object):
         return self.unfinished == 0
 
     def conduct(self):
+        a = askMultipleChoice(0, 'Ready to begin the interview?', {
+            'Y': 'Yes',
+            'N': 'No'
+        }, False)
+
+        if a == 'N':
+            return False
+
         for handler in self._route():
             handler(self)
 
-    def saveState(self, fileName):
-        if self.userDiscard:
-            return
+        return not self.userDiscard
 
-        for r in itertools.chain(self.output, self.accum, self.input):
-            path = r['newPath']
-            info = ('..' + path[-60:]) if len(path) > 60 else data
-            print(r['status'], info)
+    def saveState(self, fileName):
+        rows = list(itertools.chain(self.output, self.current, self.input))
+        saveJson(fileName, rows)
 
     # -------------------------------------------------------------------------
     # State Events
+
+    def loadCurrent(self):
+        assert len(self.current) == 0
+        key = self.input[0]['newPath']
+        while len(self.input) and key == self.input[0]['newPath']:
+            self.current.append(self.input.pop(0))
+        return key
 
     def quit(self):
         self.userQuit = True
@@ -142,23 +163,16 @@ class Interview(object):
             row['status'] = newStatus
         self.output.append(row)
 
-    def fillAccum(self):
-        assert len(self.accum) == 0
-        key = self.input[0]['newPath']
-        while len(self.input) and key == self.input[0]['newPath']:
-            self.accum.append(self.input.pop(0))
-        return key
-
-    def choose(self, i, newStatus='ready'):
-        row = self.accum[i]
+    def chooseCurrent(self, i, newStatus='ready'):
+        row = self.current[i]
         row['status'] = newStatus
         self.output.append(row)
-        self.accum = []
+        self.current = []
 
-    def accumToOutput(self):
-        for row in self.accum:
+    def currentToOutput(self):
+        for row in self.current:
             self.output.append(row)
-        self.accum = []
+        self.current = []
 
-    def dropAccum(self):
-        self.accum = []
+    def dropCurrent(self):
+        self.current = []

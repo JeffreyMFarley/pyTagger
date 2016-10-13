@@ -68,8 +68,10 @@ def process(args):
         interview = Interview(rows)
 
         if not interview.isComplete():
-            interview.conduct()
-            interview.saveState(args.interview)
+            if interview.conduct():
+                interview.saveState(args.interview)
+            else:
+                return "Interview Not Complete"
         else:
             raise AssertionError
 

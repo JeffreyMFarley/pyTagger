@@ -28,7 +28,15 @@ class TestRerippedAction(unittest.TestCase):
         p = patch('pyTagger.actions.reripped.loadJson')
         self.addCleanup(p.stop)
         self.loadJson = p.start()
-        self.loadJson.side_effect = AssertionError
+        self.loadJson.return_value = self.snapshot
+
+        p = patch('pyTagger.actions.reripped.Interview')
+        self.addCleanup(p.stop)
+        self.interview = p.start()
+        self.interview.return_value = Mock(spec=[
+            'isComplete', 'conduct', 'saveState'
+        ])
+        self.interview.return_value.isComplete.return_value = True
 
     @patch('pyTagger.actions.reripped.uploadToElasticsearch')
     def test_buildIndex(self, uploader):
@@ -45,7 +53,6 @@ class TestRerippedAction(unittest.TestCase):
                 x = yield i
                 self.assertEqual(x['status'], 'ready')
 
-        self.loadJson.side_effect = [self.snapshot]
         saveJson.side_effect = noop_coroutine
         findIsonoms.return_value = [
             TrackMatch('ready', 'foo', 'bar', 11.0, None, None),
@@ -74,6 +81,20 @@ class TestRerippedAction(unittest.TestCase):
 
         target._findIsonoms.assert_called_once_with(self.options,
                                                     self.client.return_value)
+
+    def test_process_step1_discard_interview(self):
+        self.interview.return_value.isComplete.return_value = False
+        self.interview.return_value.conduct.return_value = False
+        actual = target.process(self.options)
+        self.assertFalse(self.interview.return_value.saveState.called)
+        self.assertEqual(actual, "Interview Not Complete")
+
+    def test_process_step1_finished_interview(self):
+        self.interview.return_value.isComplete.return_value = False
+        self.interview.return_value.conduct.return_value = True
+        actual = target.process(self.options)
+        self.assertTrue(self.interview.return_value.saveState.called)
+        self.assertEqual(actual, "Success")
 
     def test_process_step1_all_exist(self):
         with self.assertRaises(AssertionError):
