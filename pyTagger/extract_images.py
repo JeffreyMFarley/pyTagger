@@ -11,8 +11,8 @@ if sys.version < '3':  # pragma: no cover
     _input = lambda fileName: codecs.open(fileName, 'r', encoding='utf-8')
 else:  # pragma: no cover
     _input = lambda fileName: open(fileName, 'r', encoding='utf-8')
+from hew import Normalizer
 from pyTagger.utils import walk
-from pyTagger.mp3_snapshot import Formatter
 
 # -----------------------------------------------------------------------------
 # Classes
@@ -63,16 +63,16 @@ class ExtractImages(object):
                 self.captured[k] = v
 
     def extractAll(self, directory):
-        formatter = Formatter([])
+        normalizer = Normalizer()
         log = logging.getLogger('eyed3')
         log.setLevel(logging.ERROR)
         for fullPath in walk(directory):
-            asciified = formatter.normalizeToAscii(fullPath)
+            asciified = normalizer.to_ascii(fullPath)
             self.log.info("Extracting '%s'", asciified)
             self._extract(fullPath)
 
     def extractFrom(self, fileList):
-        formatter = Formatter([])
+        normalizer = Normalizer()
         log = logging.getLogger('eyed3')
         log.setLevel(logging.ERROR)
 
@@ -86,7 +86,7 @@ class ExtractImages(object):
 
                 # Check if the file has an extension of typical music files
                 if fullPath[-3:].lower() in ['mp3']:
-                    asciified = formatter.normalizeToAscii(fullPath)
+                    asciified = normalizer.to_ascii(fullPath)
                     self.log.info("Extracting '%s'", asciified)
                     self._extract(fullPath)
 

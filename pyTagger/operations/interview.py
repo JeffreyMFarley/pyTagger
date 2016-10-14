@@ -44,7 +44,7 @@ def _handleMultiple(context):
         a = askMultipleChoice(context.step, key, options)
         try:
             context.chooseCurrent(int(a) - 1)
-        except:
+        except ValueError:
             if a == 'D':
                 context.dropCurrent()
             elif a == 'I':

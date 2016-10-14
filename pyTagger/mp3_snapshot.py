@@ -12,7 +12,29 @@ if sys.version < '3':  # pragma: no cover
     _output = lambda fileName: codecs.open(fileName, 'w', encoding='utf-8')
 else:  # pragma: no cover
     _output = lambda fileName: open(fileName, 'w', encoding='utf-8')
+from hew import Normalizer
+from pyTagger.models import Snapshot
 from pyTagger.utils import walk
+
+
+def _extractDate(date):
+    return str(date) if date else ''
+
+
+def _extractFileIds(track):
+    # Python 2.6 does not like dictionary comprehensions
+    ids = {}
+    for x in track.tag.unique_file_ids:
+        ids[x.owner_id] = binascii.b2a_base64(x.uniq_id).strip()
+    return ids
+
+
+def _extractTaggerId(track):
+    ufid = ''
+    for a0 in track.tag.unique_file_ids:
+        if a0.owner_id == 'DJTagger':
+            ufid = binascii.b2a_base64(a0.uniq_id).strip()
+    return ufid
 
 # -----------------------------------------------------------------------------
 # Classes
@@ -35,11 +57,11 @@ class Formatter(object):
         'composer': lambda x: x.tag.getTextFrame('TCOM'),
         'conductor': lambda x: x.tag.getTextFrame('TPE3'),
         'disc': lambda x: x.tag.disc_num[0],
-        'encodingDate': lambda x: Formatter.extractDate(x.tag.encoding_date),
+        'encodingDate': lambda x: _extractDate(x.tag.encoding_date),
         'fileHash': lambda x: '',
         'genre': lambda x: x.tag.genre.name if x.tag.genre else '',
         'group': lambda x: x.tag.getTextFrame('TIT1'),
-        'id': lambda x: Formatter.extractTaggerId(x),
+        'id': lambda x: _extractTaggerId(x),
         'key': lambda x: x.tag.getTextFrame('TKEY'),
         'language': lambda x: x.tag.getTextFrame('TLAN'),
         'length': lambda x: x.info.time_secs if x.info else '',
@@ -49,38 +71,27 @@ class Formatter(object):
                              for y in x.tag.lyrics],
         'media': lambda x: x.tag.getTextFrame('TMED'),
         'originalReleaseDate':
-        lambda x: Formatter.extractDate(x.tag.original_release_date),
+        lambda x: _extractDate(x.tag.original_release_date),
         'playCount': lambda x: x.tag.play_count,
         'publisher': lambda x: x.tag.publisher,
-        'recordingDate': lambda x: Formatter.extractDate(x.tag.recording_date),
-        'releaseDate': lambda x: Formatter.extractDate(x.tag.release_date),
+        'recordingDate': lambda x: _extractDate(x.tag.recording_date),
+        'releaseDate': lambda x: _extractDate(x.tag.release_date),
         'remixer': lambda x: x.tag.getTextFrame('TPE4'),
         'subtitle': lambda x: x.tag.getTextFrame('TIT3'),
-        'taggingDate': lambda x: Formatter.extractDate(x.tag.tagging_date),
+        'taggingDate': lambda x: _extractDate(x.tag.tagging_date),
         'title': lambda x: x.tag.title,
         'totalDisc': lambda x: x.tag.disc_num[1],
         'totalTrack': lambda x: x.tag.track_num[1],
         'track': lambda x: x.tag.track_num[0],
-        'ufid': lambda x: Formatter.extractFileIds(x),
+        'ufid': lambda x: _extractFileIds(x),
         'vbr': lambda x: x.info.bit_rate[0] if x.info is not None else None,
         'version': lambda x: '.'.join([str(y) for y in x.tag.version]),
-        'year': lambda x: Formatter.extractDate(x.tag.getBestDate()),
+        'year': lambda x: _extractDate(x.tag.getBestDate()),
     }
     columns = list(_projectionEyed3.keys())
 
-    basic = ['title', 'track', 'totalTrack', 'artist',
-             'albumArtist', 'album', 'length']
-    songwriting = ['bpm', 'composer', 'key', 'lyrics', 'language']
-    production = ['year', 'releaseDate', 'originalReleaseDate',
-                  'recordingDate', 'conductor', 'remixer', 'publisher']
-    distribution = ['media', 'disc', 'totalDisc']
-    library = ['genre', 'id', 'ufid', 'compilation', 'comments', 'playCount',
-               'group', 'subtitle', 'encodingDate', 'taggingDate']
-    mp3Info = ['bitRate', 'vbr', 'fileHash', 'version']
-
     def __init__(self, fieldSet=None):
         self.fieldSet = self.columns if fieldSet is None else fieldSet
-        self.normalizer = None
 
     def format(self, obj):
         from eyed3 import mp3
@@ -92,49 +103,12 @@ class Formatter(object):
             return row
         return {}
 
-    def normalizeToAscii(self, text):
-        from hew import Normalizer
-        if not self.normalizer:
-            self.normalizer = Normalizer()
-        return self.normalizer.to_ascii(text)
-
-    @classmethod
-    def extractTaggerId(cls, track):
-        ufid = ''
-        for a0 in track.tag.unique_file_ids:
-            if a0.owner_id == 'DJTagger':
-                ufid = binascii.b2a_base64(a0.uniq_id).strip()
-        return ufid
-
-    @classmethod
-    def extractFileIds(cls, track):
-        # Python 2.6 does not like dictionary comprehensions
-        ids = {}
-        for x in track.tag.unique_file_ids:
-            ids[x.owner_id] = binascii.b2a_base64(x.uniq_id).strip()
-        return ids
-
-    @classmethod
-    def extractDate(cls, date):
-        return str(date) if date else ''
-
-    @classmethod
-    def orderedAllColumns(cls):
-        # preserve order
-        columns = (Formatter.basic +
-                   Formatter.songwriting +
-                   Formatter.production +
-                   Formatter.distribution +
-                   Formatter.library +
-                   Formatter.mp3Info)
-
-        return columns
-
 
 class Mp3Snapshot(object):
     def __init__(self, compact=True):
         self.compact = compact
         self.log = logging.getLogger(__name__)
+        self.normalizer = Normalizer()
 
     def createFromScan(self, scanPath, outFileName,
                        fieldSet=None, supressWarnings=True):
@@ -151,7 +125,7 @@ class Mp3Snapshot(object):
 
             for fullPath in walk(scanPath):
                 self.log.info(
-                    "Scanning %s", formatter.normalizeToAscii(fullPath)
+                    "Scanning %s", self.normalizer.to_ascii(fullPath)
                 )
                 row = self.extractTags(fullPath, formatter)
                 if row:
@@ -219,17 +193,17 @@ def buildArgParser():
                    default='mp3s.json',
                    help='the name of the file that will hold the results')
     p.add_argument('-b', '--basic', action='store_true', dest='basic',
-                   help=' '.join(Formatter.basic))
+                   help=' '.join(Snapshot.basic))
     p.add_argument('-s', '--songwriting', action='store_true',
-                   dest='songwriting', help=' '.join(Formatter.songwriting))
+                   dest='songwriting', help=' '.join(Snapshot.songwriting))
     p.add_argument('-p', '--production', action='store_true',
-                   dest='production', help=' '.join(Formatter.production))
+                   dest='production', help=' '.join(Snapshot.production))
     p.add_argument('-d', '--distribution', action='store_true',
-                   dest='distribution', help=' '.join(Formatter.distribution))
+                   dest='distribution', help=' '.join(Snapshot.distribution))
     p.add_argument('-l', '--library', action='store_true', dest='library',
-                   help=' '.join(Formatter.library))
+                   help=' '.join(Snapshot.library))
     p.add_argument('-m', '--mp3Info', action='store_true', dest='mp3Info',
-                   help=' '.join(Formatter.mp3Info))
+                   help=' '.join(Snapshot.mp3Info))
     p.add_argument('-a', '--all', action='store_true', dest='all',
                    help='include all supported fields')
     p.add_argument('--compact', action='store_true', dest='compact',
@@ -243,22 +217,22 @@ if __name__ == '__main__':
 
     columns = []
     if args.basic:
-        columns = columns + Formatter.basic
+        columns = columns + Snapshot.basic
     if args.songwriting:
-        columns = columns + Formatter.songwriting
+        columns = columns + Snapshot.songwriting
     if args.production:
-        columns = columns + Formatter.production
+        columns = columns + Snapshot.production
     if args.distribution:
-        columns = columns + Formatter.distribution
+        columns = columns + Snapshot.distribution
     if args.library:
-        columns = columns + Formatter.library
+        columns = columns + Snapshot.library
     if args.mp3Info:
-        columns = columns + Formatter.mp3Info
+        columns = columns + Snapshot.mp3Info
     if args.all:
-        columns = Formatter.columns
+        columns = Snapshot.orderedAllColumns()
 
     if not columns:
-        columns = Formatter.basic
+        columns = Snapshot.basic
 
     pipeline = Mp3Snapshot(args.compact)
     pipeline.log.setLevel(logging.INFO)

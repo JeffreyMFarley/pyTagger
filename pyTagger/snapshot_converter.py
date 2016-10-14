@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*
 
 from __future__ import print_function
+from __future__ import unicode_literals
 import json
 import os
 import sys
@@ -21,7 +22,7 @@ else:  # pragma: no cover
     _output_json = lambda fileName: open(fileName, 'w', encoding='utf-8')
     _output_table = lambda fileName: open(fileName, 'w', encoding='utf_16_le')
     _unicode = lambda x: x
-from pyTagger.mp3_snapshot import Formatter
+from pyTagger.models import Snapshot
 
 # -----------------------------------------------------------------------------
 # State Machine
@@ -154,7 +155,7 @@ class SnapshotConverter(object):
 
         # build the columns if they are not supplied
         if not fieldSet:
-            fieldSet = self._extractColumns(snapshot)
+            fieldSet = Snapshot.extractColumns(snapshot)
         fieldSet.append('fullPath')
 
         # not using csv.DictWriter since the Python 2.x version has a hard time
@@ -177,24 +178,6 @@ class SnapshotConverter(object):
                               if col in row else ''
                               for col in fieldSet])
                 f.writelines([a, '\n'])
-
-    def _extractColumns(self, data):
-        header = set()
-
-        for _, v in data.items():
-            for j in v.keys():
-                if j not in header:
-                    header.add(j)
-
-        # Build the ordered set with the extra columns at the end
-        known = Formatter.orderedAllColumns()
-        unknown = header - set(known)
-
-        columns = [c for c in known if c in header]
-        for c in sorted(unknown):
-            columns.append(c)
-
-        return columns
 
     def _is_sequence(self, arg):
         return isinstance(arg, (list, set, dict))
@@ -270,17 +253,17 @@ def buildArgParser():
     p.add_argument('outfile', nargs='?', metavar='outfile',
                    help='the name of the file that will hold the results')
     p.add_argument('-b', '--basic', action='store_true', dest='basic',
-                   help=' '.join(Formatter.basic))
+                   help=' '.join(Snapshot.basic))
     p.add_argument('-s', '--songwriting', action='store_true',
-                   dest='songwriting', help=' '.join(Formatter.songwriting))
+                   dest='songwriting', help=' '.join(Snapshot.songwriting))
     p.add_argument('-p', '--production', action='store_true',
-                   dest='production', help=' '.join(Formatter.production))
+                   dest='production', help=' '.join(Snapshot.production))
     p.add_argument('-d', '--distribution', action='store_true',
-                   dest='distribution', help=' '.join(Formatter.distribution))
+                   dest='distribution', help=' '.join(Snapshot.distribution))
     p.add_argument('-l', '--library', action='store_true', dest='library',
-                   help=' '.join(Formatter.library))
+                   help=' '.join(Snapshot.library))
     p.add_argument('-m', '--mp3Info', action='store_true', dest='mp3Info',
-                   help=' '.join(Formatter.mp3Info))
+                   help=' '.join(Snapshot.mp3Info))
     p.add_argument('-a', '--all', action='store_true', dest='all',
                    help='include all supported fields')
     p.add_argument('--csv', action='store_true', dest='csv',
@@ -296,19 +279,19 @@ if __name__ == '__main__':
 
     columns = []
     if args.basic:
-        columns = columns + Formatter.basic
+        columns = columns + Snapshot.basic
     if args.songwriting:
-        columns = columns + Formatter.songwriting
+        columns = columns + Snapshot.songwriting
     if args.production:
-        columns = columns + Formatter.production
+        columns = columns + Snapshot.production
     if args.distribution:
-        columns = columns + Formatter.distribution
+        columns = columns + Snapshot.distribution
     if args.library:
-        columns = columns + Formatter.library
+        columns = columns + Snapshot.library
     if args.mp3Info:
-        columns = columns + Formatter.mp3Info
+        columns = columns + Snapshot.mp3Info
     if args.all:
-        columns = Formatter.orderedAllColumns()
+        columns = Snapshot.orderedAllColumns()
 
     if not args.outfile:
         root, ext = os.path.splitext(args.infile)

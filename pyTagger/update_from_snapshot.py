@@ -8,6 +8,8 @@ if sys.version < '3':  # pragma: no cover
     _unicode = unicode
 else:  # pragma: no cover
     _unicode = lambda x: x
+from hew import Normalizer
+from pyTagger.models import Snapshot
 from pyTagger.utils import loadJson
 from pyTagger.snapshot_converter import SnapshotConverter
 from pyTagger.mp3_snapshot import Formatter, Mp3Snapshot
@@ -57,6 +59,7 @@ class UpdateFromSnapshot(object):
     def __init__(self):
         self.reader = Mp3Snapshot()
         self.log = logging.getLogger(__name__)
+        self.normalizer = Normalizer()
 
     def update(self, inFileName, fieldSet=None, upgrade=False,
                supressWarnings=True):
@@ -68,12 +71,11 @@ class UpdateFromSnapshot(object):
         snapshot = loadJson(inFileName)
 
         if not fieldSet:
-            friend = SnapshotConverter()
-            fieldSet = friend._extractColumns(snapshot)
+            fieldSet = Snapshot.extractColumns(snapshot)
         self.formatter = Formatter(fieldSet)
 
         for k, v in snapshot.items():
-            k0 = self.formatter.normalizeToAscii(k)
+            k0 = self.normalizer.to_ascii(k)
             self.log.info("Updating '%s'", k0)
             try:
                 self._updateOne(k, v)
@@ -255,18 +257,18 @@ def buildArgParser():
     p = argparse.ArgumentParser(description=description)
     p.add_argument('infile', metavar='infile', help='the snapshot to process')
     p.add_argument('-b', '--basic', action='store_true', dest='basic',
-                   help='Only update: ' + ' '.join(Formatter.basic))
+                   help='Only update: ' + ' '.join(Snapshot.basic))
     p.add_argument('-s', '--songwriting', action='store_true',
                    dest='songwriting',
-                   help='Only update: ' + ' '.join(Formatter.songwriting))
+                   help='Only update: ' + ' '.join(Snapshot.songwriting))
     p.add_argument('-p', '--production', action='store_true',
                    dest='production',
-                   help='Only update: ' + ' '.join(Formatter.production))
+                   help='Only update: ' + ' '.join(Snapshot.production))
     p.add_argument('-d', '--distribution', action='store_true',
                    dest='distribution',
-                   help='Only update: ' + ' '.join(Formatter.distribution))
+                   help='Only update: ' + ' '.join(Snapshot.distribution))
     p.add_argument('-l', '--library', action='store_true', dest='library',
-                   help='Only update: ' + ' '.join(Formatter.library))
+                   help='Only update: ' + ' '.join(Snapshot.library))
     p.add_argument('-a', '--all', action='store_true', dest='all',
                    help='include all supported fields')
     p.add_argument('--upgrade', action='store_true', dest='upgrade',
@@ -285,22 +287,22 @@ if __name__ == '__main__':
 
     columns = []
     if args.basic:
-        columns = columns + Formatter.basic
+        columns = columns + Snapshot.basic
     if args.songwriting:
-        columns = columns + Formatter.songwriting
+        columns = columns + Snapshot.songwriting
     if args.production:
-        columns = columns + Formatter.production
+        columns = columns + Snapshot.production
     if args.distribution:
-        columns = columns + Formatter.distribution
+        columns = columns + Snapshot.distribution
     if args.library:
-        columns = columns + Formatter.library
+        columns = columns + Snapshot.library
     if args.all:
-        columns = Formatter.columns
-        for x in Formatter.mp3Info:
+        columns = Snapshot.orderedAllColumns()
+        for x in Snapshot.mp3Info:
             columns.remove(x)
 
     if not columns:
-        columns = Formatter.basic
+        columns = Snapshot.basic
 
     pipeline = UpdateFromSnapshot()
     pipeline.log.setLevel(logging.INFO)

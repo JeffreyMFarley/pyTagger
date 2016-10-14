@@ -3,6 +3,8 @@ import argparse
 import itertools
 import logging
 import shutil
+from hew import Normalizer
+from pyTagger.models import Snapshot
 from pyTagger.utils import walk
 from pyTagger.mp3_snapshot import Formatter, Mp3Snapshot
 
@@ -28,13 +30,14 @@ def Limit(s, maxChars):
 
 class Rename(object):
     def __init__(self, destDir):
+        self.normalizer = Normalizer()
         self.log = logging.getLogger(__name__)
         self.destDir = destDir if destDir else os.getcwd()
         if self.destDir[-1] != os.path.sep:
             self.destDir += os.path.sep
 
     def _buildFormatter(self):
-        fields = list(itertools.chain(Formatter.basic, Formatter.distribution))
+        fields = list(itertools.chain(Snapshot.basic, Snapshot.distribution))
         fields.append('compilation')
         return Formatter(fields)
 
@@ -99,7 +102,7 @@ class Rename(object):
 
         for fullPath in walk(directory):
             try:
-                asciified = formatter.normalizeToAscii(fullPath)
+                asciified = self.normalizer.to_ascii(fullPath)
                 self.log.info("Reading '%s'", asciified)
                 tags = reader.extractTags(fullPath, formatter)
                 relativePath = self.buildPath(tags, fullPath[-3:])

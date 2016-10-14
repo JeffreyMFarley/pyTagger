@@ -16,6 +16,7 @@ else:
     _input = lambda fileName: open(fileName, 'r', encoding='utf-8')
     _output = lambda fileName: open(fileName, 'w', encoding='utf-8')
 import pyTagger
+from pyTagger.models import Snapshot
 from pyTagger.utils import walk
 from tests import *
 
@@ -74,7 +75,7 @@ class TestIntegration(unittest.TestCase):
     @unittest.skipUnless(sampleFilesExist, 'MP3 Files missing')
     def test_02_scan(self):
         target = pyTagger.Mp3Snapshot(False)
-        columns = pyTagger.mp3_snapshot.Formatter.columns
+        columns = Snapshot.orderedAllColumns()
         outFile = os.path.join(RESULT_DIRECTORY, r'snapshot.json')
 
         target.createFromScan(INTEGRATION_TEST_DIRECTORY, outFile, columns)

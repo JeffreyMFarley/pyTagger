@@ -9,6 +9,7 @@ import itertools
 import pyTagger
 from tests import *
 from contextlib import contextmanager
+from pyTagger.models import Snapshot
 from pyTagger.utils import loadJson, walk
 if sys.version >= '3':
     unicode = lambda x: x
@@ -54,7 +55,7 @@ class TestPrepareCheckIn(unittest.TestCase):
     def test_zee_last(self):
         self.target.run(CHECKED_DIRECTORY)
 
-        columns = pyTagger.mp3_snapshot.Formatter.columns
+        columns = Snapshot.orderedAllColumns()
         outFile = os.path.join(CHECKED_DIRECTORY, 'snapshot.json')
 
         self.snapshot.createFromScan(CHECKED_DIRECTORY, outFile, columns)

@@ -5,11 +5,12 @@ import os
 import sys
 from tests import *
 from collections import namedtuple
+from pyTagger.models import Snapshot
+from pyTagger.mp3_snapshot import Formatter, Mp3Snapshot
 try:
     from unittest.mock import Mock, patch, mock_open
 except ImportError:
     from mock import Mock, patch, mock_open
-from pyTagger.mp3_snapshot import Formatter, Mp3Snapshot
 
 
 if sys.version < '3':
@@ -36,19 +37,9 @@ class TestFormatter(unittest.TestCase):
         self.target = Formatter()
 
     def test_allFieldsGrouped(self):
-        columns = self.target.orderedAllColumns()
+        columns = Snapshot.orderedAllColumns()
         missing = set(self.target.columns) - set(columns)
         assert not missing
-
-    def test_normalizeToAsciiEasy(self):
-        title = u'Bj\xf6rk'
-        result = self.target.normalizeToAscii(title)
-        assert result == 'Bjork', result
-
-    def test_normalizeToAsciiHard(self):
-        title = buildFormula()
-        result = self.target.normalizeToAscii(title)
-        self.assertEqual(result, u'dpdqh/4\u03c0')
 
 
 class TestMp3Snapshot(unittest.TestCase):
@@ -58,7 +49,7 @@ class TestMp3Snapshot(unittest.TestCase):
 
     @unittest.skipUnless(sampleFilesExist, 'MP3 Files missing')
     def test_extract_basic(self):
-        formatter = Formatter(Formatter.basic)
+        formatter = Formatter(Snapshot.basic)
         file = os.path.join(
             SOURCE_DIRECTORY, 'The King Of Limbs', '05 LotusFlower.MP3'
         )
@@ -130,7 +121,7 @@ class TestMp3Snapshot(unittest.TestCase):
         assert row['fileHash']
 
     def test_extract_badfile(self):
-        formatter = Formatter(Formatter.basic)
+        formatter = Formatter(Snapshot.basic)
         file = os.path.join(SOURCE_DIRECTORY, 'kafafasfaafaf.mp3')
 
         row = self.target.extractTags(file, formatter)
@@ -139,7 +130,7 @@ class TestMp3Snapshot(unittest.TestCase):
 
     @unittest.skipUnless(sampleFilesExist, 'MP3 Files missing')
     def test_extract_utf8(self):
-        formatter = Formatter(Formatter.basic)
+        formatter = Formatter(Snapshot.basic)
         file = os.path.join(SOURCE_DIRECTORY, '08 - Aeroplane.mp3')
 
         row = self.target.extractTags(file, formatter)
@@ -149,7 +140,7 @@ class TestMp3Snapshot(unittest.TestCase):
 
     @unittest.skipUnless(sampleFilesExist, 'MP3 Files missing')
     def test_extract_non_ascii_filename(self):
-        formatter = Formatter(Formatter.basic)
+        formatter = Formatter(Snapshot.basic)
         title = buildFormula()
         file = os.path.join(SOURCE_DIRECTORY, u'10 '+title+u'.mp3')
 
