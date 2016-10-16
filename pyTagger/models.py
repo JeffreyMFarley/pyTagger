@@ -1,4 +1,6 @@
+from configargparse import getArgumentParser
 from collections import namedtuple
+from pyTagger.utils import defaultConfigFiles
 
 TrackMatch = namedtuple('TrackMatch', [
     'status', 'newPath', 'oldPath', 'score', 'newTags', 'oldTags'
@@ -31,7 +33,7 @@ class Snapshot(object):
         return columns
 
     @staticmethod
-    def extractColumns(data):
+    def columnsFromSnapshot(data):
         header = set()
 
         for v in data.values():
@@ -48,3 +50,48 @@ class Snapshot(object):
             columns.append(c)
 
         return columns
+
+    # @staticmethod
+    # def columnsFromArgs(args):
+    #     columns = []
+    #     if args.basic:
+    #         columns = columns + Snapshot.basic
+    #     if args.songwriting:
+    #         columns = columns + Snapshot.songwriting
+    #     if args.production:
+    #         columns = columns + Snapshot.production
+    #     if args.distribution:
+    #         columns = columns + Snapshot.distribution
+    #     if args.library:
+    #         columns = columns + Snapshot.library
+    #     if args.mp3Info:
+    #         columns = columns + Snapshot.mp3Info
+    #     if args.all:
+    #         columns = Snapshot.orderedAllColumns()
+
+    #     if not columns:
+    #         columns = Snapshot.basic
+
+    #     return columns
+
+
+p = getArgumentParser('snapshot',
+                      default_config_files=defaultConfigFiles,
+                      parents=[getArgumentParser()],
+                      description='control which columns are included in the'
+                      'snapshot')
+group = p.add_argument_group('Columns')
+group.add_argument('--basic', action='store_true', dest='basic',
+                   help=' '.join(Snapshot.basic))
+group.add_argument('--songwriting', action='store_true',
+                   dest='songwriting', help=' '.join(Snapshot.songwriting))
+group.add_argument('--production', action='store_true',
+                   dest='production', help=' '.join(Snapshot.production))
+group.add_argument('--distribution', action='store_true',
+                   dest='distribution', help=' '.join(Snapshot.distribution))
+group.add_argument('--library', action='store_true', dest='library',
+                   help=' '.join(Snapshot.library))
+group.add_argument('--mp3Info', action='store_true', dest='mp3Info',
+                   help=' '.join(Snapshot.mp3Info))
+group.add_argument('--all', action='store_true', dest='all',
+                   help='include all supported fields')

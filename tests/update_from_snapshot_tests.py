@@ -9,6 +9,7 @@ import binascii
 import itertools
 from tests import *
 from contextlib import contextmanager
+from pyTagger.proxies.id3 import ID3Proxy
 
 SANDBOX_DIRECTORY = os.path.join(RESULT_DIRECTORY, r'mp3s')
 
@@ -45,12 +46,12 @@ class BaseSpecifications(unittest.TestCase):
         subdir, filename = os.path.split(path)
         fromFile = os.path.join(SOURCE_DIRECTORY, path)
         shutil.copy(fromFile, SANDBOX_DIRECTORY)
-        file = os.path.join(SANDBOX_DIRECTORY, filename)
-        track = self.target._loadID3(file)
+        fileName = os.path.join(SANDBOX_DIRECTORY, filename)
+        id3Reader = ID3Proxy(tags.keys())
+        track = id3Reader.loadID3(fileName)
         yield track
         self.saveTrack(track)
-        formatter = pyTagger.mp3_snapshot.Formatter(tags.keys())
-        actual.update(self.target.reader.extractTags(file, formatter))
+        actual.update(id3Reader.extractTags(fileName))
 
     def saveTrack(self, track):
         self.target._saveID3(track)

@@ -74,11 +74,13 @@ class TestIntegration(unittest.TestCase):
 
     @unittest.skipUnless(sampleFilesExist, 'MP3 Files missing')
     def test_02_scan(self):
-        target = pyTagger.Mp3Snapshot(False)
-        columns = Snapshot.orderedAllColumns()
+        from pyTagger.operations.on_directory import buildSnapshot
+        from pyTagger.proxies.id3 import ID3Proxy
+
+        reader = ID3Proxy()
         outFile = os.path.join(RESULT_DIRECTORY, r'snapshot.json')
 
-        target.createFromScan(INTEGRATION_TEST_DIRECTORY, outFile, columns)
+        buildSnapshot(INTEGRATION_TEST_DIRECTORY, outFile, reader)
         assert os.path.getsize(outFile) > 0
 
     @unittest.skipUnless(sampleFilesExist, 'Files missing')

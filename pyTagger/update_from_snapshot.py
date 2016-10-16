@@ -10,9 +10,8 @@ else:  # pragma: no cover
     _unicode = lambda x: x
 from hew import Normalizer
 from pyTagger.models import Snapshot
+from pyTagger.proxies.id3 import ID3Proxy
 from pyTagger.utils import loadJson
-from pyTagger.snapshot_converter import SnapshotConverter
-from pyTagger.mp3_snapshot import Formatter, Mp3Snapshot
 
 # -----------------------------------------------------------------------------
 # Classes
@@ -57,40 +56,36 @@ class UpdateFromSnapshot(object):
     }
 
     def __init__(self):
-        self.reader = Mp3Snapshot()
+        self.reader = ID3Proxy()
         self.log = logging.getLogger(__name__)
         self.normalizer = Normalizer()
 
-    def update(self, inFileName, fieldSet=None, upgrade=False,
-               supressWarnings=True):
-        if supressWarnings:
-            log = logging.getLogger('eyed3')
-            log.setLevel(logging.ERROR)
+    def update(self, inFileName, fieldSet=None, upgrade=False):
         self.upgrade = upgrade
 
         snapshot = loadJson(inFileName)
 
         if not fieldSet:
-            fieldSet = Snapshot.extractColumns(snapshot)
-        self.formatter = Formatter(fieldSet)
+            fieldSet = Snapshot.columnsFromSnapshot(snapshot)
+        self.reader = ID3Proxy(fieldSet)
 
         for k, v in snapshot.items():
             k0 = self.normalizer.to_ascii(k)
             self.log.info("Updating '%s'", k0)
             try:
-                self._updateOne(k, v)
+                self.updateOne(k, v)
             except AssertionError as assertEx:
                 self.log.error("'%s' Assertion Error %s", k0, assertEx.args)
             except Exception:
                 self.log.error("'%s' Error %s", k0, sys.exc_info()[0])
 
-    def _updateOne(self, fileName, updates):
-        track = self._loadID3(fileName)
+    def updateOne(self, fileName, updates):
+        track = self.reader.loadID3(fileName)
         if not track or not track.tag:
             return
 
         version = self._compliance(track)
-        asIs = self.reader._extractTags(track, self.formatter)
+        asIs = self.reader.extractTagsFromTrack(track)
         delta = self._findDelta(updates, asIs)
         self._writeSimple(track, delta)
         self._writeCollection(track, delta)
@@ -114,14 +109,6 @@ class UpdateFromSnapshot(object):
                 track.tag.setTextFrame('TMOO', None)
 
         return version
-
-    def _loadID3(self, fileName):
-        import eyed3
-        try:
-            return eyed3.load(fileName)
-        except (IOError, ValueError):
-            self.log.error("Could not load '%s'", fileName)
-            return None
 
     def _saveID3(self, track, version=None):
         if not version:
@@ -273,8 +260,6 @@ def buildArgParser():
                    help='include all supported fields')
     p.add_argument('--upgrade', action='store_true', dest='upgrade',
                    help='Upgrade the tags to be at least 2.3')
-    p.add_argument('--suppress', action='store_true', dest='supressWarnings',
-                   help='supress eyed3 warnings')
 
     return p
 
@@ -284,26 +269,8 @@ def buildArgParser():
 if __name__ == '__main__':
     parser = buildArgParser()
     args = parser.parse_args()
-
-    columns = []
-    if args.basic:
-        columns = columns + Snapshot.basic
-    if args.songwriting:
-        columns = columns + Snapshot.songwriting
-    if args.production:
-        columns = columns + Snapshot.production
-    if args.distribution:
-        columns = columns + Snapshot.distribution
-    if args.library:
-        columns = columns + Snapshot.library
-    if args.all:
-        columns = Snapshot.orderedAllColumns()
-        for x in Snapshot.mp3Info:
-            columns.remove(x)
-
-    if not columns:
-        columns = Snapshot.basic
+    columns = Snapshot.columnsFromArgs(args)
 
     pipeline = UpdateFromSnapshot()
     pipeline.log.setLevel(logging.INFO)
-    pipeline.update(args.infile, columns, args.upgrade, args.supressWarnings)
+    pipeline.update(args.infile, columns, args.upgrade)

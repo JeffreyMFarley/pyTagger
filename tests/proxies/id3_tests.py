@@ -1,17 +1,13 @@
-# -*- coding: utf-8 -*
-
+from __future__ import unicode_literals
 import unittest
-import os
-import sys
 from tests import *
 from collections import namedtuple
 from pyTagger.models import Snapshot
-from pyTagger.mp3_snapshot import Formatter, Mp3Snapshot
+from pyTagger.proxies.id3 import ID3Proxy
 try:
     from unittest.mock import Mock, patch, mock_open
 except ImportError:
     from mock import Mock, patch, mock_open
-
 
 if sys.version < '3':
     coreOpenFn = '__builtin__.open'
@@ -32,29 +28,23 @@ def buildFormula():
     return title
 
 
-class TestFormatter(unittest.TestCase):
+class TestID3Proxy(unittest.TestCase):
     def setUp(self):
-        self.target = Formatter()
+        self.target = ID3Proxy()
 
     def test_allFieldsGrouped(self):
         columns = Snapshot.orderedAllColumns()
         missing = set(self.target.columns) - set(columns)
         assert not missing
 
-
-class TestMp3Snapshot(unittest.TestCase):
-
-    def setUp(self):
-        self.target = Mp3Snapshot()
-
     @unittest.skipUnless(sampleFilesExist, 'MP3 Files missing')
     def test_extract_basic(self):
-        formatter = Formatter(Snapshot.basic)
-        file = os.path.join(
+        self.target = ID3Proxy(Snapshot.basic)
+        fileName = os.path.join(
             SOURCE_DIRECTORY, 'The King Of Limbs', '05 LotusFlower.MP3'
         )
 
-        row = self.target.extractTags(file, formatter)
+        row = self.target.extractTags(fileName)
 
         assert row
         assert row['title'] == 'Lotus Flower'
@@ -62,10 +52,9 @@ class TestMp3Snapshot(unittest.TestCase):
 
     @unittest.skipUnless(sampleFilesExist, 'MP3 Files missing')
     def test_extract_full_v10(self):
-        formatter = Formatter()
-        file = os.path.join(SOURCE_DIRECTORY, 'Test Files', 'ID3V1.mp3')
+        fileName = os.path.join(SOURCE_DIRECTORY, 'Test Files', 'ID3V1.mp3')
 
-        row = self.target.extractTags(file, formatter)
+        row = self.target.extractTags(fileName)
 
         assert row
         assert row['version'] == '1.0.0', row['version']
@@ -74,12 +63,11 @@ class TestMp3Snapshot(unittest.TestCase):
 
     @unittest.skipUnless(sampleFilesExist, 'MP3 Files missing')
     def test_extract_full_v22(self):
-        formatter = Formatter()
-        file = os.path.join(
+        fileName = os.path.join(
             SOURCE_DIRECTORY, 'Test Files', 'iTunes 9 256 kbps.mp3'
         )
 
-        row = self.target.extractTags(file, formatter)
+        row = self.target.extractTags(fileName)
 
         assert row
         assert row['version'] == '2.2.0', row['version']
@@ -90,10 +78,9 @@ class TestMp3Snapshot(unittest.TestCase):
 
     @unittest.skipUnless(sampleFilesExist, 'MP3 Files missing')
     def test_extract_full_v23(self):
-        formatter = Formatter()
-        file = os.path.join(SOURCE_DIRECTORY, '01 - Bust A Move.mp3')
+        fileName = os.path.join(SOURCE_DIRECTORY, '01 - Bust A Move.mp3')
 
-        row = self.target.extractTags(file, formatter)
+        row = self.target.extractTags(fileName)
 
         assert row
         assert row['version'] == '2.3.0', row['version']
@@ -104,12 +91,11 @@ class TestMp3Snapshot(unittest.TestCase):
 
     @unittest.skipUnless(sampleFilesExist, 'MP3 Files missing')
     def test_extract_full_v24(self):
-        formatter = Formatter()
-        file = os.path.join(
+        fileName = os.path.join(
             SOURCE_DIRECTORY, 'The King Of Limbs', '05 LotusFlower.MP3'
         )
 
-        row = self.target.extractTags(file, formatter)
+        row = self.target.extractTags(fileName)
 
         assert row
         assert row['version'] == '2.4.0', row['version']
@@ -121,30 +107,27 @@ class TestMp3Snapshot(unittest.TestCase):
         assert row['fileHash']
 
     def test_extract_badfile(self):
-        formatter = Formatter(Snapshot.basic)
-        file = os.path.join(SOURCE_DIRECTORY, 'kafafasfaafaf.mp3')
+        fileName = os.path.join(SOURCE_DIRECTORY, 'kafafasfaafaf.mp3')
 
-        row = self.target.extractTags(file, formatter)
+        row = self.target.extractTags(fileName)
 
         assert not row
 
     @unittest.skipUnless(sampleFilesExist, 'MP3 Files missing')
     def test_extract_utf8(self):
-        formatter = Formatter(Snapshot.basic)
-        file = os.path.join(SOURCE_DIRECTORY, '08 - Aeroplane.mp3')
+        fileName = os.path.join(SOURCE_DIRECTORY, '08 - Aeroplane.mp3')
 
-        row = self.target.extractTags(file, formatter)
+        row = self.target.extractTags(fileName)
 
         assert row
         assert row['artist'] == u'Bj\xf6rk'
 
     @unittest.skipUnless(sampleFilesExist, 'MP3 Files missing')
     def test_extract_non_ascii_filename(self):
-        formatter = Formatter(Snapshot.basic)
         title = buildFormula()
-        file = os.path.join(SOURCE_DIRECTORY, u'10 '+title+u'.mp3')
+        fileName = os.path.join(SOURCE_DIRECTORY, u'10 '+title+u'.mp3')
 
-        row = self.target.extractTags(file, formatter)
+        row = self.target.extractTags(fileName)
 
         assert row
         assert row['title'] == title
@@ -152,20 +135,22 @@ class TestMp3Snapshot(unittest.TestCase):
 
     @unittest.skipUnless(sampleFilesExist, 'MP3 Files missing')
     def test_calculate_hash(self):
-        file = os.path.join(SOURCE_DIRECTORY, '10 World\'s Famous.mp3')
-        track = self.target._loadID3(file)
+        fileName = os.path.join(SOURCE_DIRECTORY, '10 World\'s Famous.mp3')
+        track = self.target.loadID3(fileName)
+        actual = self.target._calculateHash(track, fileName)
+        self.assertEqual(actual, 'Bf4eOMgTeKkeNxKH345RQHF2GLU=')
 
-        hash = self.target._calculateHash(track, file)
-
-        assert hash == 'Bf4eOMgTeKkeNxKH345RQHF2GLU=', 'actual:' + hash
-
-    @patch(coreOpenFn)
-    def test_calculate_hash_badfile(self, mocked_open):
+    @patch('pyTagger.proxies.id3.Normalizer')
+    def test_calculate_hash_badfile(self, normalizer):
         Track = namedtuple('track', 'tag')
         track = Track(tag=None)
-        mocked_open.side_effect = IOError()
-        actual = self.target._calculateHash(track, 'foo.mp3')
-        self.assertEqual(actual, '')
+        normalizer.return_value.to_ascii.side_effect = lambda x: x
+        self.target = ID3Proxy()
+
+        with patch(coreOpenFn) as mocked_open:
+            mocked_open.side_effect = IOError()
+            actual = self.target._calculateHash(track, 'foo.mp3')
+            self.assertEqual(actual, '')
 
 if __name__ == '__main__':
     unittest.main()

@@ -5,8 +5,8 @@ import logging
 import shutil
 from hew import Normalizer
 from pyTagger.models import Snapshot
+from pyTagger.proxies.id3 import ID3Proxy
 from pyTagger.utils import walk
-from pyTagger.mp3_snapshot import Formatter, Mp3Snapshot
 
 winFileReserved = ['\\', '/', ':', '*', '?', '"', '<', '>', '|', '.']
 winFileTable = {ord(c): u'_' for c in winFileReserved}
@@ -36,10 +36,10 @@ class Rename(object):
         if self.destDir[-1] != os.path.sep:
             self.destDir += os.path.sep
 
-    def _buildFormatter(self):
+    def _buildReader(self):
         fields = list(itertools.chain(Snapshot.basic, Snapshot.distribution))
         fields.append('compilation')
-        return Formatter(fields)
+        return ID3Proxy(fields)
 
     # -------------------------------------------------------------------------
     # Path Methods
@@ -97,14 +97,13 @@ class Rename(object):
         log = logging.getLogger('eyed3')
         log.setLevel(logging.ERROR)
 
-        reader = Mp3Snapshot()
-        formatter = self._buildFormatter()
+        reader = self._buildReader()
 
         for fullPath in walk(directory):
             try:
                 asciified = self.normalizer.to_ascii(fullPath)
                 self.log.info("Reading '%s'", asciified)
-                tags = reader.extractTags(fullPath, formatter)
+                tags = reader.extractTags(fullPath)
                 relativePath = self.buildPath(tags, fullPath[-3:])
                 proposed = os.path.join(self.destDir, *relativePath)
                 if self.needsMove(fullPath, proposed):

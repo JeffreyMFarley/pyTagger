@@ -6,9 +6,9 @@ import datetime
 import uuid
 import binascii
 from functools import partial
-from pyTagger import UpdateFromSnapshot, Mp3Snapshot
+from pyTagger import UpdateFromSnapshot
+from pyTagger.proxies.id3 import ID3Proxy
 from pyTagger.utils import walk
-from pyTagger.mp3_snapshot import Formatter
 
 
 def strip(phrase, x):
@@ -37,14 +37,12 @@ class PrepareCheckIn(object):
         self.featuring = {'artist'}
         self.addTags = {'media', 'ufid', 'comments', 'group', 'subtitle'}
 
-        self.reader = Mp3Snapshot()
-        self.readerFormatter = Formatter(self.stripFields
-                                         .union(self.featuring))
+        self.reader = ID3Proxy(self.stripFields.union(self.featuring))
 
         self.updater = UpdateFromSnapshot()
-        self.updater.formatter = Formatter(self.stripFields
-                                           .union(self.featuring)
-                                           .union(self.addTags))
+        self.updater.formatter = ID3Proxy(self.stripFields
+                                          .union(self.featuring)
+                                          .union(self.addTags))
         self.updater.upgrade = True
 
         self.regexFeature = re.compile('\((feat|feat\.|featuring|with) (.*)\)')
@@ -87,7 +85,7 @@ class PrepareCheckIn(object):
             return s, None
 
     def getTags(self, fullPath):
-        return self.reader.extractTags(fullPath, self.readerFormatter)
+        return self.reader.extractTags(fullPath)
 
     # -------------------------------------------------------------------------
     # Process
@@ -112,13 +110,9 @@ class PrepareCheckIn(object):
             'subtitle': stamp.isoformat()
         }
         tags.update(preparationTags)
-        self.updater._updateOne(fullPath, tags)
+        self.updater.updateOne(fullPath, tags)
 
-    def run(self, path, supressWarnings=True):
-        if supressWarnings:
-            log = logging.getLogger('eyed3')
-            log.setLevel(logging.ERROR)
-
+    def run(self, path):
         for fullPath in walk(path):
             self._process(fullPath)
 
@@ -136,8 +130,6 @@ def buildArgParser():
     p.add_argument('path',  nargs='?', metavar='path',
                    default=os.getcwd(),
                    help='the directory to process')
-    p.add_argument('--suppress', action='store_true', dest='supressWarnings',
-                   help='supress eyed3 warnings')
 
     return p
 
@@ -146,4 +138,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     pipeline = PrepareCheckIn()
-    pipeline.run(args.path, args.supressWarnings)
+    pipeline.run(args.path)

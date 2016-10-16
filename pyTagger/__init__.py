@@ -1,4 +1,3 @@
-from pyTagger.mp3_snapshot import Mp3Snapshot, Formatter
 from pyTagger.snapshot_converter import SnapshotConverter, ConvertBack
 from pyTagger.update_from_snapshot import UpdateFromSnapshot
 from pyTagger.extract_images import ExtractImages

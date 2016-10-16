@@ -10,6 +10,8 @@ import pyTagger
 from tests import *
 from contextlib import contextmanager
 from pyTagger.models import Snapshot
+from pyTagger.operations.on_directory import buildSnapshot
+from pyTagger.proxies.id3 import ID3Proxy
 from pyTagger.utils import loadJson, walk
 if sys.version >= '3':
     unicode = lambda x: x
@@ -50,15 +52,15 @@ class TestPrepareCheckIn(unittest.TestCase):
     @unittest.skipUnless(sampleFilesExist, 'MP3 Files missing')
     def setUp(self):
         self.target = pyTagger.PrepareCheckIn()
-        self.snapshot = self.target.reader
+        self.id3 = self.target.reader
 
     def test_zee_last(self):
         self.target.run(CHECKED_DIRECTORY)
 
-        columns = Snapshot.orderedAllColumns()
         outFile = os.path.join(CHECKED_DIRECTORY, 'snapshot.json')
+        id3Proxy = ID3Proxy()
 
-        self.snapshot.createFromScan(CHECKED_DIRECTORY, outFile, columns)
+        buildSnapshot(CHECKED_DIRECTORY, outFile, id3Proxy)
         result = loadJson(outFile)
         for k, v in result.items():
             self.assertEqual('DIG', v['media'])
@@ -71,8 +73,7 @@ class TestPrepareCheckIn(unittest.TestCase):
         fullPath = resetFile('01-01- Dreams [Explicit].mp3')
         self.target._process(fullPath)
 
-        formatter = self.target.readerFormatter
-        tags = self.snapshot.extractTags(fullPath, formatter)
+        tags = self.id3.extractTags(fullPath)
 
         self.assertNotIn('[Explicit]', tags['title'])
         self.assertNotIn('[Explicit]', tags['album'])

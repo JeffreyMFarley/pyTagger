@@ -155,7 +155,7 @@ class SnapshotConverter(object):
 
         # build the columns if they are not supplied
         if not fieldSet:
-            fieldSet = Snapshot.extractColumns(snapshot)
+            fieldSet = Snapshot.columnsFromSnapshot(snapshot)
         fieldSet.append('fullPath')
 
         # not using csv.DictWriter since the Python 2.x version has a hard time
