@@ -51,28 +51,28 @@ class Snapshot(object):
 
         return columns
 
-    # @staticmethod
-    # def columnsFromArgs(args):
-    #     columns = []
-    #     if args.basic:
-    #         columns = columns + Snapshot.basic
-    #     if args.songwriting:
-    #         columns = columns + Snapshot.songwriting
-    #     if args.production:
-    #         columns = columns + Snapshot.production
-    #     if args.distribution:
-    #         columns = columns + Snapshot.distribution
-    #     if args.library:
-    #         columns = columns + Snapshot.library
-    #     if args.mp3Info:
-    #         columns = columns + Snapshot.mp3Info
-    #     if args.all:
-    #         columns = Snapshot.orderedAllColumns()
+    @staticmethod
+    def columnsFromArgs(args):
+        columns = []
+        if args.basic:
+            columns = columns + Snapshot.basic
+        if args.songwriting:
+            columns = columns + Snapshot.songwriting
+        if args.production:
+            columns = columns + Snapshot.production
+        if args.distribution:
+            columns = columns + Snapshot.distribution
+        if args.library:
+            columns = columns + Snapshot.library
+        if args.mp3Info:
+            columns = columns + Snapshot.mp3Info
+        if args.all:
+            columns = Snapshot.orderedAllColumns()
 
-    #     if not columns:
-    #         columns = Snapshot.basic
+        if not columns:
+            columns = Snapshot.basic
 
-    #     return columns
+        return columns
 
 
 p = getArgumentParser('snapshot',

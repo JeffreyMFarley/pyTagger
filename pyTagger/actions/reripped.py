@@ -14,6 +14,7 @@ from pyTagger.utils import defaultConfigFiles
 
 p = getArgumentParser('reripped',
                       default_config_files=defaultConfigFiles,
+                      ignore_unknown_config_file_keys=True,
                       parents=[getArgumentParser('elasticsearch')],
                       description='process re-ripped files and merge into '
                       'house library')

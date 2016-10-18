@@ -8,6 +8,7 @@ from pyTagger.utils import defaultConfigFiles
 
 p = getArgumentParser('upload',
                       default_config_files=defaultConfigFiles,
+                      ignore_unknown_config_file_keys=True,
                       parents=[getArgumentParser('elasticsearch')],
                       description='load a snapshot into Elasticsearch')
 group = p.add_argument_group('Files')

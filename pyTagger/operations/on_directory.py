@@ -15,6 +15,7 @@ def buildSnapshot(scanPath, outFileName, id3Reader, compact=False):
         fout.writelines('{')
         sep = ''
         indent = None if compact else 2
+        extracted, failed = 0, 0
 
         for fullPath in walk(scanPath):
             row = id3Reader.extractTags(fullPath)
@@ -26,7 +27,12 @@ def buildSnapshot(scanPath, outFileName, id3Reader, compact=False):
                     row, ensure_ascii=False, indent=indent
                 )))
                 sep = ','
+                extracted += 1
+            else:
+                failed += 1
 
     finally:
         fout.writelines('}')
         fout.close()
+
+    return extracted, failed

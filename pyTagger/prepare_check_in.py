@@ -1,7 +1,6 @@
 import re
 import os
 import argparse
-import logging
 import datetime
 import uuid
 import binascii

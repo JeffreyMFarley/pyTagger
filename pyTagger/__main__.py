@@ -3,6 +3,7 @@ import logging
 import os
 import sys
 from pyTagger.actions.reripped import process as rerippedProcess
+from pyTagger.actions.scan import process as scanProcess
 from pyTagger.actions.upload import uploadToElasticsearch
 from pyTagger.utils import rootParser as parser
 from configargparse import getArgumentParser
@@ -14,7 +15,6 @@ actions = {
     'match': 'find similarily named MP3s',
     'prepare': 'groom MP3s before adding to house library',
     'rename': 'apply naming standards to MP3s',
-    'scan': 'create a snapshot from directories of MP3s',
     'update': 'update ID3 fields from a snapshot'
 }
 
@@ -24,6 +24,7 @@ for k in sorted(actions):
 
 modules = {
     'reripped': rerippedProcess,
+    'scan': scanProcess,
     'upload': uploadToElasticsearch
 }
 
