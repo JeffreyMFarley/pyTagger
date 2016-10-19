@@ -6,19 +6,12 @@
 *.pyproj
 *.sln
 
-# Setuptools distribution folder.
-/dist/
-
-# build folder
-/build/
-
 # Python egg metadata, regenerated from source files by setuptools.
 /*.egg-info
 /.eggs/
 /tests/*.egg-info
 
 # Don't store api keys in source control
-.env
 .coveralls.yml
 config.ini
 

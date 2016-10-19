@@ -2,9 +2,9 @@ from __future__ import print_function
 import logging
 import os
 import sys
-from pyTagger.actions.reripped import process as rerippedProcess
-from pyTagger.actions.scan import process as scanProcess
-from pyTagger.actions.upload import uploadToElasticsearch
+import pyTagger.actions.reripped as reripped
+import pyTagger.actions.scan as scan
+import pyTagger.actions.upload as upload
 from pyTagger.utils import rootParser as parser
 from configargparse import getArgumentParser
 
@@ -23,9 +23,9 @@ for k in sorted(actions):
     sub = subs.add_parser(k, help=actions[k])
 
 modules = {
-    'reripped': rerippedProcess,
-    'scan': scanProcess,
-    'upload': uploadToElasticsearch
+    'reripped': reripped.process,
+    'scan': scan.process,
+    'upload': upload.uploadToElasticsearch
 }
 
 for m in sorted(modules):
