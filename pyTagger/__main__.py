@@ -2,6 +2,7 @@ from __future__ import print_function
 import logging
 import os
 import sys
+import pyTagger.actions.isonom as isonom
 import pyTagger.actions.reripped as reripped
 import pyTagger.actions.scan as scan
 import pyTagger.actions.upload as upload
@@ -12,7 +13,6 @@ actions = {
     'to-csv': 'export snapshot to CSV',
     'images': 'extract images from MP3s',
     'convert-csv': 'convert CSV to snapshot',
-    'match': 'find similarily named MP3s',
     'prepare': 'groom MP3s before adding to house library',
     'rename': 'apply naming standards to MP3s',
     'update': 'update ID3 fields from a snapshot'
@@ -23,6 +23,7 @@ for k in sorted(actions):
     sub = subs.add_parser(k, help=actions[k])
 
 modules = {
+    'isonom': isonom.process,
     'reripped': reripped.process,
     'scan': scan.process,
     'upload': upload.uploadToElasticsearch
