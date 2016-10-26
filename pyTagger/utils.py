@@ -65,6 +65,28 @@ def saveJsonIncrementalArray(fileName):
             f.write('\n]')
 
 
+def saveJsonIncrementalDict(fileName, compact=False):
+    sep = '\n'
+    indent = None if compact else 2
+
+    with io.open(fileName, 'w', encoding='utf-8') as f:
+        f.write('{')
+
+        try:
+            for i in count():  # pragma: no branch
+                key, value = yield i
+
+                f.write(sep)
+                f.write('"{0}":\n'.format(key))
+                f.write(_unicode(json.dumps(
+                    value, ensure_ascii=False, indent=indent
+                )))
+                sep = ',\n'
+
+        finally:
+            f.write('\n}')
+
+
 def walk(directory, showAll=False):
     for currentDir, _, files in os.walk(_unicode(directory)):
         # Get the absolute path of the currentDir parameter

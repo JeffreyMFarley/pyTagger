@@ -34,9 +34,10 @@ class TestIsonomAction(unittest.TestCase):
         self.addCleanup(p.stop)
         self.interview = p.start()
         self.interview.return_value = Mock(spec=[
-            'isComplete', 'conduct', 'saveState'
+            'isComplete', 'conduct', 'saveState', 'userQuit'
         ])
         self.interview.return_value.isComplete.return_value = True
+        self.interview.return_value.userQuit = False
 
     @patch('pyTagger.actions.isonom.uploadToElasticsearch')
     def test_buildIndex(self, uploader):
@@ -87,6 +88,14 @@ class TestIsonomAction(unittest.TestCase):
         self.interview.return_value.conduct.return_value = False
         actual = target.process(self.options)
         self.assertFalse(self.interview.return_value.saveState.called)
+        self.assertEqual(actual, "Interview Not Complete")
+
+    def test_process_partial_interview(self):
+        self.interview.return_value.isComplete.return_value = False
+        self.interview.return_value.conduct.return_value = True
+        self.interview.return_value.userQuit = True
+        actual = target.process(self.options)
+        self.assertTrue(self.interview.return_value.saveState.called)
         self.assertEqual(actual, "Interview Not Complete")
 
     def test_process_finished_interview(self):

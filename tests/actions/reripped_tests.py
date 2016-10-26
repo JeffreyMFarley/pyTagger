@@ -18,6 +18,7 @@ class TestRerippedAction(unittest.TestCase):
     @patch('pyTagger.actions.reripped.isonom')
     def test_process_step1_isonom_ok(self, isonom):
         isonom.process.return_value = "Success"
+        target._mergeAll = Mock(side_effect=AssertionError)
         with self.assertRaises(AssertionError):
             target.process(self.options)
 

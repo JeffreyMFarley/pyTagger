@@ -50,5 +50,19 @@ class TestIO(unittest.TestCase):
             self.assertEqual(output.getvalue(), '[\n"T\u00e9l\u00e9popmusik"')
             gen.close()
 
+    def test_saveJsonIncrementalDict(self):
+        output = io.StringIO()
+        with patch.object(io, 'open') as fmocked:
+            fmocked.return_value = output
+            gen = target.saveJsonIncrementalDict('foo.json')
+            row = next(gen)
+            self.assertEqual(row, 0)
+            self.assertEqual(output.getvalue(), '{')
+            row = gen.send(('key', 'T\u00e9l\u00e9popmusik'))
+            self.assertEqual(row, 1)
+            self.assertEqual(output.getvalue(),
+                             '{\n"key":\n"T\u00e9l\u00e9popmusik"')
+            gen.close()
+
 if __name__ == '__main__':
     unittest.main()

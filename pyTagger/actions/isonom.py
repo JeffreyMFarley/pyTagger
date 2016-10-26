@@ -17,7 +17,7 @@ p = getArgumentParser('isonom',
                       ignore_unknown_config_file_keys=True,
                       parents=[getArgumentParser('elasticsearch')],
                       description='find mp3s with similar names')
-group = p.add_argument_group('Files')
+group = p.add_argument_group('Isonom Files')
 group.add('--library-snapshot', default='library.json',
           help='a snapshot of the current library')
 group.add('--intake-snapshot', default='mp3s.json',
@@ -26,6 +26,9 @@ group.add('--interview', default='interview.json',
           help='communcation with the user about the match results')
 
 # -----------------------------------------------------------------------------
+
+_success = "Success"
+_notFinished = "Interview Not Complete"
 
 
 def _buildIndex(args):
@@ -67,7 +70,8 @@ def process(args):
     if not interview.isComplete():
         if interview.conduct():
             interview.saveState(args.interview)
+            return _success if not interview.userQuit else _notFinished
         else:
-            return "Interview Not Complete"
+            return _notFinished
 
-    return "Success"
+    return _success
