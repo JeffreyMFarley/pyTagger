@@ -3,8 +3,6 @@ import os
 import sys
 import shutil
 import random
-import uuid
-import binascii
 import itertools
 import pyTagger
 from tests import *

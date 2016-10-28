@@ -2,12 +2,10 @@ import re
 import os
 import argparse
 import datetime
-import uuid
-import binascii
 from functools import partial
 from pyTagger import UpdateFromSnapshot
 from pyTagger.proxies.id3 import ID3Proxy
-from pyTagger.utils import walk
+from pyTagger.utils import walk, generateUfid
 
 
 def strip(phrase, x):
@@ -96,11 +94,10 @@ class PrepareCheckIn(object):
             tags[k] = self.prepareText(tags[k])
 
         stamp = datetime.date.today()
-        ufid = uuid.uuid4()
-        asString = binascii.b2a_base64(ufid.bytes).strip()
+        ufid = generateUfid()
         preparationTags = {
             'media': 'DIG',
-            'ufid': {'DJTagger': asString},
+            'ufid': {'DJTagger': ufid},
             'comments': [
                 {'lang': 'eng', 'text': '', 'description': ''},
                 {'lang': '', 'text': '', 'description': ''}

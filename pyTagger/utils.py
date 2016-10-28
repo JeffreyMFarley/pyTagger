@@ -1,8 +1,10 @@
 from __future__ import unicode_literals
+import binascii
 import io
-import os
 import json
+import os
 import sys
+import uuid
 from configargparse import getArgumentParser
 from itertools import count
 
@@ -86,6 +88,8 @@ def saveJsonIncrementalDict(fileName, compact=False):
         finally:
             f.write('\n}')
 
+# -----------------------------------------------------------------------------
+
 
 def walk(directory, showAll=False):
     for currentDir, _, files in os.walk(_unicode(directory)):
@@ -99,3 +103,10 @@ def walk(directory, showAll=False):
             # Check if the file has an extension of typical music files
             if showAll or fullPath[-3:].lower() in ['mp3']:
                 yield fullPath
+
+# -----------------------------------------------------------------------------
+
+
+def generateUfid():
+    ufid = uuid.uuid4()
+    return binascii.b2a_base64(ufid.bytes).strip()

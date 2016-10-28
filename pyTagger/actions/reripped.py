@@ -5,7 +5,7 @@ import os
 from configargparse import getArgumentParser
 import pyTagger.actions.isonom as isonom
 from pyTagger.models import Snapshot
-from pyTagger.utils import loadJson, saveJsonIncrementalDict
+from pyTagger.utils import loadJson, saveJsonIncrementalDict, generateUfid
 from pyTagger.utils import defaultConfigFiles
 
 # -----------------------------------------------------------------------------
@@ -35,6 +35,7 @@ def _mergeOne(newer, older):
     c = {}
     if not older:
         c = copy.deepcopy(newer)
+        c['id'] = generateUfid()
         for k in Snapshot.mp3Info:
             del c[k]
 

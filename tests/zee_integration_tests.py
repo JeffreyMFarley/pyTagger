@@ -1,13 +1,9 @@
-import unittest
-import os
-import json
-import csv
-import sys
-import shutil
-import unicodedata
 import datetime
-import uuid
-import binascii
+import json
+import os
+import shutil
+import sys
+import unittest
 if sys.version < '3':
     import codecs
     _input = lambda fileName: codecs.open(fileName, 'r', encoding='utf-8')
@@ -17,7 +13,7 @@ else:
     _output = lambda fileName: open(fileName, 'w', encoding='utf-8')
 import pyTagger
 from pyTagger.models import Snapshot
-from pyTagger.utils import walk
+from pyTagger.utils import walk, generateUfid
 from tests import *
 
 INTEGRATION_TEST_DIRECTORY = os.path.join(
@@ -46,11 +42,10 @@ class TestIntegration(unittest.TestCase):
         snapshot = {}
         stamp = datetime.date.today()
         for fullPath in walk(INTEGRATION_TEST_DIRECTORY):
-            id = uuid.uuid1()
-            asString = binascii.b2a_base64(id.bytes).strip()
+            ufid = generateUfid()
             snapshot[fullPath] = {
                 'media': 'DIG',
-                'ufid': {'DJTagger': asString},
+                'ufid': {'DJTagger': ufid},
                 'comments': [{'lang': 'eng', 'text': '', 'description': ''},
                              {'lang': '', 'text': '', 'description': ''},
                              {'lang': 'eng', 'text': '',
