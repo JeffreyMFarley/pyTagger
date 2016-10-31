@@ -35,9 +35,9 @@ def _mergeOne(newer, older):
     c = {}
     if not older:
         c = copy.deepcopy(newer)
-        c['id'] = generateUfid()
         for k in Snapshot.mp3Info:
-            del c[k]
+            if k in c:
+                del c[k]
 
     else:
         keys = set(newer.keys()) | set(older.keys())
@@ -52,6 +52,12 @@ def _mergeOne(newer, older):
                 c[k] = older[k]
             else:
                 c[k] = newer[k]
+
+    if 'id' not in c:
+        ufid = generateUfid()
+        c['id'] = ufid
+        c['ufid'] = {'DJTagger': ufid}
+
     return c
 
 
