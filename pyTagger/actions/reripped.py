@@ -2,9 +2,10 @@ from __future__ import print_function
 from __future__ import unicode_literals
 import copy
 import os
-from configargparse import getArgumentParser
 import pyTagger.actions.isonom as isonom
+from configargparse import getArgumentParser
 from pyTagger.models import Snapshot
+from pyTagger.operations.to_csv import writeCsv
 from pyTagger.utils import loadJson, saveJsonIncrementalDict, generateUfid
 from pyTagger.utils import defaultConfigFiles
 
@@ -53,7 +54,7 @@ def _mergeOne(newer, older):
             else:
                 c[k] = newer[k]
 
-    if 'id' not in c:
+    if 'id' not in c or not c['id']:
         ufid = generateUfid()
         c['id'] = ufid
         c['ufid'] = {'DJTagger': ufid}
@@ -78,11 +79,21 @@ def _mergeAll(args):
 
 
 def process(args):
+    result = "Not Implemented"
+
     if args.step == 1:
-        match_result = isonom.process(args)
-        if match_result == 'Success':
-            _mergeAll(args)
+        if not os.path.exists(args.goal_snapshot):
+            result = isonom.process(args)
+            if result != 'Success':
+                return result
+        else:
+            print('Using existing goals file')
+            result = "Success"
 
-        return match_result
+        print('Creating ', args.goal_snapshot)
+        _mergeAll(args)
+        rows = loadJson(args.goal_snapshot)
+        print('Creating ', args.goal_csv)
+        writeCsv(rows, args.goal_csv)
 
-    return "Not Implemented"
+    return result

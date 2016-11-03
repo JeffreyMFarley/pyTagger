@@ -17,6 +17,11 @@ class TestRerippedAction(unittest.TestCase):
         with patch.object(sys, 'argv', ['test', '1']):
             self.options = configurationOptions('reripped')
 
+        p = patch('pyTagger.actions.reripped.os.path.exists')
+        self.addCleanup(p.stop)
+        self.path_exists = p.start()
+        self.path_exists.return_value = False
+
     def test_mergeOne_notOlder_clones(self):
         a = {'title': 'hey'}
 
@@ -137,6 +142,19 @@ class TestRerippedAction(unittest.TestCase):
         isonom.process.return_value = 'Foo'
         actual = target.process(self.options)
         self.assertEqual(actual, 'Foo')
+
+    @patch('pyTagger.actions.reripped.writeCsv')
+    @patch('pyTagger.actions.reripped.loadJson')
+    @patch('pyTagger.actions.reripped.isonom')
+    def test_process_step1_goalsJson_exists(self, isonom, loadJson, writeCsv):
+        self.path_exists.return_value = True
+        with patch.object(target, '_mergeAll', Mock()):
+            actual = target.process(self.options)
+
+        self.assertEqual(actual, "Success")
+        self.assertEqual(isonom.process.call_count, 0)
+        self.assertEqual(loadJson.call_count, 1)
+        self.assertEqual(writeCsv.call_count, 1)
 
     def test_process_step2(self):
         self.options.step = 2
