@@ -47,17 +47,17 @@ def flattenSnapshot(snapshot):
 
 
 def listFlattenedColumns(snapshot):
-        header = set(k for k, _ in flattenSnapshot(snapshot))
+    header = set(k for k, _ in flattenSnapshot(snapshot))
 
-        # Build the ordered set with the extra columns at the end
-        known = Snapshot.orderedAllColumns()
-        unknown = header - set(known)
+    # Build the ordered set with the extra columns at the end
+    known = Snapshot.orderedAllColumns()
+    unknown = header - set(known)
 
-        columns = [c for c in known if c in header]
-        for c in sorted(unknown):
-            columns.append(c)
+    columns = [c for c in known if c in header]
+    for c in sorted(unknown):
+        columns.append(c)
 
-        return columns
+    return columns
 
 
 def writeCsv(snapshot, outFileName, excelFormat=True):

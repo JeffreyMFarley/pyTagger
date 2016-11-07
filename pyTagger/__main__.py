@@ -2,6 +2,7 @@ from __future__ import print_function
 import logging
 import os
 import sys
+import pyTagger.actions.export as export
 import pyTagger.actions.isonom as isonom
 import pyTagger.actions.reripped as reripped
 import pyTagger.actions.scan as scan
@@ -10,7 +11,6 @@ from pyTagger.utils import rootParser as parser
 from configargparse import getArgumentParser
 
 actions = {
-    'to-csv': 'export snapshot to CSV',
     'images': 'extract images from MP3s',
     'convert-csv': 'convert CSV to snapshot',
     'prepare': 'groom MP3s before adding to house library',
@@ -26,6 +26,7 @@ modules = {
     'isonom': isonom.process,
     'reripped': reripped.process,
     'scan': scan.process,
+    'to-csv': export.process,
     'upload': upload.uploadToElasticsearch
 }
 
