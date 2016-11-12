@@ -128,7 +128,7 @@ State.NewLine = NewLineState()
 
 # -----------------------------------------------------------------------------
 
-_collectionTags = ['comments', 'lyrics', 'ufid']
+_collectionTags = ['comments', 'lyrics']
 _numberTags = ['bitRate', 'bpm', 'disc', 'length', 'totalDisc',
                'totalTrack', 'track']
 _booleanTags = ['vbr']
@@ -173,6 +173,7 @@ def _expand(cell, column):
 def _handleRow(row, columns):
     fullPath = row[-1]
     result = {k: [] for k in _collectionTags}
+    result['ufid'] = {}
 
     for i, x in enumerate(row):
         cell = _transform(x, columns[i])
@@ -182,6 +183,9 @@ def _handleRow(row, columns):
             pass
         elif k in _collectionTags:
             result[k].append(v)
+        elif k == 'ufid':
+            id0, value0 = v.popitem()
+            result[k][id0] = value0
         else:
             result[k] = v
 

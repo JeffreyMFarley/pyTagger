@@ -9,11 +9,8 @@ from configargparse import getArgumentParser
 from itertools import count
 
 if sys.version < '3':  # pragma: no cover
-    import codecs
-    _input = lambda fileName: codecs.open(fileName, 'r', encoding='utf-8')
     _unicode = unicode
 else:  # pragma: no cover
-    _input = lambda fileName: open(fileName, 'r', encoding='utf-8')
     _unicode = lambda x: x
 
 # -----------------------------------------------------------------------------
@@ -44,18 +41,18 @@ def toAbsolute(path):
 
 
 def loadJson(fileName):
-    with _input(fileName) as f:
+    with io.open(fileName, 'r', encoding='utf-8', newline='') as f:
         return json.load(f)
 
 
 def saveJson(fileName, o):
-    with io.open(fileName, 'w', encoding='utf-8') as f:
+    with io.open(fileName, 'w', encoding='utf-8', newline='') as f:
         f.write(_unicode(json.dumps(o, ensure_ascii=False)))
 
 
 def saveJsonIncrementalArray(fileName):
     sep = '\n'
-    with io.open(fileName, 'w', encoding='utf-8') as f:
+    with io.open(fileName, 'w', encoding='utf-8', newline='') as f:
         f.write('[')
         try:
             for i in count():  # pragma: no branch
@@ -71,7 +68,7 @@ def saveJsonIncrementalDict(fileName, compact=False):
     sep = '\n'
     indent = None if compact else 2
 
-    with io.open(fileName, 'w', encoding='utf-8') as f:
+    with io.open(fileName, 'w', encoding='utf-8', newline='') as f:
         f.write('{')
 
         try:

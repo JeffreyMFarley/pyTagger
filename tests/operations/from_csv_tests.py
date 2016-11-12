@@ -148,7 +148,7 @@ class TestFromCsv(unittest.TestCase):
         self.assertEqual(v['comments'][1]['text'], '000 111 AAA')
         self.assertEqual(len(v['lyrics']), 0)
         self.assertEqual(len(v['ufid']), 1)
-        self.assertEqual(v['ufid'][0]['DJTagger'], 'RDoCh4SQKUqntx96G42eLA==')
+        self.assertEqual(v['ufid']['DJTagger'], 'RDoCh4SQKUqntx96G42eLA==')
 
     def test_handleRow_1(self):
         k, v = sut._handleRow(self.csv[2], self.csv[0])
@@ -161,7 +161,7 @@ class TestFromCsv(unittest.TestCase):
         self.assertEqual(v['lyrics'][0]['text'], 'Tra\nLa\nLa')
         self.assertEqual(v['lyrics'][1]['text'], 'Ooo\nLa\nLa')
         self.assertEqual(len(v['ufid']), 1)
-        self.assertEqual(v['ufid'][0]['Echonest'], 'qr1241aslkfjlqfafa1214')
+        self.assertEqual(v['ufid']['Echonest'], 'qr1241aslkfjlqfafa1214')
 
     @parameterized.expand([
         (None, {'a': 'b', 'c': 'd'}),

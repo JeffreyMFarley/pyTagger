@@ -2,6 +2,7 @@ from __future__ import print_function
 import logging
 import os
 import sys
+import pyTagger.actions.convert_csv as convert_csv
 import pyTagger.actions.export as export
 import pyTagger.actions.isonom as isonom
 import pyTagger.actions.reripped as reripped
@@ -12,7 +13,6 @@ from configargparse import getArgumentParser
 
 actions = {
     'images': 'extract images from MP3s',
-    'convert-csv': 'convert CSV to snapshot',
     'prepare': 'groom MP3s before adding to house library',
     'rename': 'apply naming standards to MP3s',
     'update': 'update ID3 fields from a snapshot'
@@ -23,6 +23,7 @@ for k in sorted(actions):
     sub = subs.add_parser(k, help=actions[k])
 
 modules = {
+    'convert-csv': convert_csv.process,
     'isonom': isonom.process,
     'reripped': reripped.process,
     'scan': scan.process,

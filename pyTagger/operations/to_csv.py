@@ -66,7 +66,7 @@ def writeCsv(snapshot, outFileName, excelFormat=True):
 
     # not using csv.DictWriter since the Python 2.x version has a hard time
     # supporting unicode
-    with io.open(outFileName, 'w', encoding='utf_16_le') as f:
+    with io.open(outFileName, 'w', encoding='utf_16_le', newline='') as f:
         sep = '\t' if excelFormat else ','
 
         # write BOM
