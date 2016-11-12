@@ -4,6 +4,7 @@ import io
 import os
 import sys
 import pyTagger.operations.to_csv as target
+from nose_parameterized import parameterized
 try:
     from unittest.mock import patch
 except ImportError:
@@ -58,49 +59,22 @@ class TestToCsv(unittest.TestCase):
             }
         }
 
-    def test_encapsulate_noaction(self):
-        field = 'nospaces'
+    @parameterized.expand([
+        ('nospaces', 'nospaces'),
+        ('I have some spaces', 'I have some spaces'),
+        ('I have a "quote"', '"I have a ""quote"""'),
+        ('We invited the strippers, JFK, and Stalin',
+            '"We invited the strippers, JFK, and Stalin"'),
+        (u'We invited the strippers, JFK, and Stalin',
+            u'"We invited the strippers, JFK, and Stalin"'),
+        ('a\nb', '"a\nb"'),
+        ('a\rb', '"a\rb"'),
+        ('a\r\nb', '"a\r\nb"'),
+        (123, '123'),
+        (None, '')
+    ])
+    def test_encapsulate(self, field, expected):
         actual = target._encapsulate(field)
-        self.assertEqual(actual, field)
-
-    def test_encapsulate_withspaces(self):
-        field = 'I have some spaces'
-        expected = field
-        actual = target._encapsulate(field)
-        self.assertEqual(actual, expected)
-
-    def test_encapsulate_withquotes(self):
-        field = 'I have a "quote"'
-        expected = '"I have a ""quote"""'
-        actual = target._encapsulate(field)
-        self.assertEqual(actual, expected)
-
-    def test_encapsulate_withcomma(self):
-        field = 'We invited the strippers, JFK, and Stalin'
-        expected = '"' + field + '"'
-        actual = target._encapsulate(field)
-        self.assertEqual(actual, expected)
-
-    def test_encapsulate_withnewline(self):
-        for extra in ['\n', '\r', '\r\n']:
-            field = extra.join(['a', 'b'])
-            expected = '"' + field + '"'
-            actual = target._encapsulate(field)
-            self.assertEqual(actual, expected)
-
-    def test_encapsulate_withNumeric(self):
-        actual = target._encapsulate(123)
-        self.assertEqual(actual, '123')
-
-    def test_encapsulate_withUnicode(self):
-        field = u'We invited the strippers, JFK, and Stalin'
-        expected = u'"' + field + u'"'
-        actual = target._encapsulate(field)
-        self.assertEqual(actual, expected)
-
-    def test_encapsulate_withNone(self):
-        expected = ''
-        actual = target._encapsulate(None)
         self.assertEqual(actual, expected)
 
     def test_listFlattenedColumns(self):

@@ -19,5 +19,5 @@ setup(name='pyTagger',
       packages=['pyTagger'],
       install_requires=install_requires,
       test_suite='tests',
-      tests_require=['nose'],
+      tests_require=['nose', 'nose_parameterized'],
       zip_safe=False)
