@@ -20,6 +20,9 @@ class Snapshot(object):
                'group', 'subtitle', 'encodingDate', 'taggingDate']
     mp3Info = ['bitRate', 'vbr', 'fileHash', 'version']
 
+    dltTags = ['comments', 'lyrics']
+    complexTags = ['comments', 'lyrics', 'ufid']
+
     @staticmethod
     def orderedAllColumns():
         # preserve order

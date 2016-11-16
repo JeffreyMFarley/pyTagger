@@ -10,6 +10,7 @@ else:  # pragma: no cover
     _unicode = lambda x: x
 from hew import Normalizer
 from pyTagger.models import Snapshot
+from pyTagger.operations.two_tags import difference
 from pyTagger.proxies.id3 import ID3Proxy
 from pyTagger.utils import loadJson
 
@@ -19,8 +20,6 @@ from pyTagger.utils import loadJson
 
 
 class UpdateFromSnapshot(object):
-    _collectionTags = ['comments', 'lyrics', 'ufid']
-
     _useSetAttr = {
         'bpm': 'bpm',
         'playCount': 'play_count',
@@ -86,7 +85,7 @@ class UpdateFromSnapshot(object):
 
         version = self._compliance(track)
         asIs = self.reader.extractTagsFromTrack(track)
-        delta = self._findDelta(updates, asIs)
+        delta = difference(updates, asIs)
         self._writeSimple(track, delta)
         self._writeCollection(track, delta)
         self._saveID3(track, version)
@@ -116,67 +115,11 @@ class UpdateFromSnapshot(object):
         else:
             track.tag.save(version=version)
 
-    def _findDelta(self, a, b):
-        '''Compare two file snapshots and return the difference
-        ''a'' should be considered the source, like the JSON snapshot.
-        ''b'' should be considered the destination, like the file
-        '''
-        result = {}
-
-        # Scope the work
-        ka = set(a.keys())
-        kb = set(b.keys())
-        notb = ka - kb
-        kboth = ka & kb
-
-        # copy over the new keys
-        for k in notb:
-            result[k] = a[k]
-
-        # look for the smaller differences
-        for k in kboth:
-            if k not in self._collectionTags:
-                if a[k] != b[k]:
-                    result[k] = a[k] if a[k] else None
-            elif k in ['comments', 'lyrics']:
-                result[k] = self._findDeltaDLT(a[k], b[k])
-            elif k == 'ufid':
-                result[k] = self._findDelta(a[k], b[k])
-
-            # if there are no members of a collection, remove the collection
-            if k in self._collectionTags:
-                if not result[k]:
-                    del result[k]
-
-        return result
-
-    def _findDeltaDLT(self, a, b):
-        ''' Compares collections of Description, Language, Text tuples
-        '''
-        result = []
-
-        for a0 in a:
-            toTest = list(
-                filter(
-                    lambda x, y=a0: x['lang'] == y['lang']
-                    and x['description'] == y['description'], b
-                )
-            )
-            if not toTest and a0['text']:
-                result.append(a0)
-            else:
-                for b0 in toTest:
-                    if a0['text'] != b0['text']:
-                        result.append(a0)
-                        break
-
-        return result
-
     def _writeSimple(self, track, tags):
         import eyed3
 
         for k, v in tags.items():
-            if k in self._collectionTags:
+            if k in Snapshot.complexTags:
                 continue
 
             assert not isinstance(v, (list, set, dict))

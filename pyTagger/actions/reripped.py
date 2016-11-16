@@ -1,11 +1,11 @@
 from __future__ import print_function
 from __future__ import unicode_literals
-import copy
 import os
 import pyTagger.actions.isonom as isonom
 from configargparse import getArgumentParser
 from pyTagger.models import Snapshot
 from pyTagger.operations.to_csv import writeCsv
+from pyTagger.operations.two_tags import union
 from pyTagger.utils import loadJson, saveJsonIncrementalDict, generateUfid
 from pyTagger.utils import defaultConfigFiles
 
@@ -32,36 +32,6 @@ group.add('--images-dir', default=os.getcwd() + '/images',
 # -----------------------------------------------------------------------------
 
 
-def _mergeOne(newer, older):
-    c = {}
-    if not older:
-        c = copy.deepcopy(newer)
-        for k in Snapshot.mp3Info:
-            if k in c:
-                del c[k]
-
-    else:
-        keys = set(newer.keys()) | set(older.keys())
-        keys = keys - set(Snapshot.mp3Info)
-        for k in keys:
-            if k in older and k in newer:
-                if older[k]:
-                    c[k] = older[k]
-                else:
-                    c[k] = newer[k]
-            elif k in older:
-                c[k] = older[k]
-            else:
-                c[k] = newer[k]
-
-    if 'id' not in c or not c['id']:
-        ufid = generateUfid()
-        c['id'] = ufid
-        c['ufid'] = {'DJTagger': ufid}
-
-    return c
-
-
 def _mergeAll(args):
     rows = loadJson(args.interview)
 
@@ -69,7 +39,13 @@ def _mergeAll(args):
     extracted = next(output)
 
     for row in rows:
-        c = _mergeOne(row['newTags'], row['oldTags'])
+        c = union(row['newTags'], row['oldTags'])
+
+        if 'id' not in c or not c['id']:
+            ufid = generateUfid()
+            c['id'] = ufid
+            c['ufid'] = {'DJTagger': ufid}
+
         pair = (row['newPath'], c)
         extracted = output.send(pair)
 

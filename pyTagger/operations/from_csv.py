@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 import io
+from pyTagger.models import Snapshot
 from pyTagger.operations.to_csv import SUBFIELD_SEP
 from pyTagger.utils import saveJsonIncrementalDict
 
@@ -128,7 +129,6 @@ State.NewLine = NewLineState()
 
 # -----------------------------------------------------------------------------
 
-_collectionTags = ['comments', 'lyrics']
 _numberTags = ['bitRate', 'bpm', 'disc', 'length', 'totalDisc',
                'totalTrack', 'track']
 _booleanTags = ['vbr']
@@ -154,7 +154,7 @@ def _expand(cell, column):
     if not cell:
         return (None, None)
 
-    elif parts[0] in ['comments', 'lyrics']:
+    elif parts[0] in Snapshot.dltTags:
         return (parts[0], {
             'lang': parts[1],
             'text': cell,
@@ -172,7 +172,7 @@ def _expand(cell, column):
 
 def _handleRow(row, columns):
     fullPath = row[-1]
-    result = {k: [] for k in _collectionTags}
+    result = {k: [] for k in Snapshot.dltTags}
     result['ufid'] = {}
 
     for i, x in enumerate(row):
@@ -181,7 +181,7 @@ def _handleRow(row, columns):
 
         if k is None:
             pass
-        elif k in _collectionTags:
+        elif k in Snapshot.dltTags:
             result[k].append(v)
         elif k == 'ufid':
             id0, value0 = v.popitem()

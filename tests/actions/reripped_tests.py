@@ -3,17 +3,14 @@ import unittest
 import pyTagger.actions.reripped as target
 from pyTagger.utils import configurationOptions
 try:
-    from unittest.mock import patch, Mock, MagicMock
+    from unittest.mock import patch, Mock
 except ImportError:
-    from mock import patch, Mock, MagicMock
+    from mock import patch, Mock
 
 
 class TestRerippedAction(unittest.TestCase):
     def setUp(self):
         import sys
-        self.snapshot = {'foo': 'bar'}
-        self.keys = ['title', 'album', 'artist', 'track', 'id']
-        self.mp3Info = ['bitRate', 'vbr', 'fileHash', 'version']
         with patch.object(sys, 'argv', ['test', '1']):
             self.options = configurationOptions('reripped')
 
@@ -22,112 +19,41 @@ class TestRerippedAction(unittest.TestCase):
         self.path_exists = p.start()
         self.path_exists.return_value = False
 
-    def test_mergeOne_notOlder_clones(self):
-        a = {'title': 'hey'}
-
-        actual = target._mergeOne(a, {})
-
-        self.assertEqual(actual['title'], a['title'])
-        a['title'] = 'bar'
-        self.assertNotEqual(actual['title'], a['title'])
-
-    def test_mergeOne_notOlder_hasMp3Info(self):
-        a = {k: 'foo' for k in ['title'] + self.mp3Info}
-
-        actual = target._mergeOne(a, {})
-
-        for k in ['title', 'id', 'ufid']:
-            self.assertTrue(k in actual)
-        for k in self.mp3Info:
-            self.assertFalse(k in actual)
-
-    def test_mergeOne_allCommonKeys(self):
-        a = {k: 'bar' for k in self.keys}
-        b = {k: 'foo' for k in self.keys}
-
-        actual = target._mergeOne(a, b)
-
-        self.assertEqual(len(actual), len(self.keys))
-        for k in self.keys:
-            self.assertEqual(actual[k], b[k])
-
-    def test_mergeOne_allCommonKeys_olderIsNull(self):
-        a = {k: 'bar' for k in self.keys}
-        b = {k: '' for k in self.keys}
-
-        actual = target._mergeOne(a, b)
-
-        self.assertEqual(len(actual), len(self.keys))
-        for k in self.keys:
-            self.assertEqual(actual[k], a[k])
-
-    def test_mergeOne_noCommonKeys(self):
-        a = {k: 'baz' for k in ['title', 'album', 'artist']}
-        b = {k: 'baz' for k in ['track', 'id']}
-
-        actual = target._mergeOne(a, b)
-
-        self.assertEqual(len(actual), len(self.keys))
-        for k in self.keys:
-            self.assertEqual(actual[k], 'baz')
-
-    def test_mergeOne_addsUfid(self):
-        keys = ['title', 'album']
-        a = {k: 'bar' for k in keys}
-        b = {k: 'foo' for k in keys}
-
-        actual = target._mergeOne(a, b)
-
-        self.assertTrue('id' in actual)
-        self.assertTrue('ufid' in actual)
-        self.assertTrue('DJTagger' in actual['ufid'])
-        self.assertEqual(actual['id'], actual['ufid']['DJTagger'])
-
-    def test_mergeOne_clones(self):
-        a = {k: 'bar' for k in self.keys}
-        b = {k: 'foo' for k in self.keys}
-
-        actual = target._mergeOne(a, b)
-
-        for k in self.keys:
-            a[k] = 'qaz'
-            b[k] = 'baz'
-            self.assertEqual(actual[k], 'foo')
-
-    def test_mergeOne_hasMp3Info(self):
-        a = {k: 'bar' for k in self.keys}
-        b = {k: 'foo' for k in self.mp3Info}
-
-        actual = target._mergeOne(a, b)
-
-        self.assertEqual(len(actual), len(self.keys))
-        for k in self.mp3Info:
-            self.assertFalse(k in actual)
-
     @patch('pyTagger.actions.reripped.saveJsonIncrementalDict')
+    @patch('pyTagger.actions.reripped.generateUfid')
+    @patch('pyTagger.actions.reripped.union')
     @patch('pyTagger.actions.reripped.loadJson')
-    def test_mergeAll(self, loadJson, saveJson):
+    def test_mergeAll(self, loadJson, union, generateUfid, saveJson):
+        ufid = 'NysA4aZ3TD+BykePnapEMw=='
+
         def noop_coroutine(file, compact):
-            for i in [0, 1, 2, 3, 4, len(self.keys)]:
+            for i in [0, 1, 2, 3, 4]:
                 k, v = yield i
                 self.assertEqual(k, '/foo/bar')
-                self.assertEqual(v, 'baz')
+                self.assertEqual(v['id'], ufid)
+                self.assertEqual(v['ufid']['DJTagger'], ufid)
 
         loadJson.return_value = [
             {'newTags': 'foo', 'oldTags': 'bar', 'newPath': '/foo/bar'},
+            {'newTags': 'foo', 'oldTags': 'bar', 'newPath': '/foo/bar'},
             {'newTags': 'foo', 'oldTags': 'bar', 'newPath': '/foo/bar'}
+        ]
+        generateUfid.return_value = ufid
+        union.side_effect = [
+            {},
+            {'id': ufid, 'ufid': {'DJTagger': ufid}},
+            {'id': ''}
         ]
         saveJson.side_effect = noop_coroutine
 
-        mergeOne = Mock(return_value='baz')
-        with patch.object(target, '_mergeOne', mergeOne):
-            actual = target._mergeAll(self.options)
+        actual = target._mergeAll(self.options)
 
         self.assertEqual(loadJson.call_count, 1)
-        self.assertEqual(mergeOne.call_count, 2)
-        self.assertEqual(mergeOne.call_args[0], ('foo', 'bar'))
+        self.assertEqual(union.call_count, 3)
+        self.assertEqual(union.call_args[0], ('foo', 'bar'))
+        self.assertEqual(generateUfid.call_count, 2)
         self.assertEqual(saveJson.call_count, 1)
-        self.assertEqual(actual, 2)
+        self.assertEqual(actual, 3)
 
     @patch('pyTagger.actions.reripped.isonom')
     def test_process_step1_isonom_ok(self, isonom):
