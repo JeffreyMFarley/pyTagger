@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import datetime
 import json
 import os
@@ -17,7 +18,7 @@ from pyTagger.utils import walk, generateUfid
 from tests import *
 
 INTEGRATION_TEST_DIRECTORY = os.path.join(
-    RESULT_DIRECTORY, u'integration-test'
+    RESULT_DIRECTORY, 'integration-test'
 )
 
 
@@ -36,8 +37,12 @@ def tearDownModule():
 
 class TestIntegration(unittest.TestCase):
     @unittest.skipUnless(sampleFilesExist, 'MP3 Files missing')
+    # @unittest.skip('Check coverage')
+    def setUp(self):
+        pass
+
     def test_01_update(self):
-        updateFile = os.path.join(RESULT_DIRECTORY, r'update.json')
+        updateFile = os.path.join(RESULT_DIRECTORY, 'update.json')
 
         snapshot = {}
         stamp = datetime.date.today()
@@ -67,40 +72,37 @@ class TestIntegration(unittest.TestCase):
         target = pyTagger.UpdateFromSnapshot()
         target.update(updateFile, upgrade=True)
 
-    @unittest.skipUnless(sampleFilesExist, 'MP3 Files missing')
     def test_02_scan(self):
         from pyTagger.operations.on_directory import buildSnapshot
         from pyTagger.proxies.id3 import ID3Proxy
 
         reader = ID3Proxy()
-        outFile = os.path.join(RESULT_DIRECTORY, r'snapshot.json')
+        outFile = os.path.join(RESULT_DIRECTORY, 'snapshot.json')
 
         buildSnapshot(INTEGRATION_TEST_DIRECTORY, outFile, reader)
         assert os.path.getsize(outFile) > 0
 
-    @unittest.skipUnless(sampleFilesExist, 'Files missing')
     def test_03_convert(self):
         from pyTagger.operations.to_csv import writeCsv
         from pyTagger.utils import loadJson
 
-        inFile = os.path.join(RESULT_DIRECTORY, r'snapshot.json')
-        outFile = os.path.join(RESULT_DIRECTORY, r'snapshot.txt')
+        inFile = os.path.join(RESULT_DIRECTORY, 'snapshot.json')
+        outFile = os.path.join(RESULT_DIRECTORY, 'snapshot.txt')
 
         snapshot = loadJson(inFile)
         writeCsv(snapshot, outFile)
         assert os.path.getsize(outFile) > 0
 
-    @unittest.skipUnless(sampleFilesExist, 'Files missing')
     def test_04_convertBack(self):
         from pyTagger.operations.from_csv import convert
         from pyTagger.utils import loadJson
 
-        inFile = os.path.join(RESULT_DIRECTORY, r'snapshot.txt')
-        outFile = os.path.join(RESULT_DIRECTORY, r'snapshot2.json')
+        inFile = os.path.join(RESULT_DIRECTORY, 'snapshot.txt')
+        outFile = os.path.join(RESULT_DIRECTORY, 'snapshot2.json')
 
         convert(inFile, outFile)
 
-        original = os.path.join(RESULT_DIRECTORY, r'snapshot.json')
+        original = os.path.join(RESULT_DIRECTORY, 'snapshot.json')
         a = loadJson(original)
         b = loadJson(outFile)
 
@@ -123,9 +125,8 @@ class TestIntegration(unittest.TestCase):
                 else:
                     self.assertEqual(value, a_tags[tag])
 
-    @unittest.skipUnless(sampleFilesExist, 'MP3 Files missing')
     def test_05_extractAll(self):
-        targetDir = os.path.join(RESULT_DIRECTORY, r'images')
+        targetDir = os.path.join(RESULT_DIRECTORY, 'images')
         target = pyTagger.ExtractImages(targetDir)
 
         # Clear directory
@@ -137,21 +138,20 @@ class TestIntegration(unittest.TestCase):
         files = [name for name in os.listdir(targetDir)]
         self.assertEqual(27, len(files))
 
-    @unittest.skipUnless(sampleFilesExist, 'MP3 Files missing')
     def test_06_rename(self):
-        targetDir = os.path.join(RESULT_DIRECTORY, u'renamed', '')
+        targetDir = os.path.join(RESULT_DIRECTORY, 'renamed', '')
         if os.path.exists(targetDir):
             shutil.rmtree(targetDir)
 
         target = pyTagger.Rename(targetDir)
 
         # Clone over files
-        cloneDir = os.path.join(RESULT_DIRECTORY, u'checked_in', '')
+        cloneDir = os.path.join(RESULT_DIRECTORY, 'checked_in', '')
         if os.path.exists(cloneDir):
             shutil.rmtree(cloneDir)
 
         os.makedirs(cloneDir)
-        for f in walk(os.path.join(SOURCE_DIRECTORY, u'Checkin'), True):
+        for f in walk(os.path.join(SOURCE_DIRECTORY, 'Checkin'), True):
             shutil.copy(f, cloneDir)
 
         prepare = pyTagger.PrepareCheckIn()
@@ -164,7 +164,6 @@ class TestIntegration(unittest.TestCase):
         expected = os.path.join(targetDir, 'Beck', 'Dreams', '01 Dreams.mp3')
         self.assertTrue(os.path.exists(expected))
 
-    @unittest.skipUnless(sampleFilesExist, 'MP3 Files missing')
     def test_00_extractFromList(self):
         fileName = os.path.join(RESULT_DIRECTORY, 'extract_list.txt')
         with _output(fileName) as f:
@@ -175,7 +174,7 @@ class TestIntegration(unittest.TestCase):
                 INTEGRATION_TEST_DIRECTORY, '08 - Aeroplane.mp3'
             ), '\n'])
 
-        targetDir = os.path.join(RESULT_DIRECTORY, r'some_images')
+        targetDir = os.path.join(RESULT_DIRECTORY, 'some_images')
         target = pyTagger.ExtractImages(targetDir)
         target.extractFrom(fileName)
 
