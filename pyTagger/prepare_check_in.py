@@ -3,7 +3,7 @@ import os
 import argparse
 import datetime
 from functools import partial
-from pyTagger import UpdateFromSnapshot
+from pyTagger.operations.on_mp3 import updateOne
 from pyTagger.proxies.id3 import ID3Proxy
 from pyTagger.utils import walk, generateUfid
 
@@ -34,13 +34,9 @@ class PrepareCheckIn(object):
         self.featuring = {'artist'}
         self.addTags = {'media', 'ufid', 'comments', 'group', 'subtitle'}
 
-        self.reader = ID3Proxy(self.stripFields.union(self.featuring))
-
-        self.updater = UpdateFromSnapshot()
-        self.updater.formatter = ID3Proxy(self.stripFields
-                                          .union(self.featuring)
-                                          .union(self.addTags))
-        self.updater.upgrade = True
+        self.reader = ID3Proxy(
+            self.stripFields.union(self.featuring).union(self.addTags)
+        )
 
         self.regexFeature = re.compile('\((feat|feat\.|featuring|with) (.*)\)')
 
@@ -106,7 +102,7 @@ class PrepareCheckIn(object):
             'subtitle': stamp.isoformat()
         }
         tags.update(preparationTags)
-        self.updater.updateOne(fullPath, tags)
+        updateOne(self.reader, fullPath, tags, True)
 
     def run(self, path):
         for fullPath in walk(path):

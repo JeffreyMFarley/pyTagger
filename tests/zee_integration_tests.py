@@ -42,35 +42,52 @@ class TestIntegration(unittest.TestCase):
         pass
 
     def test_01_update(self):
-        updateFile = os.path.join(RESULT_DIRECTORY, 'update.json')
+        from pyTagger.operations.on_mp3 import updateFromSnapshot
+        from pyTagger.proxies.id3 import ID3Proxy
 
+        # Setup fixture
         snapshot = {}
         stamp = datetime.date.today()
+        ufid = generateUfid()
         for fullPath in walk(INTEGRATION_TEST_DIRECTORY):
-            ufid = generateUfid()
             snapshot[fullPath] = {
                 'media': 'DIG',
                 'ufid': {'DJTagger': ufid},
-                'comments': [{'lang': 'eng', 'text': '', 'description': ''},
-                             {'lang': '', 'text': '', 'description': ''},
-                             {'lang': 'eng', 'text': '',
-                              'description': 'iTunes_CDDB_IDs'},
-                             {'lang': 'eng', 'text': '',
-                              'description': 'iTunNORM'},
-                             {'lang': 'eng', 'text': '',
-                              'description': 'iTunPGAP'},
-                             {'lang': 'eng', 'text': '',
-                              'description': 'iTunSMPB'},
-                             ],
+                'comments': [
+                    {'lang': 'eng', 'text': '', 'description': d}
+                    for d in ['', 'iTunes_CDDB_IDs', 'iTunNORM',
+                              'iTunPGAP', 'iTunSMPB', 'ID3v1.x Comment']
+                ],
                 'group': '',
                 'subtitle': stamp.isoformat()
             }
+            snapshot[fullPath]['comments'].append({
+                'lang': '', 'text': '', 'description': ''
+            })
 
-        with _output(updateFile) as f:
-            json.dump(snapshot, f, indent=2)
+        # Execute
+        id3Proxy = ID3Proxy()
+        updateFromSnapshot(id3Proxy, snapshot, True)
 
-        target = pyTagger.UpdateFromSnapshot()
-        target.update(updateFile, upgrade=True)
+        # Validate
+        for fullPath in walk(INTEGRATION_TEST_DIRECTORY):
+            actual = id3Proxy.extractTags(fullPath)
+            if not actual:
+                continue
+
+            expected = snapshot[fullPath]
+            for k, v in actual.items():
+                if k in expected:
+                    if k == 'group':
+                        self.assertIsNone(actual[k])
+                    elif k == 'comments' and 'Everything Counts' in fullPath:
+                        pass  # The Everything Counts MP3 has illegal comments
+                    elif k == 'comments':
+                        self.assertEqual(actual[k], [])
+                    elif k == 'ufid':
+                        self.assertEqual(actual[k]['DJTagger'], ufid)
+                    else:
+                        self.assertEqual(actual[k], expected[k])
 
     def test_02_scan(self):
         from pyTagger.operations.on_directory import buildSnapshot
