@@ -2,9 +2,9 @@ import unittest
 import pyTagger.actions.scan as target
 from pyTagger.utils import configurationOptions
 try:
-    from unittest.mock import patch, Mock
+    from unittest.mock import patch
 except ImportError:
-    from mock import patch, Mock
+    from mock import patch
 
 
 class TestScanAction(unittest.TestCase):

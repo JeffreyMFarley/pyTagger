@@ -7,6 +7,7 @@ import pyTagger.actions.export as export
 import pyTagger.actions.isonom as isonom
 import pyTagger.actions.reripped as reripped
 import pyTagger.actions.scan as scan
+import pyTagger.actions.update as update
 import pyTagger.actions.upload as upload
 from pyTagger.utils import rootParser as parser
 from configargparse import getArgumentParser
@@ -14,8 +15,7 @@ from configargparse import getArgumentParser
 actions = {
     'images': 'extract images from MP3s',
     'prepare': 'groom MP3s before adding to house library',
-    'rename': 'apply naming standards to MP3s',
-    'update': 'update ID3 fields from a snapshot'
+    'rename': 'apply naming standards to MP3s'
 }
 
 subs = parser.add_subparsers(help='available commands')
@@ -28,6 +28,7 @@ modules = {
     'reripped': reripped.process,
     'scan': scan.process,
     'to-csv': export.process,
+    'update': update.process,
     'upload': upload.uploadToElasticsearch
 }
 
