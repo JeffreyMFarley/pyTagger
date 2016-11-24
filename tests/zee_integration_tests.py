@@ -15,7 +15,6 @@ else:
 import pyTagger
 from pyTagger.models import Snapshot
 from pyTagger.utils import walk, generateUfid
-from pyTagger.extract_images import ExtractImages
 from tests import *
 
 INTEGRATION_TEST_DIRECTORY = os.path.join(
@@ -143,18 +142,18 @@ class TestIntegration(unittest.TestCase):
                 else:
                     self.assertEqual(value, a_tags[tag])
 
-    def test_05_extractAll(self):
-        targetDir = os.path.join(RESULT_DIRECTORY, 'images')
-        target = ExtractImages(targetDir)
+    def test_05_extractImages(self):
+        from pyTagger.operations.on_directory import extractImages
+        from pyTagger.proxies.id3 import ID3Proxy
 
-        # Clear directory
+        targetDir = os.path.join(RESULT_DIRECTORY, 'images')
         for name in os.listdir(targetDir):
             os.remove(os.path.join(targetDir, name))
 
-        target.extractAll(INTEGRATION_TEST_DIRECTORY)
+        extractImages(INTEGRATION_TEST_DIRECTORY, targetDir, ID3Proxy())
 
         files = [name for name in os.listdir(targetDir)]
-        self.assertEqual(27, len(files))
+        self.assertEqual(26, len(files))
 
     def test_06_rename(self):
         targetDir = os.path.join(RESULT_DIRECTORY, 'renamed', '')
@@ -183,6 +182,9 @@ class TestIntegration(unittest.TestCase):
         self.assertTrue(os.path.exists(expected))
 
     def test_00_extractFromList(self):
+        from pyTagger.operations.on_directory import extractImagesFrom
+        from pyTagger.proxies.id3 import ID3Proxy
+
         fileName = os.path.join(RESULT_DIRECTORY, 'extract_list.txt')
         with _output(fileName) as f:
             f.writelines([os.path.join(
@@ -193,8 +195,10 @@ class TestIntegration(unittest.TestCase):
             ), '\n'])
 
         targetDir = os.path.join(RESULT_DIRECTORY, 'some_images')
-        target = ExtractImages(targetDir)
-        target.extractFrom(fileName)
+        if os.path.exists(targetDir):
+            shutil.rmtree(targetDir)
+
+        extractImagesFrom(fileName, targetDir, ID3Proxy())
 
         files = [name for name in os.listdir(targetDir)]
         assert len(files) == 2
