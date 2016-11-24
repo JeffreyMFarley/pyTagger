@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 import os
 import pyTagger.actions.isonom as isonom
 from configargparse import getArgumentParser
-from pyTagger.models import Snapshot
 from pyTagger.operations.to_csv import writeCsv
 from pyTagger.operations.two_tags import union
 from pyTagger.utils import loadJson, saveJsonIncrementalDict, generateUfid

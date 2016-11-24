@@ -7,6 +7,7 @@ import shutil
 from tests import *
 from contextlib import contextmanager
 from pyTagger.models import Snapshot
+from pyTagger.operations.hash import hashBuffer, hashFile
 from pyTagger.utils import generateUfid
 
 try:
@@ -48,6 +49,16 @@ class TestID3Proxy(unittest.TestCase):
         columns = Snapshot.orderedAllColumns()
         missing = set(self.target.columns) - set(columns)
         assert not missing
+
+    @unittest.skipUnless(sampleFilesExist, 'MP3 Files missing')
+    def test_extractImages(self):
+        fileName = os.path.join(SOURCE_DIRECTORY, '08 - Aeroplane.mp3')
+
+        track = self.target.loadID3(fileName)
+        for image_data, mime_type in self.target.extractImages(track):
+            hashed = hashBuffer(image_data)
+            self.assertEqual(hashed, 'I7chTVcNee01gK3FwAxV6lrXoWk=')
+            self.assertEqual(mime_type, 'jpeg')
 
     @unittest.skipUnless(sampleFilesExist, 'MP3 Files missing')
     def test_extract_basic(self):
@@ -152,23 +163,13 @@ class TestID3Proxy(unittest.TestCase):
         actual = self.target._calculateHash(track, fileName)
         self.assertEqual(actual, 'Bf4eOMgTeKkeNxKH345RQHF2GLU=')
 
-    @patch('pyTagger.proxies.id3.Normalizer')
-    def test_calculate_hash_badfile(self, normalizer):
-        from collections import namedtuple
-        Track = namedtuple('track', 'tag')
-        track = Track(tag=None)
-        normalizer.return_value.to_ascii.side_effect = lambda x: x
-        self.target = sut.ID3Proxy()
-
-        if sys.version < '3':
-            coreOpenFn = '__builtin__.open'
-        else:
-            coreOpenFn = 'builtins.open'
-
-        with patch(coreOpenFn) as mocked_open:
-            mocked_open.side_effect = IOError()
-            actual = self.target._calculateHash(track, 'foo.mp3')
-            self.assertEqual(actual, '')
+    @unittest.skipUnless(sampleFilesExist, 'MP3 Files missing')
+    def test_calculate_hash_only_hashes_mp3data(self):
+        fileName = os.path.join(SOURCE_DIRECTORY, '10 World\'s Famous.mp3')
+        track = self.target.loadID3(fileName)
+        hash1 = self.target._calculateHash(track, fileName)
+        hash2 = hashFile(fileName)
+        self.assertNotEqual(hash1, hash2)
 
 
 class BaseSpecifications(unittest.TestCase):

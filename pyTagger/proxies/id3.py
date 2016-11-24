@@ -1,11 +1,11 @@
 from __future__ import unicode_literals
 import binascii
-import hashlib
 import logging
 import eyed3
 from configargparse import getArgumentParser
 from hew import Normalizer
 from pyTagger.models import Snapshot
+from pyTagger.operations.hash import hashFile
 from pyTagger.utils import configurationOptions, defaultConfigFiles
 
 import sys
@@ -247,22 +247,15 @@ class ID3Proxy(object):
         log.setLevel(logging.ERROR)
 
     def _calculateHash(self, track, mp3FileName):
-        chunk_size = 1024
         offset = (track.tag.header.tag_size
                   if track.tag and track.tag.header
                   else 0)
-        shaAccum = hashlib.sha1()
-        try:
-            with open(mp3FileName, "rb") as f:
-                f.seek(offset)
-                byte = f.read(chunk_size)
-                while byte:
-                    shaAccum.update(byte)
-                    byte = f.read(chunk_size)
-        except IOError:
-            self.log.error("Cannot Hash '%s'", self.normalize(mp3FileName))
-            return ''
-        return binascii.b2a_base64(shaAccum.digest()).strip()
+        return hashFile(mp3FileName, offset)
+
+    def extractImages(self, track):
+        if track and track.tag and track.tag.images:
+            for image in track.tag.images:
+                yield image.image_data, image.mime_type.split("/")[1]
 
     def extractTags(self, mp3FileName):
         track = self.loadID3(mp3FileName)

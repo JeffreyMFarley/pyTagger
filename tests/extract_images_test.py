@@ -1,7 +1,7 @@
 import unittest
 import os
 import sys
-import pyTagger
+from pyTagger.extract_images import ExtractImages
 from tests import *
 
 IMAGES_DIRECTORY = os.path.join(RESULT_DIRECTORY, r'images')
@@ -11,13 +11,13 @@ class TestExtractImages(unittest.TestCase):
 
     @unittest.skipUnless(sampleFilesExist, 'MP3 Files missing')
     def setUp(self):
-        self.target = pyTagger.ExtractImages(IMAGES_DIRECTORY)
+        self.target = ExtractImages(IMAGES_DIRECTORY)
 
     def test_single_extract(self):
         file = os.path.join(SOURCE_DIRECTORY, '08 - Aeroplane.mp3')
         expected = os.path.join(IMAGES_DIRECTORY, 'Debut - Aeroplane.jpeg')
 
-        self.target._extract(file)
+        self.target._extract(self.target.id3Proxy, file)
 
         assert os.path.exists(expected)
 
@@ -35,8 +35,8 @@ class TestExtractImages(unittest.TestCase):
             IMAGES_DIRECTORY, 'The King Of Limbs - Morning Mr Magpie.jpeg'
         )
 
-        self.target._extract(file1)
-        self.target._extract(file2)
+        self.target._extract(self.target.id3Proxy, file1)
+        self.target._extract(self.target.id3Proxy, file2)
 
         assert os.path.exists(expected)
         assert not os.path.exists(not_expected)

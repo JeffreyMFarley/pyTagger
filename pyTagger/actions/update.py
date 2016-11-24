@@ -1,4 +1,3 @@
-import os
 from configargparse import getArgumentParser
 from pyTagger.models import Snapshot
 from pyTagger.operations.on_mp3 import updateFromSnapshot

@@ -15,6 +15,7 @@ else:
 import pyTagger
 from pyTagger.models import Snapshot
 from pyTagger.utils import walk, generateUfid
+from pyTagger.extract_images import ExtractImages
 from tests import *
 
 INTEGRATION_TEST_DIRECTORY = os.path.join(
@@ -144,7 +145,7 @@ class TestIntegration(unittest.TestCase):
 
     def test_05_extractAll(self):
         targetDir = os.path.join(RESULT_DIRECTORY, 'images')
-        target = pyTagger.ExtractImages(targetDir)
+        target = ExtractImages(targetDir)
 
         # Clear directory
         for name in os.listdir(targetDir):
@@ -192,7 +193,7 @@ class TestIntegration(unittest.TestCase):
             ), '\n'])
 
         targetDir = os.path.join(RESULT_DIRECTORY, 'some_images')
-        target = pyTagger.ExtractImages(targetDir)
+        target = ExtractImages(targetDir)
         target.extractFrom(fileName)
 
         files = [name for name in os.listdir(targetDir)]

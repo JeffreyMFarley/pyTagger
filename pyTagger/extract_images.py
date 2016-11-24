@@ -4,14 +4,14 @@ import os
 import sys
 import argparse
 import logging
-import binascii
-import hashlib
 if sys.version < '3':  # pragma: no cover
     import codecs
     _input = lambda fileName: codecs.open(fileName, 'r', encoding='utf-8')
 else:  # pragma: no cover
     _input = lambda fileName: open(fileName, 'r', encoding='utf-8')
 from hew import Normalizer
+from pyTagger.operations.hash import hashBuffer
+from pyTagger.proxies.id3 import ID3Proxy
 from pyTagger.utils import walk
 
 # -----------------------------------------------------------------------------
@@ -24,42 +24,27 @@ class ExtractImages(object):
         self.log = logging.getLogger(__name__)
         self.outputDir = outputDir if outputDir else os.getcwd()
         self.captured = {}
+        self.id3Proxy = ID3Proxy()
         if not os.path.exists(self.outputDir):
             os.makedirs(self.outputDir)
 
-    def _hash(self, image):
-        shaAccum = hashlib.sha1()
-        shaAccum.update(image.image_data)
-        return binascii.b2a_base64(shaAccum.digest()).strip()
-
-    def _writeImage(self, track, image):
-        extension = image.mime_type.split("/")[1]
+    def _writeImage(self, track, image_data, mime_type):
         fileName = u'{0} - {1}.{2}'.format(track.tag.album,
                                            track.tag.title,
-                                           extension)
+                                           mime_type)
         fullPath = os.path.join(self.outputDir, fileName)
 
         with open(fullPath, mode="wb") as f:
-            f.write(image.image_data)
+            f.write(image_data)
 
         return fullPath
 
-    def _extract(self, mp3FileName):
-        import eyed3
-        track = None
-        try:
-            track = eyed3.load(mp3FileName)
-        except (IOError, ValueError):
-            self.log.error("Cannot load MP3 '%s'", mp3FileName)
-            return
-
-        if not track.tag or not track.tag.images:
-            return
-
-        for image in track.tag.images:
-            k = self._hash(image)
+    def _extract(self, id3Proxy, mp3FileName):
+        track = id3Proxy.loadID3(mp3FileName)
+        for image_data, mime_type in id3Proxy.extractImages(track):
+            k = hashBuffer(image_data)
             if k not in self.captured:
-                v = self._writeImage(track, image)
+                v = self._writeImage(track, image_data, mime_type)
                 self.captured[k] = v
 
     def extractAll(self, directory):
@@ -69,7 +54,7 @@ class ExtractImages(object):
         for fullPath in walk(directory):
             asciified = normalizer.to_ascii(fullPath)
             self.log.info("Extracting '%s'", asciified)
-            self._extract(fullPath)
+            self._extract(self.id3Proxy, fullPath)
 
     def extractFrom(self, fileList):
         normalizer = Normalizer()
@@ -88,7 +73,7 @@ class ExtractImages(object):
                 if fullPath[-3:].lower() in ['mp3']:
                     asciified = normalizer.to_ascii(fullPath)
                     self.log.info("Extracting '%s'", asciified)
-                    self._extract(fullPath)
+                    self._extract(self.id3Proxy, fullPath)
 
 # -----------------------------------------------------------------------------
 # Main
