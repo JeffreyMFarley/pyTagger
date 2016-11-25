@@ -16,7 +16,7 @@ def setUpModule():
     os.makedirs(IMAGES_DIRECTORY)
 
 
-class TestExtractImages(unittest.TestCase):
+class TestOnMp3s(unittest.TestCase):
 
     @unittest.skipUnless(sampleFilesExist, 'MP3 Files missing')
     def setUp(self):
@@ -29,10 +29,15 @@ class TestExtractImages(unittest.TestCase):
         )
 
         table = {}
-        target.extractImages(self.id3Proxy, table, IMAGES_DIRECTORY, fileName)
+        processed = target.extractImages(
+            self.id3Proxy, table, IMAGES_DIRECTORY, fileName
+        )
 
         self.assertTrue(os.path.exists(expected), expected)
         self.assertEqual(table, {'dlKEdYk/nLyR9w47+hudLgsVfSw=': expected})
+        self.assertEqual(processed['extracted'], 1)
+        self.assertEqual(processed['skipped'], 0)
+        self.assertEqual(processed['errors'], 0)
 
     def test_multiple_on_same_album_extract(self):
         file1 = os.path.join(
@@ -50,12 +55,19 @@ class TestExtractImages(unittest.TestCase):
         )
 
         table = {}
-        target.extractImages(self.id3Proxy, table, IMAGES_DIRECTORY, file1)
-        target.extractImages(self.id3Proxy, table, IMAGES_DIRECTORY, file2)
+        processed = target.extractImages(
+            self.id3Proxy, table, IMAGES_DIRECTORY, file1
+        )
+        processed += target.extractImages(
+            self.id3Proxy, table, IMAGES_DIRECTORY, file2
+        )
 
         assert os.path.exists(expected)
         assert not os.path.exists(not_expected)
         self.assertEqual(table, {'FdEykG2M5cdsTTwfeZP7JB6V8pQ=': expected})
+        self.assertEqual(processed['extracted'], 1)
+        self.assertEqual(processed['skipped'], 1)
+        self.assertEqual(processed['errors'], 0)
 
 if __name__ == '__main__':
     unittest.main()

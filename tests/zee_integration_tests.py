@@ -150,10 +150,15 @@ class TestIntegration(unittest.TestCase):
         for name in os.listdir(targetDir):
             os.remove(os.path.join(targetDir, name))
 
-        extractImages(INTEGRATION_TEST_DIRECTORY, targetDir, ID3Proxy())
+        processed = extractImages(
+            INTEGRATION_TEST_DIRECTORY, targetDir, ID3Proxy()
+        )
 
         files = [name for name in os.listdir(targetDir)]
         self.assertEqual(26, len(files))
+        self.assertEqual(processed['extracted'], 26)
+        self.assertEqual(processed['skipped'], 7)
+        self.assertEqual(processed['errors'], 1)
 
     def test_06_rename(self):
         targetDir = os.path.join(RESULT_DIRECTORY, 'renamed', '')
@@ -198,10 +203,13 @@ class TestIntegration(unittest.TestCase):
         if os.path.exists(targetDir):
             shutil.rmtree(targetDir)
 
-        extractImagesFrom(fileName, targetDir, ID3Proxy())
+        processed = extractImagesFrom(fileName, targetDir, ID3Proxy())
 
         files = [name for name in os.listdir(targetDir)]
-        assert len(files) == 2
+        self.assertEqual(len(files), 2)
+        self.assertEqual(processed['extracted'], 2)
+        self.assertEqual(processed['skipped'], 0)
+        self.assertEqual(processed['errors'], 0)
 
 if __name__ == '__main__':
     unittest.main(failfast=True, exit=False)
