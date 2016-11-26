@@ -3,9 +3,9 @@ import hashlib
 import logging
 
 
-def hashBuffer(bytes):
+def hashBuffer(b):
     shaAccum = hashlib.sha1()
-    shaAccum.update(bytes)
+    shaAccum.update(b)
     return binascii.b2a_base64(shaAccum.digest()).strip()
 
 

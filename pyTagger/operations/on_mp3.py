@@ -31,8 +31,8 @@ def extractImages(id3Proxy, hashTable, outputDir, fileName):
                 c['extracted'] += 1
             except ValueError as ve:
                 log = logging.getLogger(__name__)
-                s = 'Extract Images failed on {0} - {1}'
-                log.error(s.format(fileName, ve))
+                s = 'Extract Images failed on %s - %s'
+                log.error(s % (fileName, ve))
                 c['errors'] += 1
         else:
             c['skipped'] += 1

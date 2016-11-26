@@ -10,6 +10,7 @@ from tests import *
 IMAGES_DIRECTORY = os.path.join(RESULT_DIRECTORY, r'images')
 
 
+@unittest.skipUnless(sampleFilesExist, 'MP3 Files missing')
 def setUpModule():
     if sampleFilesExist and os.path.exists(IMAGES_DIRECTORY):
         shutil.rmtree(IMAGES_DIRECTORY)
