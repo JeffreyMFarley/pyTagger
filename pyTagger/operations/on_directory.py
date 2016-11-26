@@ -28,9 +28,9 @@ def buildSnapshot(scanPath, outFileName, id3Reader, compact=False):
 
 def buildHashTable(scanPath):
     table = {}
-    for fullPath in walk(scanPath):
+    for fullPath in walk(scanPath, True):
         v = hashFile(fullPath)
-        table[fullPath] = v
+        table[v] = fullPath
     return table
 
 

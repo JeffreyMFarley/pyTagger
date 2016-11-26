@@ -1,26 +1,31 @@
+from __future__ import unicode_literals
+import os
+from configargparse import getArgumentParser
+from pyTagger.operations.on_directory import extractImages, extractImagesFrom
+from pyTagger.proxies.id3 import ID3Proxy
+from pyTagger.utils import defaultConfigFiles
 
-def buildArgParser():
-    description = 'Extract image from MP3 files'
-    p = argparse.ArgumentParser(description=description)
-    p.add_argument('path',  nargs='?', metavar='path',
-                   default=os.getcwd(),
-                   help='the path to scan')
-    p.add_argument('outputDir',  nargs='?', metavar='outputDir',
-                   default=os.path.join(os.getcwd(), 'images'),
-                   help='the directory where the extracted images are stored')
-    p.add_argument('-f', '--use-file', dest='useFile',
-                   metavar='filename',
-                   help='a text file with the list of files to extract')
+# -----------------------------------------------------------------------------
+# Configuration
 
-    return p
+p = getArgumentParser('images',
+                      default_config_files=defaultConfigFiles,
+                      ignore_unknown_config_file_keys=True,
+                      parents=[getArgumentParser()],
+                      description='extract images from MP3s')
+group = p.add_argument_group('Files')
+group.add('path',
+          help='the path to scan')
+group.add('outputDir',
+          help='the directory where the extracted images are stored')
+group.add('--use-file',
+          help='a text file with the list of files to extract')
 
-if __name__ == '__main__':
-    parser = buildArgParser()
-    args = parser.parse_args()
+# -----------------------------------------------------------------------------
 
-    pipeline = ExtractImages(args.outputDir)
-    pipeline.log.setLevel(logging.INFO)
-    if args.useFile:
-        pipeline.extractFrom(args.useFile)
+
+def process(args):
+    if args.use_file:
+        return extractImagesFrom(args.use_file, args.outputDir, ID3Proxy())
     else:
-        pipeline.extractAll(args.path)
+        return extractImages(args.path, args.outputDir, ID3Proxy())

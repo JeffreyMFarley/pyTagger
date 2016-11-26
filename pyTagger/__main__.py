@@ -4,6 +4,7 @@ import os
 import sys
 import pyTagger.actions.convert_csv as convert_csv
 import pyTagger.actions.export as export
+import pyTagger.actions.images as images
 import pyTagger.actions.isonom as isonom
 import pyTagger.actions.reripped as reripped
 import pyTagger.actions.scan as scan
@@ -13,7 +14,6 @@ from pyTagger.utils import rootParser as parser
 from configargparse import getArgumentParser
 
 actions = {
-    'images': 'extract images from MP3s',
     'prepare': 'groom MP3s before adding to house library',
     'rename': 'apply naming standards to MP3s'
 }
@@ -24,6 +24,7 @@ for k in sorted(actions):
 
 modules = {
     'convert-csv': convert_csv.process,
+    'images': images.process,
     'isonom': isonom.process,
     'reripped': reripped.process,
     'scan': scan.process,

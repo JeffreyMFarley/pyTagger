@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 
+BAD_WIN_FILE_CHARS = ['\\', '/', ':', '*', '?', '"', '<', '>', '|', '.']
+
 
 def _safeGet(tags, field, default=None):
     return tags[field] if field in tags else default
@@ -26,4 +28,7 @@ def _albumArtistTitle(tags):
 
 def imageFileName(tags, mime_type):
     album, artist, title = _albumArtistTitle(tags)
-    return '{0} - {1} - {2}.{3}'.format(artist, album, title, mime_type)
+    fileTitle = '{0} - {1} - {2}'.format(artist, album, title)
+
+    r = {ord(c): '_' for c in BAD_WIN_FILE_CHARS}
+    return fileTitle.translate(r).strip('_') + '.' + mime_type

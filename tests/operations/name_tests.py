@@ -42,5 +42,10 @@ class TestName(unittest.TestCase):
         with self.assertRaises(ValueError):
             target._albumArtistTitle(self.data)
 
+    def test_imageFileName_badFileChars(self):
+        self.data['album'] = 'On / Off'
+        actual = target.imageFileName(self.data, 'jpeg')
+        self.assertEqual(actual, 'Bar - On _ Off - Baz.jpeg')
+
 if __name__ == '__main__':
     unittest.main()

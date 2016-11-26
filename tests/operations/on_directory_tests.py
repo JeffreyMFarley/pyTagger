@@ -34,10 +34,10 @@ class TestOnDirectory(unittest.TestCase):
         hashFile.return_value = '1234567890'
 
         actual = target.buildHashTable('blah')
-        walk.assert_called_with('blah')
+        walk.assert_called_with('blah', True)
         self.assertEqual(hashFile.call_count, 4)
         for v in actual.values():
-            self.assertEqual(v, '1234567890')
+            self.assertEqual(v, 'qaz')
 
     @patch('pyTagger.operations.on_directory.singleExtract')
     @patch('pyTagger.operations.on_directory.walk')
