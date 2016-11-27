@@ -10,16 +10,17 @@ except ImportError:
 
 class TestImagesAction(unittest.TestCase):
     def setUp(self):
-        pass
+        with patch.object(sys, 'argv', ['test', '/path/foo', '/path/bar']):
+            self.options = configurationOptions('images')
 
     @patch('pyTagger.actions.images.ID3Proxy')
     @patch('pyTagger.actions.images.extractImages')
-    def test_process_directory(self, extractImages, id3Proxy):
+    @patch('pyTagger.actions.images.os')
+    def test_process_directory(self, os, extractImages, id3Proxy):
+        os.path.isfile.return_value = False
+        os.path.isdir.return_value = True
         id3Proxy.return_value = 'id3Proxy'
         extractImages.return_value = 'passed'
-
-        with patch.object(sys, 'argv', ['test', '/path/foo', '/path/bar']):
-            self.options = configurationOptions('images')
 
         actual = target.process(self.options)
 
@@ -31,22 +32,23 @@ class TestImagesAction(unittest.TestCase):
 
     @patch('pyTagger.actions.images.ID3Proxy')
     @patch('pyTagger.actions.images.extractImagesFrom')
-    def test_process_file(self, extractImages, id3Proxy):
+    @patch('pyTagger.actions.images.os')
+    def test_process_file(self, os, extractImages, id3Proxy):
+        os.path.isfile.return_value = True
         id3Proxy.return_value = 'id3Proxy'
         extractImages.return_value = 'passed'
-
-        with patch.object(sys, 'argv', [
-            'test', '/path/foo', '/path/bar', '--use-file', 'a_list.txt'
-        ]):
-            self.options = configurationOptions('images')
 
         actual = target.process(self.options)
 
         self.assertEqual(id3Proxy.call_count, 1)
         extractImages.assert_called_once_with(
-            'a_list.txt', '/path/bar', 'id3Proxy'
+            '/path/foo', '/path/bar', 'id3Proxy'
         )
         self.assertEqual(actual, 'passed')
+
+    def test_process_unknown(self):
+        with self.assertRaises(ValueError):
+            actual = target.process(self.options)
 
 if __name__ == '__main__':
     unittest.main()

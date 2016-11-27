@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+import os
 from configargparse import getArgumentParser
 from pyTagger.operations.on_directory import extractImages, extractImagesFrom
 from pyTagger.proxies.id3 import ID3Proxy
@@ -14,17 +15,17 @@ p = getArgumentParser('images',
                       description='extract images from MP3s')
 group = p.add_argument_group('Files')
 group.add('path',
-          help='the path to scan')
+          help='the path to scan or file to use')
 group.add('outputDir',
           help='the directory where the extracted images are stored')
-group.add('--use-file',
-          help='a text file with the list of files to extract')
 
 # -----------------------------------------------------------------------------
 
 
 def process(args):
-    if args.use_file:
-        return extractImagesFrom(args.use_file, args.outputDir, ID3Proxy())
-    else:
+    if os.path.isfile(args.path):
+        return extractImagesFrom(args.path, args.outputDir, ID3Proxy())
+    elif os.path.isdir(args.path):
         return extractImages(args.path, args.outputDir, ID3Proxy())
+    else:
+        raise ValueError(args.path + ' is not a file or directory')

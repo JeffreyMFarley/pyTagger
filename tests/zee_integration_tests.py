@@ -67,7 +67,7 @@ class TestIntegration(unittest.TestCase):
 
         # Execute
         id3Proxy = ID3Proxy()
-        updateFromSnapshot(id3Proxy, snapshot, True)
+        u, f = updateFromSnapshot(id3Proxy, snapshot, True)
 
         # Validate
         for fullPath in walk(INTEGRATION_TEST_DIRECTORY):
@@ -88,6 +88,8 @@ class TestIntegration(unittest.TestCase):
                         self.assertEqual(actual[k]['DJTagger'], ufid)
                     else:
                         self.assertEqual(actual[k], expected[k])
+        self.assertEqual(u, 53)
+        self.assertEqual(f, 2)
 
     def test_02_scan(self):
         from pyTagger.operations.on_directory import buildSnapshot

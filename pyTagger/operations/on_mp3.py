@@ -42,14 +42,22 @@ def extractImages(id3Proxy, hashTable, outputDir, fileName):
 def updateOne(id3Proxy, fileName, updates, upgrade=False):
     track = id3Proxy.loadID3(fileName)
     if not track or not track.tag:
-        return
+        return 0
 
     asIs = id3Proxy.extractTagsFromTrack(track)
     delta = difference(updates, asIs)
 
     id3Proxy.saveID3(track, delta, upgrade)
+    return 1
 
 
 def updateFromSnapshot(id3Proxy, snapshot, upgrade=False):
-    for k, v in snapshot.items():
-        updateOne(id3Proxy, k, v, upgrade)
+    updated, failed = 0, 0
+
+    for k, v in sorted(snapshot.items()):
+        if updateOne(id3Proxy, k, v, upgrade):
+            updated += 1
+        else:
+            failed += 1
+
+    return updated, failed
