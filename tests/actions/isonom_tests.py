@@ -65,10 +65,15 @@ class TestIsonomAction(unittest.TestCase):
         self.assertEqual(actual, '1 track(s) produced 3 rows')
         self.assertEqual(self.loadJson.call_count, 1)
 
+    @patch('pyTagger.actions.isonom._findIsonoms')
     @patch('pyTagger.actions.isonom._buildIndex')
-    def test_process_index_not_exist(self, _buildIndex):
+    def test_process_index_not_exist(self, _buildIndex, findIsonoms):
+        self.path_exists.return_value = False
         self.client.return_value.exists.return_value = False
+        findIsonoms.return_value = 'foo'
+
         actual = target.process(self.options)
+
         self.assertEqual(actual, "Success")
         target._buildIndex.assert_called_once_with(self.options)
 

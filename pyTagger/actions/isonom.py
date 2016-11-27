@@ -50,15 +50,15 @@ def _findIsonoms(args, client):
 
 
 def process(args):
-    cli = Client()
-
-    if not cli.exists():
-        print('Building Index')
-        _buildIndex(args)
-    else:
-        print('Index Already Built')
-
     if not os.path.exists(args.interview):
+        cli = Client()
+
+        if not cli.exists():
+            print('Building Index')
+            _buildIndex(args)
+        else:
+            print('Using Existing Index')
+
         print('Finding Isonoms')
         print(_findIsonoms(args, cli))
     else:

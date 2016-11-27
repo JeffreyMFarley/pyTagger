@@ -30,45 +30,44 @@ group.add('--images-dir', default=os.getcwd() + '/images',
 
 # -----------------------------------------------------------------------------
 
+SUCCESS = "Success"
+
 
 def _mergeAll(args):
     rows = loadJson(args.interview)
-
-    output = saveJsonIncrementalDict(args.goal_snapshot, False)
-    extracted = next(output)
+    merged = {}
 
     for row in rows:
         c = union(row['newTags'], row['oldTags'])
 
-        if 'id' not in c or not c['id']:
+        if row['status'] == 'manual':
             ufid = generateUfid()
             c['id'] = ufid
             c['ufid'] = {'DJTagger': ufid}
 
-        pair = (row['newPath'], c)
-        extracted = output.send(pair)
+        merged[row['newPath']] = c
 
-    output.close()
+    return merged
 
-    return extracted
+
+def _step1(args):
+    if os.path.exists(args.goal_csv):
+        print('Using existing goals file')
+        return SUCCESS
+
+    result = isonom.process(args)
+    if result == 'Success':
+        print('Creating ', args.goal_csv)
+        merged = _mergeAll(args)
+        writeCsv(merged, args.goal_csv)
+
+    return result
 
 
 def process(args):
     result = "Not Implemented"
 
     if args.step == 1:
-        if not os.path.exists(args.goal_snapshot):
-            result = isonom.process(args)
-            if result != 'Success':
-                return result
-        else:
-            print('Using existing goals file')
-            result = "Success"
-
-        print('Creating ', args.goal_snapshot)
-        _mergeAll(args)
-        rows = loadJson(args.goal_snapshot)
-        print('Creating ', args.goal_csv)
-        writeCsv(rows, args.goal_csv)
+        return _step1(args)
 
     return result
