@@ -21,7 +21,7 @@ def RemoveBadFileNameChars(s):
 
 
 def Limit(s, maxChars):
-    return s[:maxChars]
+    return s[:maxChars].strip()
 
 # -----------------------------------------------------------------------------
 # Classes

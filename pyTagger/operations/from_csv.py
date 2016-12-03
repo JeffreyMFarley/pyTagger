@@ -171,7 +171,7 @@ def _expand(cell, column):
 
 
 def _handleRow(row, columns):
-    fullPath = row[-1]
+    fullPath = row[-1].replace('\\', '\\\\')
     result = {k: [] for k in Snapshot.dltTags}
     result['ufid'] = {}
 
