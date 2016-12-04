@@ -70,7 +70,7 @@ class TestFromCsv(unittest.TestCase):
             ['12234', 'foo', '2', 'False', 'Backcatalog', '000 111 AAA',
              '', '', 'RDoCh4SQKUqntx96G42eLA==', '', 'path/one'],
             ['34567', 'bar', '99', 'True', '', '', 'Tra\nLa\nLa',
-             'Ooo\nLa\nLa', '', 'qr1241aslkfjlqfafa1214', 'path/two']
+             'Ooo\nLa\nLa', '', 'qr1241aslkfjlqfafa1214', r'c:\path\two']
         ]
 
     @parameterized.expand([
@@ -152,7 +152,7 @@ class TestFromCsv(unittest.TestCase):
 
     def test_handleRow_1(self):
         k, v = sut._handleRow(self.csv[2], self.csv[0])
-        self.assertEqual(k, 'path/two')
+        self.assertEqual(k, r'c:\\path\\two')
         self.assertEqual(v['id'], '34567')
         self.assertEqual(v['track'], 99)
         self.assertEqual(v['vbr'], True)
@@ -199,7 +199,7 @@ class TestFromCsv(unittest.TestCase):
                     self.assertEqual(v['id'], '12234')
                     self.assertNotIn('title', v)
                 elif i == 1:
-                    self.assertEqual(k, 'path/two')
+                    self.assertEqual(k, 'c:\\\\path\\\\two')
                     self.assertEqual(v['id'], '34567')
                     self.assertNotIn('title', v)
         saveJson.side_effect = noop_coroutine
