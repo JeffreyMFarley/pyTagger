@@ -101,6 +101,16 @@ def walk(directory, showAll=False):
             if showAll or fullPath[-3:].lower() in ['mp3']:
                 yield fullPath
 
+
+def needsMove(current, proposed):
+    if current == proposed:
+        return False
+
+    if os.path.exists(proposed):
+        raise ValueError(proposed + ' already exists. Avoiding collision')
+
+    return True
+
 # -----------------------------------------------------------------------------
 
 

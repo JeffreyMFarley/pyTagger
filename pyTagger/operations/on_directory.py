@@ -1,10 +1,13 @@
 from __future__ import unicode_literals
 import io
 import os
+import shutil
 from collections import Counter
 from pyTagger.operations.hash import hashFile
+from pyTagger.operations.name import buildPath
 from pyTagger.operations.on_mp3 import extractImages as singleExtract
 from pyTagger.utils import walk, saveJsonIncrementalDict
+from pyTagger.utils import needsMove
 
 
 def buildSnapshot(scanPath, outFileName, id3Reader, compact=False):
@@ -65,4 +68,29 @@ def extractImagesFrom(fileList, outputDir, id3Proxy):
             # Check if the file has an extension of typical music files
             if fullPath[-3:].lower() in ['mp3']:
                 c += singleExtract(id3Proxy, hashTable, outputDir, fullPath)
+    return c
+
+
+def renameFiles(sourceDir, destDir, reader):
+    c = Counter()
+    for fullPath in walk(sourceDir):
+        try:
+            tags = reader.extractTags(fullPath)
+            jointed = buildPath(tags, fullPath[-3:])
+            proposed = os.path.join(destDir, *jointed)
+
+            if needsMove(fullPath, proposed):
+                newPath = os.path.join(destDir, jointed[0], jointed[1], '')
+                if not os.path.exists(newPath):
+                    os.makedirs(newPath)
+                shutil.move(fullPath, proposed)
+                c['moved'] += 1
+            else:
+                c['skipped'] += 1
+
+        except OSError:
+            c['errors'] += 1
+        except ValueError:
+            c['collisions'] += 1
+
     return c

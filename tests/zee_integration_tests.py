@@ -1,19 +1,15 @@
 from __future__ import unicode_literals
 import datetime
-import json
 import os
 import shutil
 import sys
 import unittest
 if sys.version < '3':
     import codecs
-    _input = lambda fileName: codecs.open(fileName, 'r', encoding='utf-8')
     _output = lambda fileName: codecs.open(fileName, 'w', encoding='utf-8')
 else:
-    _input = lambda fileName: open(fileName, 'r', encoding='utf-8')
     _output = lambda fileName: open(fileName, 'w', encoding='utf-8')
 import pyTagger
-from pyTagger.models import Snapshot
 from pyTagger.utils import walk, generateUfid
 from tests import *
 
@@ -163,11 +159,12 @@ class TestIntegration(unittest.TestCase):
         self.assertEqual(processed['errors'], 1)
 
     def test_06_rename(self):
+        from pyTagger.operations.on_directory import renameFiles
+        from pyTagger.proxies.id3 import ID3Proxy
+
         targetDir = os.path.join(RESULT_DIRECTORY, 'renamed', '')
         if os.path.exists(targetDir):
             shutil.rmtree(targetDir)
-
-        target = pyTagger.Rename(targetDir)
 
         # Clone over files
         cloneDir = os.path.join(RESULT_DIRECTORY, 'checked_in', '')
@@ -180,10 +177,12 @@ class TestIntegration(unittest.TestCase):
 
         prepare = pyTagger.PrepareCheckIn()
         prepare.run(cloneDir)
-        target.run(cloneDir)
+        c = renameFiles(cloneDir, targetDir, ID3Proxy())
 
-        files = [name for name in os.listdir(targetDir)]
-        self.assertEqual(7, len(files))
+        self.assertEqual(c['moved'], 7)
+        self.assertEqual(c['skipped'], 0)
+        self.assertEqual(c['errors'], 0)
+        self.assertEqual(c['collisions'], 0)
 
         expected = os.path.join(targetDir, 'Beck', 'Dreams', '01 Dreams.mp3')
         self.assertTrue(os.path.exists(expected))

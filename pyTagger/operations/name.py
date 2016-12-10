@@ -1,6 +1,10 @@
 from __future__ import unicode_literals
 
-BAD_WIN_FILE_CHARS = ['\\', '/', ':', '*', '?', '"', '<', '>', '|', '.']
+winFileReserved = ['\\', '/', ':', '*', '?', '"', '<', '>', '|', '.']
+winFileTable = {ord(c): '_' for c in winFileReserved}
+
+# -----------------------------------------------------------------------------
+# Helpers
 
 
 def _safeGet(tags, field, default=None):
@@ -26,9 +30,40 @@ def _albumArtistTitle(tags):
     return album, artist, title
 
 
+def _removeBadFileNameChars(s):
+    return s.translate(winFileTable).strip('_ ')
+
+
+def _limit(s, maxChars):
+    return s[:maxChars].strip()
+
+# -----------------------------------------------------------------------------
+# Public Methods
+
+
+def buildPath(tags, ext='mp3'):
+    pipeline = lambda x, n: _limit(_removeBadFileNameChars(x), n)
+
+    album, artist, title = _albumArtistTitle(tags)
+
+    jointedPath = [pipeline(artist, 40), pipeline(album, 40)]
+
+    totalDisc = _safeGet(tags, 'totalDisc', 1)
+    if totalDisc > 1:
+        fileName = '{0:02d}-'.format(_safeGet(tags, 'disc', 0))
+    else:
+        fileName = ''
+
+    fileName += '{0:02d} {1}'.format(_safeGet(tags, 'track', 0),
+                                     pipeline(title, 99))
+    fileName = '{0}.{1}'.format(_limit(fileName, 36), ext)
+
+    jointedPath.append(fileName)
+    return jointedPath
+
+
 def imageFileName(tags, mime_type):
     album, artist, title = _albumArtistTitle(tags)
     fileTitle = '{0} - {1} - {2}'.format(artist, album, title)
 
-    r = {ord(c): '_' for c in BAD_WIN_FILE_CHARS}
-    return fileTitle.translate(r).strip('_') + '.' + mime_type
+    return _removeBadFileNameChars(fileTitle) + '.' + mime_type

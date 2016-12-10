@@ -64,5 +64,23 @@ class TestIO(unittest.TestCase):
                              '{\n"key":\n"T\u00e9l\u00e9popmusik"')
             gen.close()
 
+    def test_needsMove_bothEqual(self):
+        current = '/path/to/01-11- Restart.mp3'
+        actual = target.needsMove(current, current)
+        self.assertEqual(False, actual)
+
+    @patch('pyTagger.utils.os.path.exists')
+    def test_needsMove_collision(self, mocked):
+        mocked.return_value = True
+        proposed = '/path/to/01-11- Restart.mp3'
+        with self.assertRaises(ValueError):
+            target.needsMove('foo', proposed)
+
+    def test_needsMove_notEqual(self):
+        current = '/path/to/foo.mp3'
+        proposed = '/path/to/01-11- Restart.mp3'
+        actual = target.needsMove(current, proposed)
+        self.assertEqual(True, actual)
+
 if __name__ == '__main__':
     unittest.main()

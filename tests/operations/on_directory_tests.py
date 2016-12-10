@@ -105,6 +105,66 @@ class TestOnDirectory(unittest.TestCase):
         self.assertEqual(extract.call_count, 1)
         self.assertEqual(actual, {})
 
+    @patch('pyTagger.operations.on_directory.needsMove')
+    @patch('pyTagger.operations.on_directory.shutil.move')
+    @patch('pyTagger.operations.on_directory.buildPath')
+    @patch('pyTagger.operations.on_directory.walk')
+    @patch('pyTagger.operations.on_directory.os')
+    def test_renameFiles_happyPath(self, os, walk, buildPath, move, needsMove):
+        reader = Mock()
+        reader.extractTags = Mock(return_value='{}')
+        walk.return_value = ['a']
+        buildPath.return_value = ['foo', 'bar', 'baz']
+        needsMove.return_value = True
+        os.path.exists.return_value = True
+
+        c = target.renameFiles('/path/one', '/path/two', reader)
+        self.assertEqual(c['moved'], 1)
+        self.assertEqual(c['skipped'], 0)
+        self.assertEqual(c['errors'], 0)
+        self.assertEqual(c['collisions'], 0)
+
+    @patch('pyTagger.operations.on_directory.needsMove')
+    @patch('pyTagger.operations.on_directory.shutil.move')
+    @patch('pyTagger.operations.on_directory.buildPath')
+    @patch('pyTagger.operations.on_directory.walk')
+    def test_renameFiles_skip(self, walk, buildPath, move, needsMove):
+        reader = Mock()
+        reader.extractTags = Mock(return_value='{}')
+        walk.return_value = ['a']
+        buildPath.return_value = ['foo', 'bar', 'baz']
+        needsMove.return_value = False
+
+        c = target.renameFiles('/path/one', '/path/two', reader)
+        self.assertEqual(c['moved'], 0)
+        self.assertEqual(c['skipped'], 1)
+        self.assertEqual(c['errors'], 0)
+        self.assertEqual(c['collisions'], 0)
+
+    @patch('pyTagger.operations.on_directory.walk')
+    def test_renameFiles_readonly_destination(self, walk):
+        reader = Mock()
+        reader.extractTags = Mock(side_effect=OSError)
+        walk.return_value = ['a']
+
+        c = target.renameFiles('/path/one', '/path/two', reader)
+        self.assertEqual(c['moved'], 0)
+        self.assertEqual(c['skipped'], 0)
+        self.assertEqual(c['errors'], 1)
+        self.assertEqual(c['collisions'], 0)
+
+    @patch('pyTagger.operations.on_directory.walk')
+    def test_renameFiles_collision(self, walk):
+        reader = Mock()
+        reader.extractTags = Mock(side_effect=ValueError)
+        walk.return_value = ['a']
+
+        c = target.renameFiles('/path/one', '/path/two', reader)
+        self.assertEqual(c['moved'], 0)
+        self.assertEqual(c['skipped'], 0)
+        self.assertEqual(c['errors'], 0)
+        self.assertEqual(c['collisions'], 1)
+
 
 if __name__ == '__main__':
     unittest.main()
