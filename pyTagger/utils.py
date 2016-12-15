@@ -117,3 +117,12 @@ def needsMove(current, proposed):
 def generateUfid():
     ufid = uuid.uuid4()
     return binascii.b2a_base64(ufid.bytes).strip()
+
+
+# -----------------------------------------------------------------------------
+# Functional FTW
+
+def fmap(fns, x):
+    for fn in fns:
+        x = fn(x)
+    return x

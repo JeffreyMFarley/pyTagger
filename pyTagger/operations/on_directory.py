@@ -3,6 +3,7 @@ import io
 import os
 import shutil
 from collections import Counter
+from pyTagger.operations.conform import LibraryStandard
 from pyTagger.operations.hash import hashFile
 from pyTagger.operations.name import buildPath
 from pyTagger.operations.on_mp3 import extractImages as singleExtract
@@ -69,6 +70,15 @@ def extractImagesFrom(fileList, outputDir, id3Proxy):
             if fullPath[-3:].lower() in ['mp3']:
                 c += singleExtract(id3Proxy, hashTable, outputDir, fullPath)
     return c
+
+
+def prepareForLibrary(path):
+    i = 0
+    standards = LibraryStandard()
+    for fullPath in walk(path):
+        standards.processFile(fullPath)
+        i += 1
+    return i
 
 
 def renameFiles(sourceDir, destDir, reader):

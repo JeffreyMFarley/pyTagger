@@ -158,8 +158,9 @@ class TestIntegration(unittest.TestCase):
         self.assertEqual(processed['skipped'], 7)
         self.assertEqual(processed['errors'], 1)
 
-    def test_06_rename(self):
+    def test_06_checkin(self):
         from pyTagger.operations.on_directory import renameFiles
+        from pyTagger.operations.on_directory import prepareForLibrary
         from pyTagger.proxies.id3 import ID3Proxy
 
         targetDir = os.path.join(RESULT_DIRECTORY, 'renamed', '')
@@ -175,10 +176,10 @@ class TestIntegration(unittest.TestCase):
         for f in walk(os.path.join(SOURCE_DIRECTORY, 'Checkin'), True):
             shutil.copy(f, cloneDir)
 
-        prepare = pyTagger.PrepareCheckIn()
-        prepare.run(cloneDir)
-        c = renameFiles(cloneDir, targetDir, ID3Proxy())
+        processed = prepareForLibrary(cloneDir)
+        self.assertEqual(processed, 7)
 
+        c = renameFiles(cloneDir, targetDir, ID3Proxy())
         self.assertEqual(c['moved'], 7)
         self.assertEqual(c['skipped'], 0)
         self.assertEqual(c['errors'], 0)

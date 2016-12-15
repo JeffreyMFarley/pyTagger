@@ -1,5 +1,4 @@
 ﻿from __future__ import unicode_literals
-import itertools
 from configargparse import getArgumentParser
 from pyTagger.operations.on_directory import renameFiles
 from pyTagger.proxies.id3 import ID3Proxy
