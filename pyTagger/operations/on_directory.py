@@ -20,7 +20,7 @@ else:  # pragma: no cover
 
 
 def _filterAll(fullPath):
-    return True
+    return fullPath != ''
 
 
 def _filterMp3s(fullPath):

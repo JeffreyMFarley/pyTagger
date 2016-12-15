@@ -23,8 +23,9 @@ def setUpModule():
     if sampleFilesExist and not os.path.exists(INTEGRATION_TEST_DIRECTORY):
         os.makedirs(INTEGRATION_TEST_DIRECTORY)
 
-    for fullPath in walkAll(SOURCE_DIRECTORY):
-        shutil.copy(fullPath, INTEGRATION_TEST_DIRECTORY)
+    if sampleFilesExist:
+        for fullPath in walkAll(SOURCE_DIRECTORY):
+            shutil.copy(fullPath, INTEGRATION_TEST_DIRECTORY)
 
 
 def tearDownModule():
