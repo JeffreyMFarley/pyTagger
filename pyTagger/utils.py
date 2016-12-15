@@ -88,32 +88,6 @@ def saveJsonIncrementalDict(fileName, compact=False):
 # -----------------------------------------------------------------------------
 
 
-def walk(directory, showAll=False):
-    for currentDir, _, files in os.walk(_unicode(directory)):
-        # Get the absolute path of the currentDir parameter
-        currentDir = os.path.abspath(currentDir)
-
-        # Traverse through all files
-        for fileName in files:
-            fullPath = os.path.join(currentDir, fileName)
-
-            # Check if the file has an extension of typical music files
-            if showAll or fullPath[-3:].lower() in ['mp3']:
-                yield fullPath
-
-
-def needsMove(current, proposed):
-    if current == proposed:
-        return False
-
-    if os.path.exists(proposed):
-        raise ValueError(proposed + ' already exists. Avoiding collision')
-
-    return True
-
-# -----------------------------------------------------------------------------
-
-
 def generateUfid():
     ufid = uuid.uuid4()
     return binascii.b2a_base64(ufid.bytes).strip()

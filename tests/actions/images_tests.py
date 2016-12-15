@@ -15,10 +15,7 @@ class TestImagesAction(unittest.TestCase):
 
     @patch('pyTagger.actions.images.ID3Proxy')
     @patch('pyTagger.actions.images.extractImages')
-    @patch('pyTagger.actions.images.os')
-    def test_process_directory(self, os, extractImages, id3Proxy):
-        os.path.isfile.return_value = False
-        os.path.isdir.return_value = True
+    def test_process_directory(self, extractImages, id3Proxy):
         id3Proxy.return_value = 'id3Proxy'
         extractImages.return_value = 'passed'
 
@@ -29,26 +26,6 @@ class TestImagesAction(unittest.TestCase):
             '/path/foo', '/path/bar', 'id3Proxy'
         )
         self.assertEqual(actual, 'passed')
-
-    @patch('pyTagger.actions.images.ID3Proxy')
-    @patch('pyTagger.actions.images.extractImagesFrom')
-    @patch('pyTagger.actions.images.os')
-    def test_process_file(self, os, extractImages, id3Proxy):
-        os.path.isfile.return_value = True
-        id3Proxy.return_value = 'id3Proxy'
-        extractImages.return_value = 'passed'
-
-        actual = target.process(self.options)
-
-        self.assertEqual(id3Proxy.call_count, 1)
-        extractImages.assert_called_once_with(
-            '/path/foo', '/path/bar', 'id3Proxy'
-        )
-        self.assertEqual(actual, 'passed')
-
-    def test_process_unknown(self):
-        with self.assertRaises(ValueError):
-            actual = target.process(self.options)
 
 if __name__ == '__main__':
     unittest.main()

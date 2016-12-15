@@ -7,17 +7,93 @@ from pyTagger.operations.conform import LibraryStandard
 from pyTagger.operations.hash import hashFile
 from pyTagger.operations.name import buildPath
 from pyTagger.operations.on_mp3 import extractImages as singleExtract
-from pyTagger.utils import walk, saveJsonIncrementalDict
-from pyTagger.utils import needsMove
+from pyTagger.utils import saveJsonIncrementalDict
+
+import sys
+if sys.version < '3':  # pragma: no cover
+    _unicode = unicode
+else:  # pragma: no cover
+    _unicode = lambda x: x
+
+# -----------------------------------------------------------------------------
+# Walk Variations
 
 
-def buildSnapshot(scanPath, outFileName, id3Reader, compact=False):
+def _filterAll(fullPath):
+    return True
+
+
+def _filterMp3s(fullPath):
+    return fullPath[-3:].lower() in ['mp3']
+
+
+def _walkDirectory(path, filterFn):
+    for currentDir, _, files in os.walk(_unicode(path)):
+        # Get the absolute path of the currentDir parameter
+        currentDir = os.path.abspath(currentDir)
+
+        # Traverse through all files
+        for fileName in files:
+            fullPath = os.path.join(currentDir, fileName)
+
+            if filterFn(fullPath):
+                yield fullPath
+
+
+def _walkFile(path, filterFn):
+    with io.open(path, 'r', encoding='utf-8') as f:
+        for l in f:
+            fullPath = os.path.abspath(l.strip())
+
+            if filterFn(fullPath):
+                yield fullPath
+
+
+def walk(path):
+    if os.path.isfile(path):
+        for f in _walkFile(path, _filterMp3s):
+            yield f
+    elif os.path.isdir(path):
+        for f in _walkDirectory(path, _filterMp3s):
+            yield f
+    else:
+        raise ValueError(path + ' is not a file or directory')
+
+
+def walkAll(path):
+    if os.path.isfile(path):
+        for f in _walkFile(path, _filterAll):
+            yield f
+    elif os.path.isdir(path):
+        for f in _walkDirectory(path, _filterAll):
+            yield f
+    else:
+        raise ValueError(path + ' is not a file or directory')
+
+# -----------------------------------------------------------------------------
+# Local Helper Functions
+
+
+def needsMove(current, proposed):
+    if current == proposed:
+        return False
+
+    if os.path.exists(proposed):
+        raise ValueError(proposed + ' already exists. Avoiding collision')
+
+    return True
+
+# -----------------------------------------------------------------------------
+# Directory Functions
+
+
+def buildSnapshot(path, outFileName, id3Reader, compact=False):
     output = saveJsonIncrementalDict(outFileName, compact)
 
     extracted = next(output)
     failed = 0
 
-    for fullPath in walk(scanPath):
+    for fullPath in walk(path):
         row = id3Reader.extractTags(fullPath)
         if row:
             pair = (fullPath.replace('\\', '\\\\'), row)
@@ -30,15 +106,15 @@ def buildSnapshot(scanPath, outFileName, id3Reader, compact=False):
     return extracted, failed
 
 
-def buildHashTable(scanPath):
+def buildHashTable(path):
     table = {}
-    for fullPath in walk(scanPath, True):
+    for fullPath in walkAll(path):
         v = hashFile(fullPath)
         table[v] = fullPath
     return table
 
 
-def extractImages(scanPath, outputDir, id3Proxy):
+def extractImages(path, outputDir, id3Proxy):
     hashTable = {}
     if not os.path.exists(outputDir):
         os.makedirs(outputDir)
@@ -46,29 +122,8 @@ def extractImages(scanPath, outputDir, id3Proxy):
         hashTable = buildHashTable(outputDir)
 
     c = Counter()
-    for fullPath in walk(scanPath):
+    for fullPath in walk(path):
         c += singleExtract(id3Proxy, hashTable, outputDir, fullPath)
-    return c
-
-
-def extractImagesFrom(fileList, outputDir, id3Proxy):
-    if not os.path.exists(fileList):
-        raise ValueError(fileList + ' does not exist.')
-
-    hashTable = {}
-    if not os.path.exists(outputDir):
-        os.makedirs(outputDir)
-    else:
-        hashTable = buildHashTable(outputDir)
-
-    c = Counter()
-    with io.open(fileList, 'r', encoding='utf-8') as f:
-        for l in f:
-            fullPath = l.strip()
-
-            # Check if the file has an extension of typical music files
-            if fullPath[-3:].lower() in ['mp3']:
-                c += singleExtract(id3Proxy, hashTable, outputDir, fullPath)
     return c
 
 
@@ -81,9 +136,9 @@ def prepareForLibrary(path):
     return i
 
 
-def renameFiles(sourceDir, destDir, reader):
+def renameFiles(path, destDir, reader):
     c = Counter()
-    for fullPath in walk(sourceDir):
+    for fullPath in walk(path):
         try:
             tags = reader.extractTags(fullPath)
             jointed = buildPath(tags, fullPath[-3:])

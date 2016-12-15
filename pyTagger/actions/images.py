@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 import os
 from configargparse import getArgumentParser
-from pyTagger.operations.on_directory import extractImages, extractImagesFrom
+from pyTagger.operations.on_directory import extractImages
 from pyTagger.proxies.id3 import ID3Proxy
 from pyTagger.utils import defaultConfigFiles
 
@@ -23,9 +23,4 @@ group.add('outputDir',
 
 
 def process(args):
-    if os.path.isfile(args.path):
-        return extractImagesFrom(args.path, args.outputDir, ID3Proxy())
-    elif os.path.isdir(args.path):
-        return extractImages(args.path, args.outputDir, ID3Proxy())
-    else:
-        raise ValueError(args.path + ' is not a file or directory')
+    return extractImages(args.path, args.outputDir, ID3Proxy())

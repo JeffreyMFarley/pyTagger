@@ -27,14 +27,101 @@ class TestOnDirectory(unittest.TestCase):
     def setUp(self):
         pass
 
+    # -------------------------------------------------------------------------
+    # Walk Variations
+
+    @patch('pyTagger.operations.on_directory._walkDirectory')
+    @patch('pyTagger.operations.on_directory.os')
+    def test_walk_directory(self, os, innerWalk):
+        expected = ['alpha', 'beta', 'gamma']
+        os.path.isdir.return_value = True
+        os.path.isfile.return_value = False
+        innerWalk.return_value = expected
+
+        actual = list(target.walk('foo'))
+
+        self.assertEqual(actual, expected)
+        innerWalk.assert_called_with('foo', target._filterMp3s)
+
+    @patch('pyTagger.operations.on_directory._walkFile')
+    @patch('pyTagger.operations.on_directory.os')
+    def test_walk_file(self, os, innerWalk):
+        expected = ['alpha', 'beta', 'gamma']
+        os.path.isdir.return_value = False
+        os.path.isfile.return_value = True
+        innerWalk.return_value = expected
+
+        actual = list(target.walk('foo'))
+
+        self.assertEqual(actual, expected)
+        innerWalk.assert_called_with('foo', target._filterMp3s)
+
+    def test_walk_unknown(self):
+        with self.assertRaises(ValueError):
+            _ = list(target.walk('foo'))
+
+    @patch('pyTagger.operations.on_directory._walkDirectory')
+    @patch('pyTagger.operations.on_directory.os')
+    def test_walkAll_directory(self, os, innerWalk):
+        expected = ['alpha', 'beta', 'gamma']
+        os.path.isdir.return_value = True
+        os.path.isfile.return_value = False
+        innerWalk.return_value = expected
+
+        actual = list(target.walkAll('foo'))
+
+        self.assertEqual(actual, expected)
+        innerWalk.assert_called_with('foo', target._filterAll)
+
+    @patch('pyTagger.operations.on_directory._walkFile')
+    @patch('pyTagger.operations.on_directory.os')
+    def test_walkAll_file(self, os, innerWalk):
+        expected = ['alpha', 'beta', 'gamma']
+        os.path.isdir.return_value = False
+        os.path.isfile.return_value = True
+        innerWalk.return_value = expected
+
+        actual = list(target.walkAll('foo'))
+
+        self.assertEqual(actual, expected)
+        innerWalk.assert_called_with('foo', target._filterAll)
+
+    def test_walkAll_unknown(self):
+        with self.assertRaises(ValueError):
+            _ = list(target.walkAll('foo'))
+
+    # -------------------------------------------------------------------------
+    # Local Helper
+
+    def test_needsMove_bothEqual(self):
+        current = '/path/to/01-11- Restart.mp3'
+        actual = target.needsMove(current, current)
+        self.assertEqual(False, actual)
+
+    @patch('pyTagger.operations.on_directory.os.path.exists')
+    def test_needsMove_collision(self, mocked):
+        mocked.return_value = True
+        proposed = '/path/to/01-11- Restart.mp3'
+        with self.assertRaises(ValueError):
+            target.needsMove('foo', proposed)
+
+    def test_needsMove_notEqual(self):
+        current = '/path/to/foo.mp3'
+        proposed = '/path/to/01-11- Restart.mp3'
+        actual = target.needsMove(current, proposed)
+        self.assertEqual(True, actual)
+
+    # -------------------------------------------------------------------------
+    # Directory Functions
+
     @patch('pyTagger.operations.on_directory.hashFile')
-    @patch('pyTagger.operations.on_directory.walk')
+    @patch('pyTagger.operations.on_directory.walkAll')
     def test_buildHashTable(self, walk, hashFile):
         walk.return_value = ['foo', 'bar', 'baz', 'qaz']
         hashFile.return_value = '1234567890'
 
         actual = target.buildHashTable('blah')
-        walk.assert_called_with('blah', True)
+        walk.assert_called_with('blah')
         self.assertEqual(hashFile.call_count, 4)
         for v in actual.values():
             self.assertEqual(v, 'qaz')
@@ -56,12 +143,12 @@ class TestOnDirectory(unittest.TestCase):
         self.assertEqual(actual, {})
 
     @patch('pyTagger.operations.on_directory.singleExtract')
-    @patch('pyTagger.operations.on_directory.hashFile')
+    @patch('pyTagger.operations.on_directory.buildHashTable')
     @patch('pyTagger.operations.on_directory.walk')
     @patch('pyTagger.operations.on_directory.os')
-    def test_extractImages_path_exists(self, os, walk, hashFile, extract):
+    def test_extractImages_path_exists(self, os, walk, buildHash, extract):
         os.path.exists.return_value = True
-        hashFile.return_value = '1234567890'
+        buildHash.return_value = '1234567890'
         walk.return_value = ['a']
         extract.return_value = Counter()
 
@@ -69,39 +156,8 @@ class TestOnDirectory(unittest.TestCase):
 
         os.path.exists.assert_called_with('bar')
         os.makedirs.assert_not_called()
-        hashFile.assert_called_with('a')
+        buildHash.assert_called_with('bar')
         walk.assert_called_with('foo')
-        self.assertEqual(extract.call_count, 1)
-        self.assertEqual(actual, {})
-
-    def test_extractImagesFrom_file_doesnt_exist(self):
-        with self.assertRaises(ValueError):
-            actual = target.extractImagesFrom('foo', 'bar', 'baz')
-
-    @patch('pyTagger.operations.on_directory.Counter')
-    @patch('pyTagger.operations.on_directory.os')
-    def test_extractImagesFrom_path_doesnt_exist(self, os, counter):
-        os.path.exists.side_effect = [True, False]
-        counter.side_effect = ValueError
-
-        with self.assertRaises(ValueError):
-            actual = target.extractImagesFrom('foo', 'bar', 'baz')
-
-        os.path.exists.assert_called_with('bar')
-        os.makedirs.assert_called_with('bar')
-
-    @patch('pyTagger.operations.on_directory.singleExtract')
-    @patch('pyTagger.operations.on_directory.io')
-    @patch('pyTagger.operations.on_directory.os')
-    def test_extractImagesFrom_path_exists(self, os, io, extract):
-        os.path.exists.side_effect = [True, True]
-        io.open.return_value = FakeFile()
-        extract.return_value = Counter()
-
-        actual = target.extractImagesFrom('foo', 'bar', 'baz')
-
-        os.path.exists.assert_called_with('bar')
-        os.makedirs.assert_not_called()
         self.assertEqual(extract.call_count, 1)
         self.assertEqual(actual, {})
 

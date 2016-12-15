@@ -1,6 +1,4 @@
 import re
-import os
-import argparse
 import datetime
 from pyTagger.operations.on_mp3 import updateOne
 from pyTagger.proxies.id3 import ID3Proxy

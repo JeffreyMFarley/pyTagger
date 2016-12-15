@@ -127,7 +127,7 @@ class TestRerippedAction(unittest.TestCase):
         actual = target.process(self.options)
         self.assertEqual(actual, "Not Ready")
 
-    @patch('pyTagger.actions.reripped.extractImagesFrom')
+    @patch('pyTagger.actions.reripped.extractImages')
     @patch('pyTagger.actions.reripped.updateFromSnapshot')
     @patch('pyTagger.actions.reripped.ID3Proxy')
     @patch('pyTagger.actions.reripped.loadJson')
@@ -151,7 +151,7 @@ class TestRerippedAction(unittest.TestCase):
         self.assertEqual(update.call_count, 1)
         self.assertEqual(extract.call_count, 1)
 
-    @patch('pyTagger.actions.reripped.extractImagesFrom')
+    @patch('pyTagger.actions.reripped.extractImages')
     @patch('pyTagger.actions.reripped.updateFromSnapshot')
     @patch('pyTagger.actions.reripped.ID3Proxy')
     @patch('pyTagger.actions.reripped.loadJson')

@@ -10,7 +10,8 @@ if sys.version < '3':
 else:
     _output = lambda fileName: open(fileName, 'w', encoding='utf-8')
 import pyTagger
-from pyTagger.utils import walk, generateUfid
+from pyTagger.operations.on_directory import walk, walkAll
+from pyTagger.utils import generateUfid
 from tests import *
 
 INTEGRATION_TEST_DIRECTORY = os.path.join(
@@ -22,7 +23,7 @@ def setUpModule():
     if sampleFilesExist and not os.path.exists(INTEGRATION_TEST_DIRECTORY):
         os.makedirs(INTEGRATION_TEST_DIRECTORY)
 
-    for fullPath in walk(SOURCE_DIRECTORY, True):
+    for fullPath in walkAll(SOURCE_DIRECTORY):
         shutil.copy(fullPath, INTEGRATION_TEST_DIRECTORY)
 
 
@@ -173,7 +174,7 @@ class TestIntegration(unittest.TestCase):
             shutil.rmtree(cloneDir)
 
         os.makedirs(cloneDir)
-        for f in walk(os.path.join(SOURCE_DIRECTORY, 'Checkin'), True):
+        for f in walkAll(os.path.join(SOURCE_DIRECTORY, 'Checkin')):
             shutil.copy(f, cloneDir)
 
         processed = prepareForLibrary(cloneDir)
@@ -189,7 +190,7 @@ class TestIntegration(unittest.TestCase):
         self.assertTrue(os.path.exists(expected))
 
     def test_00_extractFromList(self):
-        from pyTagger.operations.on_directory import extractImagesFrom
+        from pyTagger.operations.on_directory import extractImages
         from pyTagger.proxies.id3 import ID3Proxy
 
         fileName = os.path.join(RESULT_DIRECTORY, 'extract_list.txt')
@@ -200,12 +201,15 @@ class TestIntegration(unittest.TestCase):
             f.writelines([os.path.join(
                 INTEGRATION_TEST_DIRECTORY, '08 - Aeroplane.mp3'
             ), '\n'])
+            f.writelines([os.path.join(
+                INTEGRATION_TEST_DIRECTORY, 'A text document.txt'
+            ), '\n'])
 
         targetDir = os.path.join(RESULT_DIRECTORY, 'some_images')
         if os.path.exists(targetDir):
             shutil.rmtree(targetDir)
 
-        processed = extractImagesFrom(fileName, targetDir, ID3Proxy())
+        processed = extractImages(fileName, targetDir, ID3Proxy())
 
         files = [name for name in os.listdir(targetDir)]
         self.assertEqual(len(files), 2)

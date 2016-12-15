@@ -2,12 +2,6 @@ from __future__ import unicode_literals
 import io
 from pyTagger.models import Snapshot
 
-import sys
-if sys.version < '3':  # pragma: no cover
-    _unicode = unicode
-else:  # pragma: no cover
-    _unicode = lambda x: x
-
 # yield from is only available <= Python 3.3
 SUBFIELD_SEP = '\u2027'
 

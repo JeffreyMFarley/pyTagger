@@ -5,7 +5,7 @@ import os
 import pyTagger.actions.isonom as isonom
 from configargparse import getArgumentParser
 from pyTagger.operations.from_csv import convert
-from pyTagger.operations.on_directory import extractImagesFrom
+from pyTagger.operations.on_directory import extractImages
 from pyTagger.operations.on_mp3 import updateFromSnapshot
 from pyTagger.operations.to_csv import writeCsv
 from pyTagger.operations.two_tags import union
@@ -116,25 +116,25 @@ def _step2(args):
     interview = loadJson(args.interview)
     snapshot = loadJson(args.goal_snapshot)
 
-    deletes = _buildDeletes(interview, snapshot)
-    _writeText(deletes, args.to_delete)
+    l = _buildDeletes(interview, snapshot)
+    _writeText(l, args.to_delete)
 
     # Remove the deletes from the interview
-    interview = [x for x in interview if x['newPath'] not in deletes]
+    interview = [x for x in interview if x['newPath'] not in l]
 
-    moves = _buildMoves(interview)
-    _writeText(moves, args.to_move)
+    l = _buildMoves(interview)
+    _writeText(l, args.to_move)
 
     updates = _buildUpdates(interview)
     pairs = [a + ', ' + b for a, b in updates]
     _writeText(pairs, args.to_update)
 
-    images = [b for _, b in updates]
-    _writeText(images, args.to_extract)
+    l = [b for _, b in updates]
+    _writeText(l, args.to_extract)
 
     id3Proxy = ID3Proxy()
     updated, failed = updateFromSnapshot(id3Proxy, snapshot, upgrade=True)
-    counter = extractImagesFrom(args.to_extract, args.images_dir, id3Proxy)
+    counter = extractImages(args.to_extract, args.images_dir, id3Proxy)
 
     print('Updated {0}\nFailed {1}'.format(updated, failed))
     print('Images', counter)
