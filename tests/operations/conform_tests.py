@@ -169,7 +169,7 @@ class TestConform(unittest.TestCase):
         self.target.processFile('/path/to/yasss')
 
         fmap.assert_called_with(expected, {})
-        updateOne.assert_called_once()
+        self.assertEqual(updateOne.call_count, 1)
 
 if __name__ == '__main__':
     unittest.main()
