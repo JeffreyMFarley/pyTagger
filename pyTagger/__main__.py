@@ -6,6 +6,7 @@ import pyTagger.actions.convert_csv as convert_csv
 import pyTagger.actions.export as export
 import pyTagger.actions.images as images
 import pyTagger.actions.isonom as isonom
+import pyTagger.actions.prepare as prepare
 import pyTagger.actions.rename as rename
 import pyTagger.actions.reripped as reripped
 import pyTagger.actions.scan as scan
@@ -14,18 +15,12 @@ import pyTagger.actions.upload as upload
 from pyTagger.utils import rootParser as parser
 from configargparse import getArgumentParser
 
-actions = {
-    'prepare': 'groom MP3s before adding to house library',
-}
-
-subs = parser.add_subparsers(help='available commands')
-for k in sorted(actions):
-    sub = subs.add_parser(k, help=actions[k])
 
 modules = {
     'convert-csv': convert_csv.process,
     'images': images.process,
     'isonom': isonom.process,
+    'prepare': prepare.process,
     'rename': rename.process,
     'reripped': reripped.process,
     'scan': scan.process,
@@ -34,6 +29,7 @@ modules = {
     'upload': upload.uploadToElasticsearch
 }
 
+subs = parser.add_subparsers(help='available commands')
 for m in sorted(modules):
     p = getArgumentParser(m)
     sub = subs.add_parser(m, help=p.description)

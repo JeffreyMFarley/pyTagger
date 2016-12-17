@@ -39,7 +39,7 @@ class LibraryStandard(object):
             'Amazon MP3 Exclusive Version', 'Deluxe Edition', 'Deluxe Version',
             'Deluxe', 'Explicit Content', 'Explicit Version', 'Explicit',
             'LP Version', 'Original Motion Picture Soundtrack', 'Remastered',
-            'Special Edition', 'US Release', 'US Version'
+            'Special Edition', 'US Release', 'US Version', '+digital booklet'
         ]
 
         # Build up the expel table
