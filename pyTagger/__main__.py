@@ -59,9 +59,6 @@ if __name__ == "__main__":
         except IOError as ioe:
             print(ioe)
 
-    elif action in actions:
-        print(action, 'is not yet implemented')
-
     else:
         args = parser.parse()
         parser.print_values()

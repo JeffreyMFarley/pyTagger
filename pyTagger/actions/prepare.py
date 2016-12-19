@@ -1,8 +1,6 @@
 from __future__ import print_function
 from __future__ import unicode_literals
-import io
 import os
-import pyTagger.actions.isonom as isonom
 from configargparse import getArgumentParser
 from pyTagger.operations.from_csv import convert
 from pyTagger.operations.on_directory import buildSnapshot, prepareForLibrary
