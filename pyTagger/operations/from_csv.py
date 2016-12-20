@@ -139,7 +139,7 @@ def _transform(s, column):
         return int(s)
     elif column in _booleanTags:
         return s == 'True'
-    return s
+    return s.strip()
 
 
 def _expand(cell, column):

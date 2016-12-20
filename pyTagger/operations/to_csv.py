@@ -10,7 +10,7 @@ def _encapsulate(field):
     try:
         if not field:
             return ''
-        needDoubleQuotes = [',', '"', '\r', '\n']
+        needDoubleQuotes = [',', '"', '\r', '\n', '\t']
         addDoubleQuotes = any([x in field for x in needDoubleQuotes])
         if addDoubleQuotes:
             return '"' + field.replace('"', '""') + '"'
@@ -30,6 +30,10 @@ def flattenOne(row):
             for owner, ufid in v.items():
                 k0 = 'ufid{0}{1}'.format(SUBFIELD_SEP, owner)
                 yield (k0, ufid)
+        # Prevent Excel from interpreting the subtitle field as a Date
+        elif k == 'subtitle':
+            fixed = '{0}\t'.format(v) if v else v
+            yield (k, fixed)
         else:
             yield (k, v)
 
