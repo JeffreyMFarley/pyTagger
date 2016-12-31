@@ -13,6 +13,9 @@ except ImportError:
     from mock import patch, Mock
 
 
+ONDIR_TEST_DIRECTORY = os.path.join(RESULT_DIRECTORY, 'ondir-test')
+
+
 class FakeFile(io.StringIO):
     def __iter__(self):
         yield 'foo.mp3'
@@ -186,7 +189,7 @@ class TestOnDirectory(unittest.TestCase):
     @patch('pyTagger.operations.on_directory.walk')
     def test_renameFiles_skip(self, walk, buildPath, move, needsMove):
         reader = Mock()
-        reader.extractTags = Mock(return_value='{}')
+        reader.extractTags = Mock(return_value={'a': 'b'})
         walk.return_value = ['a']
         buildPath.return_value = ['foo', 'bar', 'baz']
         needsMove.return_value = False
@@ -210,6 +213,18 @@ class TestOnDirectory(unittest.TestCase):
         self.assertEqual(c['collisions'], 0)
 
     @patch('pyTagger.operations.on_directory.walk')
+    def test_renameFiles_cannot_extract(self, walk):
+        reader = Mock()
+        reader.extractTags = Mock(return_value={})
+        walk.return_value = ['a']
+
+        c = target.renameFiles('/path/one', '/path/two', reader)
+        self.assertEqual(c['moved'], 0)
+        self.assertEqual(c['skipped'], 0)
+        self.assertEqual(c['errors'], 1)
+        self.assertEqual(c['collisions'], 0)
+
+    @patch('pyTagger.operations.on_directory.walk')
     def test_renameFiles_collision(self, walk):
         reader = Mock()
         reader.extractTags = Mock(side_effect=ValueError)
@@ -221,6 +236,137 @@ class TestOnDirectory(unittest.TestCase):
         self.assertEqual(c['errors'], 0)
         self.assertEqual(c['collisions'], 1)
 
+
+class TestOnDirectoryLive(unittest.TestCase):
+    @unittest.skipUnless(sampleFilesExist, 'MP3 Files missing')
+    def setUp(self):
+        self.tree1 = os.path.join(ONDIR_TEST_DIRECTORY, 'alpha', 'beta')
+        os.makedirs(self.tree1)
+        self.tree2 = os.path.join(ONDIR_TEST_DIRECTORY, 'foo', 'bar')
+        os.makedirs(self.tree2)
+
+    def tearDown(self):
+        if os.path.exists(ONDIR_TEST_DIRECTORY):
+            shutil.rmtree(ONDIR_TEST_DIRECTORY)
+
+    # -------------------------------------------------------------------------
+
+    def _writeAFile(self, path, fileTitle):
+        fileName = os.path.join(path, fileTitle)
+        with open(fileName, 'w') as f:
+            f.write(fileTitle + '\n')
+        return fileName
+
+    def _writeReplaceFile(self, fileTitle, source, dest):
+        fileName = os.path.join(ONDIR_TEST_DIRECTORY, fileTitle)
+        with open(fileName, 'w') as f:
+            f.write('{0}\t{1}\n'.format(source, dest))
+        return fileName
+
+    # -------------------------------------------------------------------------
+
+    def test_deleteEmptyDirectories_noneEmpty(self):
+        file1 = self._writeAFile(self.tree1, 'gamma.txt')
+        file2 = self._writeAFile(self.tree2, 'baz.txt')
+        success, skipped = target.deleteEmptyDirectories(ONDIR_TEST_DIRECTORY)
+        self.assertEqual(success, 0)
+        self.assertEqual(skipped, 5)
+        self.assertTrue(os.path.exists(file1))
+        self.assertTrue(os.path.exists(file2))
+
+    def test_deleteEmptyDirectories_oneEmpty(self):
+        file1 = self._writeAFile(self.tree1, 'delta.txt')
+        success, skipped = target.deleteEmptyDirectories(ONDIR_TEST_DIRECTORY)
+        self.assertEqual(success, 2)
+        self.assertEqual(skipped, 3)
+        self.assertTrue(os.path.exists(file1))
+        self.assertFalse(os.path.exists(self.tree2))
+
+    def test_deleteEmptyDirectories_allEmptyMultilevel(self):
+        success, skipped = target.deleteEmptyDirectories(ONDIR_TEST_DIRECTORY)
+        self.assertEqual(success, 5)
+        self.assertEqual(skipped, 0)
+        self.assertFalse(os.path.exists(self.tree1))
+        self.assertFalse(os.path.exists(self.tree2))
+
+    def test_deleteFiles_happy(self):
+        file1 = self._writeAFile(self.tree1, 'gamma.txt')
+        file2 = self._writeAFile(self.tree2, 'baz.mp3')
+        success, failed = target.deleteFiles(ONDIR_TEST_DIRECTORY)
+        self.assertEqual(success, 2)
+        self.assertEqual(failed, 0)
+        self.assertTrue(os.path.exists(self.tree1))
+        self.assertTrue(os.path.exists(self.tree2))
+
+    @patch('pyTagger.operations.on_directory.os.remove')
+    def test_deleteFiles_errors(self, remove):
+        remove.side_effect = OSError
+
+        file1 = self._writeAFile(self.tree1, 'gamma.txt')
+        file2 = self._writeAFile(self.tree2, 'baz.txt')
+        success, failed = target.deleteFiles(ONDIR_TEST_DIRECTORY)
+        self.assertEqual(success, 0)
+        self.assertEqual(failed, 2)
+        self.assertTrue(os.path.exists(file1))
+        self.assertTrue(os.path.exists(file2))
+
+    def test_replaceFiles_happy(self):
+        file1 = self._writeAFile(self.tree1, 'epsilon.txt')
+        file2 = self._writeAFile(self.tree2, 'qaz.txt')
+        pairFile = self._writeReplaceFile('updates.txt', file2, file1)
+
+        c = target.replaceFiles(pairFile)
+
+        self.assertEqual(c['replaced'], 1)
+        self.assertEqual(c['missing-source'], 0)
+        self.assertEqual(c['missing-dest'], 0)
+        self.assertEqual(c['errors'], 0)
+        self.assertTrue(os.path.exists(file1))
+        self.assertFalse(os.path.exists(file2))
+
+        with open(file1) as f:
+            contents = f.read()
+        self.assertEqual(contents, 'qaz.txt\n')
+
+    def test_replaceFiles_sourceMissing(self):
+        file1 = self._writeAFile(self.tree1, 'zeta.txt')
+        pairFile = self._writeReplaceFile('updates.txt', 'foo.txt', file1)
+
+        c = target.replaceFiles(pairFile)
+
+        self.assertEqual(c['replaced'], 0)
+        self.assertEqual(c['missing-source'], 1)
+        self.assertEqual(c['missing-dest'], 0)
+        self.assertEqual(c['errors'], 0)
+        self.assertTrue(os.path.exists(file1))
+
+    def test_replaceFiles_destMissing(self):
+        file2 = self._writeAFile(self.tree2, 'boz.txt')
+        pairFile = self._writeReplaceFile('updates.txt', file2, 'foo.txt')
+
+        c = target.replaceFiles(pairFile)
+
+        self.assertEqual(c['replaced'], 0)
+        self.assertEqual(c['missing-source'], 0)
+        self.assertEqual(c['missing-dest'], 1)
+        self.assertEqual(c['errors'], 0)
+        self.assertTrue(os.path.exists(file2))
+
+    @patch('pyTagger.operations.on_directory.shutil.move')
+    def test_replaceFiles_destPermission(self, move):
+        file1 = self._writeAFile(self.tree1, 'theta.txt')
+        file2 = self._writeAFile(self.tree2, 'daq.txt')
+        pairFile = self._writeReplaceFile('updates.txt', file2, file1)
+        move.side_effect = IOError
+
+        c = target.replaceFiles(pairFile)
+
+        self.assertEqual(c['replaced'], 0)
+        self.assertEqual(c['missing-source'], 0)
+        self.assertEqual(c['missing-dest'], 0)
+        self.assertEqual(c['errors'], 1)
+        self.assertTrue(os.path.exists(file1))
+        self.assertTrue(os.path.exists(file2))
 
 if __name__ == '__main__':
     unittest.main()

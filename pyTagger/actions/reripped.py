@@ -4,8 +4,11 @@ import io
 import os
 import pyTagger.actions.isonom as isonom
 from configargparse import getArgumentParser
+from pyTagger.operations.ask import askMultipleChoice
 from pyTagger.operations.from_csv import convert
-from pyTagger.operations.on_directory import extractImages
+from pyTagger.operations.on_directory import extractImages, deleteFiles
+from pyTagger.operations.on_directory import renameFiles, replaceFiles
+from pyTagger.operations.on_directory import deleteEmptyDirectories
 from pyTagger.operations.on_mp3 import updateFromSnapshot
 from pyTagger.operations.to_csv import writeCsv
 from pyTagger.operations.two_tags import union
@@ -40,7 +43,13 @@ group.add('--to-move', default='to-move.txt',
           help='the file that lists the MP3s to be moved')
 group.add('--to-update', default='to-update.txt',
           help='the file that lists the MP3s to be overwritten')
-
+group = p.add_argument_group('Step 3')
+group.add('--library-dir', default=os.path.join(os.getcwd(), 'Music'),
+          help='the directory where the managed MP3s are located')
+group.add('--intake-dir', default=os.path.join(os.getcwd(), 'Add To Library'),
+          help='the directory where the incoming MP3s are located')
+group.add('--cleanup', action='store_true',
+          help='clean up files if successful')
 # -----------------------------------------------------------------------------
 
 SUCCESS = "Success"
@@ -126,7 +135,7 @@ def _step2(args):
     _writeText(l, args.to_move)
 
     updates = _buildUpdates(interview)
-    pairs = [a + ', ' + b for a, b in updates]
+    pairs = [a + '\t' + b for a, b in updates]
     _writeText(pairs, args.to_update)
 
     l = [b for _, b in updates]
@@ -144,6 +153,84 @@ def _step2(args):
 # -----------------------------------------------------------------------------
 
 
+def _image_ask():
+    choices = {'Y': 'Yes', 'N': 'No'}
+    a = askMultipleChoice(None, 'Have the images been copied?', choices, False)
+    return a == 'Y'
+
+
+def _deleteFiles(args):
+    if not os.path.exists(args.to_delete):
+        return True
+
+    s, f = deleteFiles(args.to_delete)
+    print('Deleted {0}, Errors {1}'.format(s, f))
+
+    passed = f == 0
+
+    if args.cleanup and passed:
+        os.remove(args.to_delete)
+
+    return passed
+
+
+def _moveFiles(args):
+    if not os.path.exists(args.to_move):
+        return True
+
+    reader = ID3Proxy()
+    c = renameFiles(args.to_move, args.library_dir, reader)
+    print('Moved', c)
+
+    passed = c['moved'] == sum(c.values())
+
+    if args.cleanup and passed:
+        os.remove(args.to_move)
+
+    return passed
+
+
+def _replaceFiles(args):
+    if not os.path.exists(args.to_update):
+        return True
+
+    c = replaceFiles(args.to_update)
+
+    print('Replaced', c)
+
+    passed = c['replaced'] == sum(c.values())
+
+    if args.cleanup and passed:
+        os.remove(args.to_update)
+
+    return passed
+
+
+def _step3(args):
+    if not _image_ask():
+        return 'Not Ready'
+
+    p0 = _deleteFiles(args)
+    p1 = _moveFiles(args)
+    p2 = _replaceFiles(args)
+
+    passed = p0 and p1 and p2
+
+    if args.cleanup:
+        d, s = deleteEmptyDirectories(args.intake_dir)
+        print('Removed {0} directories, skipped {1}'.format(d, s))
+
+        if passed:
+            print('Removing goals files')
+            os.remove(args.goal_csv)
+            os.remove(args.goal_snapshot)
+            os.remove(args.interview)
+
+    return SUCCESS if passed else 'Not Completed'
+
+# -----------------------------------------------------------------------------
+
+
 def process(args):
     result = "Not Implemented"
 
@@ -152,5 +239,8 @@ def process(args):
 
     elif args.step == 2:
         return _step2(args)
+
+    elif args.step == 3:
+        return _step3(args)
 
     return result

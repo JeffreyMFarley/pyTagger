@@ -114,6 +114,37 @@ def buildHashTable(path):
     return table
 
 
+def deleteEmptyDirectories(path):
+    # Flatten the list of directories, walking bottom up
+    queue = []
+    for currentDir, _, _ in os.walk(_unicode(path), topdown=False):
+        queue.append(currentDir)
+
+    # Now check the values, `os.walk` does not recognize intermediate deletes
+    success, skipped = 0, 0
+    for p in queue:
+        size = len(os.listdir(p))
+        if not size:
+            os.rmdir(p)
+            success += 1
+        else:
+            skipped += 1
+
+    return success, skipped
+
+
+def deleteFiles(path):
+    success, failed = 0, 0
+    for fileName in walkAll(path):
+        try:
+            os.remove(fileName)
+            success += 1
+        except OSError:
+            failed += 1
+
+    return success, failed
+
+
 def extractImages(path, outputDir, id3Proxy):
     hashTable = {}
     if not os.path.exists(outputDir):
@@ -141,6 +172,8 @@ def renameFiles(path, destDir, reader):
     for fullPath in walk(path):
         try:
             tags = reader.extractTags(fullPath)
+            if not tags:
+                raise OSError
             jointed = buildPath(tags, fullPath[-3:])
             proposed = os.path.join(destDir, *jointed)
 
@@ -158,4 +191,22 @@ def renameFiles(path, destDir, reader):
         except ValueError:
             c['collisions'] += 1
 
+    return c
+
+
+def replaceFiles(fileOfFilePairs):
+    c = Counter()
+    with io.open(fileOfFilePairs, 'r', encoding='utf-8') as f:
+        for l in f:
+            source, dest = l.strip().split('\t')
+            if not os.path.exists(source):
+                c['missing-source'] += 1
+            elif not os.path.exists(dest):
+                c['missing-dest'] += 1
+            else:
+                try:
+                    shutil.move(source, dest)
+                    c['replaced'] += 1
+                except:
+                    c['errors'] += 1
     return c

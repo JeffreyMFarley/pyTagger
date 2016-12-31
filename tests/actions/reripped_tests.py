@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 import io
 import unittest
 import pyTagger.actions.reripped as target
+from nose_parameterized import parameterized
 from pyTagger.utils import configurationOptions
 try:
     from unittest.mock import patch, Mock
@@ -93,6 +94,8 @@ class TestRerippedAction(unittest.TestCase):
         self.assertEqual(isonom.process.call_count, 0)
         self.assertEqual(writeCsv.call_count, 0)
 
+    # -------------------------------------------------------------------------
+
     def test_buildDeletes(self):
         snapshot = {'/foo/baz': {}}
         expected = ['/foo/bar', '/foo/qaz']
@@ -175,8 +178,130 @@ class TestRerippedAction(unittest.TestCase):
         self.assertEqual(update.call_count, 1)
         self.assertEqual(extract.call_count, 1)
 
-    def test_process_step3(self):
+    # -------------------------------------------------------------------------
+
+    def test_deleteFiles_no_file(self):
+        actual = target._deleteFiles(self.options)
+        self.assertEqual(actual, True)
+
+    @patch('pyTagger.actions.reripped.os.remove')
+    @patch('pyTagger.actions.reripped.deleteFiles')
+    @patch('pyTagger.actions.reripped.os.path.exists')
+    def test_deleteFiles_success(self, exists, deleteFiles, remove):
+        self.options.cleanup = True
+        self.options.to_delete = 'foo.txt'
+        exists.return_value = True
+        deleteFiles.return_value = (99, 0)
+        actual = target._deleteFiles(self.options)
+        self.assertEqual(actual, True)
+        remove.assert_called_with('foo.txt')
+
+    @patch('pyTagger.actions.reripped.os.remove')
+    @patch('pyTagger.actions.reripped.deleteFiles')
+    @patch('pyTagger.actions.reripped.os.path.exists')
+    def test_deleteFiles_errors(self, exists, deleteFiles, remove):
+        self.options.cleanup = True
+        self.options.to_delete = 'foo.txt'
+        exists.return_value = True
+        deleteFiles.return_value = (99, 1)
+        actual = target._deleteFiles(self.options)
+        self.assertEqual(actual, False)
+        self.assertEqual(remove.call_count, 0)
+
+    def test_moveFiles_no_file(self):
+        actual = target._moveFiles(self.options)
+        self.assertEqual(actual, True)
+
+    @patch('pyTagger.actions.reripped.os.remove')
+    @patch('pyTagger.actions.reripped.renameFiles')
+    @patch('pyTagger.actions.reripped.os.path.exists')
+    def test_moveFiles_success(self, exists, renameFiles, remove):
+        self.options.cleanup = True
+        self.options.to_move = 'foo.txt'
+        exists.return_value = True
+        renameFiles.return_value = {'moved': 13}
+        actual = target._moveFiles(self.options)
+        self.assertEqual(actual, True)
+        remove.assert_called_with('foo.txt')
+
+    @patch('pyTagger.actions.reripped.os.remove')
+    @patch('pyTagger.actions.reripped.renameFiles')
+    @patch('pyTagger.actions.reripped.os.path.exists')
+    def test_moveFiles_errors(self, exists, renameFiles, remove):
+        self.options.cleanup = True
+        self.options.to_move = 'foo.txt'
+        exists.return_value = True
+        renameFiles.return_value = {'moved': 13, 'foo': 2}
+        actual = target._moveFiles(self.options)
+        self.assertEqual(actual, False)
+        self.assertEqual(remove.call_count, 0)
+
+    def test_replaceFiles_no_file(self):
+        actual = target._replaceFiles(self.options)
+        self.assertEqual(actual, True)
+
+    @patch('pyTagger.actions.reripped.os.remove')
+    @patch('pyTagger.actions.reripped.replaceFiles')
+    @patch('pyTagger.actions.reripped.os.path.exists')
+    def test_replaceFiles_success(self, exists, replaceFiles, remove):
+        self.options.cleanup = True
+        self.options.to_update = 'foo.txt'
+        exists.return_value = True
+        replaceFiles.return_value = {'replaced': 13}
+        actual = target._replaceFiles(self.options)
+        self.assertEqual(actual, True)
+        remove.assert_called_with('foo.txt')
+
+    @patch('pyTagger.actions.reripped.os.remove')
+    @patch('pyTagger.actions.reripped.replaceFiles')
+    @patch('pyTagger.actions.reripped.os.path.exists')
+    def test_replaceFiles_errors(self, exists, replaceFiles, remove):
+        self.options.cleanup = True
+        self.options.to_update = 'foo.txt'
+        exists.return_value = True
+        replaceFiles.return_value = {'replaced': 13, 'foo': 2}
+        actual = target._replaceFiles(self.options)
+        self.assertEqual(actual, False)
+        self.assertEqual(remove.call_count, 0)
+
+    @patch('pyTagger.actions.reripped.askMultipleChoice')
+    def test_process_step3_not_ready(self, ask):
         self.options.step = 3
+        ask.return_value = 'N'
+
+        actual = target.process(self.options)
+        self.assertEqual(actual, 'Not Ready')
+
+    @parameterized.expand([
+        (True, True, True, 'Success'),
+        (True, True, False, 'Not Completed'),
+        (True, False, True, 'Not Completed')
+    ])
+    @patch('pyTagger.actions.reripped.os.remove')
+    @patch('pyTagger.actions.reripped._replaceFiles')
+    @patch('pyTagger.actions.reripped._moveFiles')
+    @patch('pyTagger.actions.reripped._deleteFiles')
+    @patch('pyTagger.actions.reripped.askMultipleChoice')
+    def test_process_step3(self, r0, r1, r2, expect, ask, df, mf, rf, remove):
+        self.options.step = 3
+        self.options.cleanup = r2
+        ask.return_value = 'Y'
+        df.return_value = r0
+        mf.return_value = r1
+        rf.return_value = r2
+
+        actual = target.process(self.options)
+        self.assertEqual(actual, expect)
+
+        if expect == 'Success':
+            self.assertEqual(remove.call_count, 3)
+        else:
+            self.assertEqual(remove.call_count, 0)
+
+    # -------------------------------------------------------------------------
+
+    def test_process_step4(self):
+        self.options.step = 4
         actual = target.process(self.options)
         self.assertEqual(actual, "Not Implemented")
 
