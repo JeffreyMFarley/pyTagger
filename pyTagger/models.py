@@ -15,7 +15,7 @@ class Snapshot(object):
     songwriting = ['bpm', 'composer', 'key', 'lyrics', 'language']
     production = ['year', 'releaseDate', 'originalReleaseDate',
                   'recordingDate', 'conductor', 'remixer', 'publisher']
-    distribution = ['media', 'disc', 'totalDisc']
+    distribution = ['barcode', 'media', 'disc', 'totalDisc']
     library = ['genre', 'id', 'ufid', 'compilation', 'comments', 'playCount',
                'group', 'subtitle', 'encodingDate', 'taggingDate']
     mp3Info = ['bitRate', 'vbr', 'fileHash', 'version']

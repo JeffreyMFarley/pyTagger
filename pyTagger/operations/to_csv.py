@@ -30,8 +30,8 @@ def flattenOne(row):
             for owner, ufid in v.items():
                 k0 = 'ufid{0}{1}'.format(SUBFIELD_SEP, owner)
                 yield (k0, ufid)
-        # Prevent Excel from interpreting the subtitle field as a Date
-        elif k == 'subtitle':
+        # Prevent Excel from interpreting some fields as a Date or Integer
+        elif k in ['barcode', 'subtitle']:
             fixed = '{0}\t'.format(v) if v else v
             yield (k, fixed)
         else:

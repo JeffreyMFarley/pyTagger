@@ -78,6 +78,7 @@ _useSetAttrString = {
 }
 
 _useSetTextFrame = {
+    'barcode': 'TSRC',
     'compilation': 'TCMP',
     'composer': 'TCOM',
     'conductor': 'TPE3',
@@ -191,6 +192,7 @@ class ID3Proxy(object):
         'album': lambda x: x.tag.album,
         'albumArtist': lambda x: x.tag.album_artist,
         'artist': lambda x: x.tag.artist,
+        'barcode': lambda x:  x.tag.getTextFrame('TSRC'),
         'bitRate':
         lambda x: x.info.bit_rate[1] if x.info is not None else None,
         'bpm': lambda x: x.tag.bpm,
