@@ -62,6 +62,10 @@
             }
           }
         },
+        "barcode": {
+          "type": "string",
+          "analyzer": "normalized"
+        },
         "basic": {
           "type": "string",
           "analyzer": "normalized"
@@ -173,7 +177,7 @@
         "subtitle": {
           "type": "string",
           "fields": {
-            "djtagger": { 
+            "djtagger": {
               "type":  "date",
               "ignore_malformed": true
             }
