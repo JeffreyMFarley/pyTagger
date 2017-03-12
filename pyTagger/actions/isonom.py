@@ -24,6 +24,8 @@ group.add('--intake-snapshot', default='mp3s.json',
           help='a snapshot of files to check')
 group.add('--interview', default='interview.json',
           help='communcation with the user about the match results')
+group.add('--min-score', default=4,
+          help='lower values lead to more matches, but less accurate')
 
 # -----------------------------------------------------------------------------
 
@@ -41,7 +43,7 @@ def _findIsonoms(args, client):
     output = saveJsonIncrementalArray(args.interview)
     rows = next(output)
 
-    for row in findIsonoms(client, snapshot):
+    for row in findIsonoms(client, snapshot, args.min_score):
         rows = output.send(row._asdict())
 
     output.close()

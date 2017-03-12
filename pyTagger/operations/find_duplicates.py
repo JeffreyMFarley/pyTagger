@@ -41,12 +41,12 @@ def findClones(client):
 # Isonom = Name based matches
 
 
-def _isonomQuery(track):
+def _isonomQuery(track, minScore):
     query = {
         'from': 0, 'size': 6,
         'sort': '_score',
         'query': {'bool': {}},
-        'min_score': 4
+        'min_score': minScore
     }
 
     if 'id' in track and track['id']:
@@ -79,21 +79,26 @@ def _projectIsonomResults(response):
         yield (hit['_score'], hit['_source'])
 
 
-def findIsonomTracks(client, track):
-    query = _isonomQuery(track)
+def findIsonomTracks(client, track, minScore):
+    client.log.info('=' * 50)
+    client.log.info('\t'.join([track['title'], track['album']]))
+    query = _isonomQuery(track, minScore)
     response = client.search(query)
     for score, isonom in _projectIsonomResults(response):
         path = isonom['path']
         del isonom['path']
+        client.log.info('\t'.join([
+             str(score), isonom['title'], isonom['album'], path
+        ]))
         yield (path, score, isonom)
 
 
-def findIsonoms(client, snapshot):
+def findIsonoms(client, snapshot, minScore):
     for k in sorted(snapshot):
         v = snapshot[k]
 
         try:
-            matches = list(findIsonomTracks(client, v))
+            matches = list(findIsonomTracks(client, v, minScore))
             quality = [x for x in matches if x[1] >= 12]
 
             if len(quality) == 1:
