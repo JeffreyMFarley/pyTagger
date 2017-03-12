@@ -104,7 +104,7 @@ class TestIsonomAction(unittest.TestCase):
         self.assertEqual(actual, "Interview Not Complete")
 
     def test_process_finished_interview(self):
-        self.interview.return_value.isComplete.return_value = False
+        self.interview.return_value.isComplete.side_effect = [False, True]
         self.interview.return_value.conduct.return_value = True
         actual = target.process(self.options)
         self.assertTrue(self.interview.return_value.saveState.called)

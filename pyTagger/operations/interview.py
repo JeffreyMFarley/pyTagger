@@ -99,7 +99,6 @@ class Interview(object):
         self.input = rows
         self.current = []
         self.output = []
-        self.unfinished = _scan(rows)
         self.userQuit = False
         self.userDiscard = False
         self.step = 0
@@ -122,7 +121,8 @@ class Interview(object):
     # Public Methods
 
     def isComplete(self):
-        return self.unfinished == 0
+        rows = list(itertools.chain(self.output, self.current, self.input))
+        return _scan(rows) == 0
 
     def conduct(self):
         a = askMultipleChoice(0, 'Ready to begin the interview?', {

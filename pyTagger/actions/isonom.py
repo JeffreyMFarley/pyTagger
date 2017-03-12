@@ -72,7 +72,7 @@ def process(args):
     if not interview.isComplete():
         if interview.conduct():
             interview.saveState(args.interview)
-            return _success if not interview.userQuit else _notFinished
+            return _success if interview.isComplete() else _notFinished
         else:
             return _notFinished
 
