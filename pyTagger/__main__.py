@@ -15,6 +15,11 @@ import pyTagger.actions.upload as upload
 from pyTagger.utils import rootParser as parser
 from configargparse import getArgumentParser
 
+try:
+    from Tkinter import Tk
+except ImportError:
+    from tkinter import Tk
+
 
 modules = {
     'convert-csv': convert_csv.process,
@@ -37,6 +42,7 @@ for m in sorted(modules):
     subs._name_parser_map[m] = p
 
 if __name__ == "__main__":
+    Tk().withdraw()
     logging.basicConfig()
     os.system('cls' if os.name == 'nt' else 'clear')
 

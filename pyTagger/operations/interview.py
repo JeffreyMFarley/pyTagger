@@ -4,7 +4,9 @@ import itertools
 from pyTagger.operations.ask import askMultipleChoice
 from pyTagger.utils import saveJson
 
+
 basicOptions = {
+    'B': 'Browse for Match',
     'D': 'Drop this row',
     'M': 'Manual Entry',
     'I': 'Ignore for now',
@@ -44,6 +46,9 @@ def _handleMultiple(context):
         try:
             context.chooseCurrent(int(a) - 1)
         except ValueError:
+            if a == 'B':
+                if not context.browseForCurrent():
+                    context.currentToOutput()
             if a == 'D':
                 context.dropCurrent()
             elif a == 'I':
@@ -64,7 +69,10 @@ def _handleNothing(context):
     key = context.loadCurrent()
     try:
         a = askMultipleChoice(context.step, key, basicOptions)
-        if a == 'M':
+        if a == 'B':
+            if not context.browseForCurrent():
+                context.currentToOutput()
+        elif a == 'M':
             context.chooseCurrentAsManual()
         elif a == 'D':
             context.dropCurrent()
@@ -177,6 +185,29 @@ class Interview(object):
         row['oldTags'] = None
         self.output.append(row)
         self.current = []
+
+    def browseForCurrent(self):
+        from pyTagger.proxies.id3 import ID3Proxy
+        try:
+            from tkFileDialog import askopenfilename
+        except ImportError:
+            from filedialog import askopenfilename
+
+        filename = askopenfilename()
+        if not filename:
+            return False
+
+        try:
+            id3Proxy = ID3Proxy()
+            row = self.current[0]
+            row['status'] = 'ready'
+            row['oldPath'] = filename
+            row['oldTags'] = id3Proxy.extractTags(filename)
+            self.output.append(row)
+            self.current = []
+            return True
+        except:
+            return False
 
     def currentToOutput(self):
         for row in self.current:
