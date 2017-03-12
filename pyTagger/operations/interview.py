@@ -36,7 +36,6 @@ def _handleMultiple(context):
     key = context.loadCurrent()
 
     options = dict(basicOptions)
-    del options['M']
     for i, row in enumerate(context.current):
         options[str(i + 1)] = row['oldPath']
 
@@ -49,6 +48,8 @@ def _handleMultiple(context):
                 context.dropCurrent()
             elif a == 'I':
                 context.currentToOutput()
+            elif a == 'M':
+                context.chooseCurrentAsManual()
             elif a == 'X':
                 context.quit()
             elif a == 'Z':
@@ -64,7 +65,7 @@ def _handleNothing(context):
     try:
         a = askMultipleChoice(context.step, key, basicOptions)
         if a == 'M':
-            context.chooseCurrent(0, 'manual')
+            context.chooseCurrentAsManual()
         elif a == 'D':
             context.dropCurrent()
         elif a == 'X':
@@ -166,6 +167,14 @@ class Interview(object):
     def chooseCurrent(self, i, newStatus='ready'):
         row = self.current[i]
         row['status'] = newStatus
+        self.output.append(row)
+        self.current = []
+
+    def chooseCurrentAsManual(self):
+        row = self.current[0]
+        row['status'] = 'manual'
+        row['oldPath'] = None
+        row['oldTags'] = None
         self.output.append(row)
         self.current = []
 

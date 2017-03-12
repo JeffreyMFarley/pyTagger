@@ -59,7 +59,6 @@ class TestInterviewFunctions(unittest.TestCase):
             '2': 'bar',
             '3': 'baz'
         })
-        del expected['M']
         ask.return_value = '1'
 
         sut._handleMultiple(self.context)
@@ -82,6 +81,12 @@ class TestInterviewFunctions(unittest.TestCase):
         ask.return_value = 'D'
         sut._handleMultiple(self.context)
         self.assertEqual(self.context.dropCurrent.call_count, 1)
+
+    @patch('pyTagger.operations.interview.askMultipleChoice')
+    def test_handleMultiple_choose_manual(self, ask):
+        ask.return_value = 'M'
+        sut._handleMultiple(self.context)
+        self.assertEqual(self.context.chooseCurrentAsManual.call_count, 1)
 
     @patch('pyTagger.operations.interview.askMultipleChoice')
     def test_handleMultiple_choose_ignore(self, ask):
@@ -126,7 +131,7 @@ class TestInterviewFunctions(unittest.TestCase):
     def test_handleNothing_choose_manual(self, ask):
         ask.return_value = 'M'
         sut._handleNothing(self.context)
-        self.context.chooseCurrent.assert_called_with(0, 'manual')
+        self.assertEqual(self.context.chooseCurrentAsManual.call_count, 1)
 
     @patch('pyTagger.operations.interview.askMultipleChoice')
     def test_handleNothing_choose_drop(self, ask):
@@ -244,6 +249,16 @@ class TestInterviewClass(unittest.TestCase):
         self.assertEqual(self.target.current, [])
         self.assertEqual(len(self.target.output), 1)
         self.assertEqual(self.target.output[0]['status'], 'bar')
+
+    def test_chooseCurrentAsManual(self):
+        self.target.current = copy.deepcopy(data)
+        self.target.chooseCurrentAsManual()
+        self.assertEqual(self.target.current, [])
+        self.assertEqual(len(self.target.output), 1)
+        self.assertEqual(self.target.output[0]['status'], 'manual')
+        self.assertEqual(self.target.output[0]['newPath'], 'alpha')
+        self.assertEqual(self.target.output[0]['oldPath'], None)
+        self.assertEqual(self.target.output[0]['oldTags'], None)
 
     def test_currentToOutput(self):
         self.target.current = copy.deepcopy(data)
