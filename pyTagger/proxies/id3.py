@@ -289,4 +289,4 @@ class ID3Proxy(object):
         self.log.info("Writing %s", self.normalize(track.tag.file_info.name))
         _update(track, tags)
         version = _compliance(track, upgrade)
-        track.tag.save(version=version)
+        track.tag.save(version=version, encoding='utf8')

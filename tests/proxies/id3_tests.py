@@ -676,7 +676,8 @@ class ID3V23_Snapshot(BaseSpecifications):
 
     def test_adds_lyric_when_none_exist(self):
         tags = {'lyrics': [{
-            'lang': 'eng', 'text': 'here is some text', 'description': ''
+            'lang': 'haw', 'text': u'Kaulana n\u0101 pua a\u02bbo Hawai\u02bbi',
+            'description': ''
         }]}
         actual = {}
 
@@ -687,7 +688,8 @@ class ID3V23_Snapshot(BaseSpecifications):
 
     def test_adds_lyric_when_some_exist(self):
         tags = {'lyrics': [{
-            'lang': 'eng', 'text': 'here is some text', 'description': 'other'
+            'lang': 'haw', 'text': u'Kaulana n\u0101 pua a\u02bbo Hawai\u02bbi',
+            'description': 'other'
         }]}
         actual = {}
 
@@ -698,7 +700,9 @@ class ID3V23_Snapshot(BaseSpecifications):
         assert len(innerActual) == 2
         expected = [x for x in innerActual if x['description'] == 'other']
         assert len(expected) == 1
-        assert 'here is some text' == expected[0]['text']
+        self.assertEqual(
+            u'Kaulana n\u0101 pua a\u02bbo Hawai\u02bbi', expected[0]['text']
+        )
 
     def test_removes_lyric_when_some_exist(self):
         tags = {'lyrics': [{'lang': 'eng', 'text': '', 'description': ''}]}

@@ -44,12 +44,14 @@ def updateOne(id3Proxy, fileName, updates, upgrade=False):
     if not track or not track.tag:
         return 0
 
-    asIs = id3Proxy.extractTagsFromTrack(track)
-    delta = difference(updates, asIs)
+    try:
+        asIs = id3Proxy.extractTagsFromTrack(track)
+        delta = difference(updates, asIs)
 
-    id3Proxy.saveID3(track, delta, upgrade)
-    return 1
-
+        id3Proxy.saveID3(track, delta, upgrade)
+        return 1
+    except Exception:
+        return 0
 
 def updateFromSnapshot(id3Proxy, snapshot, upgrade=False):
     updated, failed = 0, 0
