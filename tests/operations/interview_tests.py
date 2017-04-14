@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 import copy
 import io
+import sys
 import unittest
 import pyTagger.operations.interview as sut
 try:
@@ -77,6 +78,20 @@ class TestInterviewFunctions(unittest.TestCase):
         self.context.chooseCurrent.assert_called_with(1)
 
     @patch('pyTagger.operations.interview.askMultipleChoice')
+    def test_handleMultiple_choose_browse_successful(self, ask):
+        ask.return_value = 'B'
+        self.context.browseForCurrent.return_value = True
+        sut._handleMultiple(self.context)
+        self.assertEqual(self.context.currentToOutput.call_count, 0)
+
+    @patch('pyTagger.operations.interview.askMultipleChoice')
+    def test_handleMultiple_choose_browse_cancel(self, ask):
+        ask.return_value = 'B'
+        self.context.browseForCurrent.return_value = False
+        sut._handleMultiple(self.context)
+        self.assertEqual(self.context.currentToOutput.call_count, 1)
+
+    @patch('pyTagger.operations.interview.askMultipleChoice')
     def test_handleMultiple_choose_drop(self, ask):
         ask.return_value = 'D'
         sut._handleMultiple(self.context)
@@ -126,6 +141,20 @@ class TestInterviewFunctions(unittest.TestCase):
         ask.return_value = 'M'
         sut._handleNothing(self.context)
         ask.assert_called_with(99, 'foo', expected)
+
+    @patch('pyTagger.operations.interview.askMultipleChoice')
+    def test_handleNothing_choose_browse_successful(self, ask):
+        ask.return_value = 'B'
+        self.context.browseForCurrent.return_value = True
+        sut._handleNothing(self.context)
+        self.assertEqual(self.context.currentToOutput.call_count, 0)
+
+    @patch('pyTagger.operations.interview.askMultipleChoice')
+    def test_handleNothing_choose_browse_cancel(self, ask):
+        ask.return_value = 'B'
+        self.context.browseForCurrent.return_value = False
+        sut._handleNothing(self.context)
+        self.assertEqual(self.context.currentToOutput.call_count, 1)
 
     @patch('pyTagger.operations.interview.askMultipleChoice')
     def test_handleNothing_choose_manual(self, ask):
@@ -259,6 +288,40 @@ class TestInterviewClass(unittest.TestCase):
         self.assertEqual(self.target.output[0]['newPath'], 'alpha')
         self.assertEqual(self.target.output[0]['oldPath'], None)
         self.assertEqual(self.target.output[0]['oldTags'], None)
+
+    @unittest.skipIf(sys.version >= '3', 'tkFileDialog is in PY 2.X')
+    @patch('tkFileDialog.askopenfilename')
+    def test_browseForCurrent_noFile(self, askOpen):
+        askOpen.return_value = ""
+        actual = self.target.browseForCurrent()
+        self.assertEqual(actual, False)
+
+    @unittest.skipIf(sys.version >= '3', 'tkFileDialog is in PY 2.X')
+    @patch('pyTagger.proxies.id3.ID3Proxy')
+    @patch('tkFileDialog.askopenfilename')
+    def test_browseForCurrent_badFile(self, askOpen, proxy):
+        askOpen.return_value = "foo.mp3"
+        proxy.side_effect = IOError
+        actual = self.target.browseForCurrent()
+        self.assertEqual(actual, False)
+
+    @unittest.skipIf(sys.version >= '3', 'tkFileDialog is in PY 2.X')
+    @patch('pyTagger.proxies.id3.ID3Proxy')
+    @patch('tkFileDialog.askopenfilename')
+    def test_browseForCurrent_goodFile(self, askOpen, proxy):
+        self.target.current = copy.deepcopy(data)
+
+        askOpen.return_value = "foo.mp3"
+        instance = proxy.return_value
+        instance.extractTags.return_value = 'foo'
+
+        actual = self.target.browseForCurrent()
+
+        self.assertEqual(actual, True)
+        self.assertEqual(self.target.output[0]['status'], 'ready')
+        self.assertEqual(self.target.output[0]['oldPath'], 'foo.mp3')
+        self.assertEqual(self.target.output[0]['oldTags'], 'foo')
+        self.assertEqual(self.target.current, [])
 
     def test_currentToOutput(self):
         self.target.current = copy.deepcopy(data)

@@ -49,7 +49,7 @@ def _handleMultiple(context):
             if a == 'B':
                 if not context.browseForCurrent():
                     context.currentToOutput()
-            if a == 'D':
+            elif a == 'D':
                 context.dropCurrent()
             elif a == 'I':
                 context.currentToOutput()
@@ -206,7 +206,7 @@ class Interview(object):
             self.output.append(row)
             self.current = []
             return True
-        except:
+        except Exception:
             return False
 
     def currentToOutput(self):
