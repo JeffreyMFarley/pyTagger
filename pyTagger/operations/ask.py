@@ -3,7 +3,9 @@ from __future__ import unicode_literals
 import os
 import sys
 import textwrap
+from hew import Normalizer
 
+normalizer = Normalizer()
 
 def get_input():  # pragma: no cover
     if sys.version < '3':
@@ -13,9 +15,12 @@ def get_input():  # pragma: no cover
 
 
 def wrapped_out(i, s):
+    global normalizer
+
     lead = '{0}. '.format(i) if i else ''
     wrapper = textwrap.TextWrapper(width=80, initial_indent=lead,
                                    subsequent_indent=' ' * len(lead))
+    s = normalizer.to_ascii(s)
     s = wrapper.fill(s)
     print(s)
 

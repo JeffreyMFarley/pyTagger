@@ -2,6 +2,7 @@ from __future__ import print_function
 import logging
 import os
 import sys
+import traceback
 import pyTagger.actions.convert_csv as convert_csv
 import pyTagger.actions.export as export
 import pyTagger.actions.images as images
@@ -60,10 +61,9 @@ if __name__ == "__main__":
         print('=' * 80)
         try:
             print(modules[action](args))
-        except ValueError as ve:
-            print(ve)
-        except IOError as ioe:
-            print(ioe)
+        except Exception:
+            for fncall in traceback.format_exception(*sys.exc_info()):
+                print(fncall)
 
     else:
         args = parser.parse()
