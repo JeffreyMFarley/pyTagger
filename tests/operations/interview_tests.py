@@ -157,6 +157,12 @@ class TestInterviewFunctions(unittest.TestCase):
         self.assertEqual(self.context.currentToOutput.call_count, 1)
 
     @patch('pyTagger.operations.interview.askMultipleChoice')
+    def test_handleNothing_choose_ignore(self, ask):
+        ask.return_value = 'I'
+        sut._handleNothing(self.context)
+        self.assertEqual(self.context.currentToOutput.call_count, 1)
+
+    @patch('pyTagger.operations.interview.askMultipleChoice')
     def test_handleNothing_choose_manual(self, ask):
         ask.return_value = 'M'
         sut._handleNothing(self.context)

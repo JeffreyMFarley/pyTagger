@@ -72,10 +72,12 @@ def _handleNothing(context):
         if a == 'B':
             if not context.browseForCurrent():
                 context.currentToOutput()
-        elif a == 'M':
-            context.chooseCurrentAsManual()
         elif a == 'D':
             context.dropCurrent()
+        elif a == 'I':
+            context.currentToOutput()
+        elif a == 'M':
+            context.chooseCurrentAsManual()
         elif a == 'X':
             context.quit()
         elif a == 'Z':
