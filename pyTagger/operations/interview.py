@@ -2,8 +2,7 @@ from __future__ import unicode_literals
 import collections
 import itertools
 from pyTagger.operations.ask import askMultipleChoice
-from pyTagger.utils import saveJson
-
+from pyTagger.utils import saveJson, fmap
 
 basicOptions = {
     'B': 'Browse for Match',
@@ -28,6 +27,31 @@ def _scan(rows):
         for x in tally.keys()
         if x in ['single', 'multiple', 'nothing', 'insufficient']
     ])
+
+
+def _enforceMultiple(rows):
+    # Build a dictionary of all old paths
+    olds = collections.defaultdict(list)
+    for row in rows:
+        if row['oldPath']:
+            olds[row['oldPath']].append(row)
+
+    # If an old row entry has multiple matches, all the rows should have
+    # 'multiple' as the status
+    for k, v in olds.items():
+         if len(v) > 1:
+             for row in v:
+                 row['status'] = 'multiple'
+
+    return rows
+
+
+def _verifyTrackNumbersMatch(rows):
+    for row in rows:
+        if row['oldTags']:
+            if row['newTags']['track'] != row['oldTags']['track']:
+                row['status'] = 'multiple'
+    return rows
 
 
 def _handleSingle(context):
@@ -116,6 +140,10 @@ class Interview(object):
     # -------------------------------------------------------------------------
     # Private Methods
 
+    def _preprocess(self):
+        fns = [_enforceMultiple, _verifyTrackNumbersMatch]
+        self.input = fmap(fns, self.input)
+
     def _route(self):
         for self.step in itertools.count(1):  # pragma: no branch
             if self.userQuit or self.userDiscard:
@@ -135,6 +163,8 @@ class Interview(object):
         return _scan(rows) == 0
 
     def conduct(self):
+        self._preprocess()
+
         a = askMultipleChoice(0, 'Ready to begin the interview?', {
             'Y': 'Yes',
             'N': 'No'

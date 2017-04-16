@@ -42,6 +42,85 @@ class TestInterviewFunctions(unittest.TestCase):
         actual = sut._scan(rows)
         self.assertEqual(actual, 0)
 
+    # --- preprocess function  -------------------------------------------------
+
+    def test_enforceMultiple(self):
+        fixture = [
+          {
+            'newPath': '06 Meat Beat Manifesto - Kick That Man.mp3',
+            'oldPath': '06 Kneel & Buzz.mp3',
+            'status': 'multiple'
+          },
+          {
+            'newPath': '06 Meat Beat Manifesto - Kick That Man.mp3',
+            'oldPath': '07 Kick That Man.mp3',
+            'status': 'multiple'
+          },
+          {
+            'newPath': '07 Meat Beat Manifesto - Kneel & Buzz.mp3',
+            'oldPath': '06 Kneel & Buzz.mp3',
+            'status': 'single'
+          },
+          {
+            'newPath': '08 Meat Beat Manifesto - Fear Version.mp3',
+            'oldPath': '08 Fear Version.mp3',
+            'status': 'single'
+          },
+          {
+            'newPath': '99 foo.mp3',
+            'oldPath': None,
+            'status': 'nothing'
+          }
+        ]
+        actual = sut._enforceMultiple(fixture)
+        self.assertEqual(actual[0]['status'], 'multiple')
+        self.assertEqual(actual[1]['status'], 'multiple')
+        self.assertEqual(actual[2]['status'], 'multiple')
+        self.assertEqual(actual[3]['status'], 'single')
+        self.assertEqual(actual[4]['status'], 'nothing')
+
+
+    def test__verifyTrackNumbersMatch(self):
+        fixture = [
+          {
+            'newPath': '02 Kinky - Mas.mp3',
+            'newTags': {
+              'track': 2,
+            },
+            'oldPath': '01 Mas.mp3',
+            'oldTags': {
+              'track': 1,
+            },
+            'status': 'single'
+          },
+          {
+            'newPath': '08 Leftfield - A Final Hit.mp3',
+            'newTags': {
+              'track': 8,
+            },
+            'oldPath': '08 A Final Hit.mp3',
+            'oldTags': {
+              'track': 8,
+            },
+            'status': 'single'
+          },
+          {
+            'newPath': '03 foo.mp3',
+            'newTags': {
+              'track': 3,
+            },
+            'oldPath': None,
+            'oldTags': None,
+            'status': 'nothing'
+          }
+        ]
+        actual = sut._verifyTrackNumbersMatch(fixture)
+        self.assertEqual(actual[0]['status'], 'multiple')
+        self.assertEqual(actual[1]['status'], 'single')
+        self.assertEqual(actual[2]['status'], 'nothing')
+
+    # --- handleX ------------------------------------------------------
+
     def test_handleSingle(self):
         sut._handleSingle(self.context)
         self.context.inputToOutput.assert_called_with('ready')
@@ -203,6 +282,13 @@ class TestInterviewClass(unittest.TestCase):
     def setUp(self):
         self.target = sut.Interview(copy.deepcopy(data))
 
+    @patch('pyTagger.operations.interview.fmap')
+    def test_preprocess(self, fmap):
+        self.target._preprocess()
+        fmap.assert_called_with(
+            [sut._enforceMultiple, sut._verifyTrackNumbersMatch], data
+        )
+
     def test_route(self):
         actual = next(self.target._route())
         self.assertEqual(actual, sut._handleSingle)
@@ -237,12 +323,14 @@ class TestInterviewClass(unittest.TestCase):
 
         ask.return_value = 'Y'
         self.target._route = Mock(return_value=[callback])
+        self.target._preprocess = Mock()
         actual = self.target.conduct()
         self.assertTrue(actual)
 
     @patch('pyTagger.operations.interview.askMultipleChoice')
     def test_conduct_no(self, ask):
         ask.return_value = 'N'
+        self.target._preprocess = Mock()
         actual = self.target.conduct()
         self.assertFalse(actual)
 
@@ -298,7 +386,7 @@ class TestInterviewClass(unittest.TestCase):
     @unittest.skipIf(sys.version >= '3', 'tkFileDialog is in PY 2.X')
     @patch('tkFileDialog.askopenfilename')
     def test_browseForCurrent_noFile(self, askOpen):
-        askOpen.return_value = ""
+        askOpen.return_value = ''
         actual = self.target.browseForCurrent()
         self.assertEqual(actual, False)
 
@@ -306,7 +394,7 @@ class TestInterviewClass(unittest.TestCase):
     @patch('pyTagger.proxies.id3.ID3Proxy')
     @patch('tkFileDialog.askopenfilename')
     def test_browseForCurrent_badFile(self, askOpen, proxy):
-        askOpen.return_value = "foo.mp3"
+        askOpen.return_value = 'foo.mp3'
         proxy.side_effect = IOError
         actual = self.target.browseForCurrent()
         self.assertEqual(actual, False)
@@ -317,7 +405,7 @@ class TestInterviewClass(unittest.TestCase):
     def test_browseForCurrent_goodFile(self, askOpen, proxy):
         self.target.current = copy.deepcopy(data)
 
-        askOpen.return_value = "foo.mp3"
+        askOpen.return_value = 'foo.mp3'
         instance = proxy.return_value
         instance.extractTags.return_value = 'foo'
 
