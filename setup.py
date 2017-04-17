@@ -16,7 +16,11 @@ def parse_requirements():
     requirements = pip.req.parse_requirements(
         path, session=pip.download.PipSession()
     )
-    requirements = [req.name or req.link.url for req in requirements]
+    requirements = [
+        req.name or req.link.url
+        for req in requirements
+        if 'git+' not in (req.name or req.link.url)
+    ]
     return requirements
 
 
@@ -30,7 +34,11 @@ setup(name='pyTagger',
       author='Jeffrey M Farley',
       author_email='JeffreyMFarley@users.noreply.github.com',
       license='MIT',
-      packages=['pyTagger'],
+      packages=[
+          'pyTagger', 'pyTagger.actions', 'pyTagger.operations',
+          'pyTagger.proxies'
+      ],
+      dependency_links=['git+git://github.com/JeffreyMFarley/hew.git'],
       install_requires=install_requires,
       test_suite='tests',
       tests_require=['nose', 'nose_parameterized'],
