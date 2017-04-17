@@ -207,6 +207,6 @@ def replaceFiles(fileOfFilePairs):
                 try:
                     shutil.move(source, dest)
                     c['replaced'] += 1
-                except:
+                except Exception:
                     c['errors'] += 1
     return c

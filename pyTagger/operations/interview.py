@@ -38,10 +38,10 @@ def _enforceMultiple(rows):
 
     # If an old row entry has multiple matches, all the rows should have
     # 'multiple' as the status
-    for k, v in olds.items():
-         if len(v) > 1:
-             for row in v:
-                 row['status'] = 'multiple'
+    for v in olds.values():
+        if len(v) > 1:
+            for row in v:
+                row['status'] = 'multiple'
 
     return rows
 

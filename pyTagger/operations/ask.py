@@ -7,6 +7,7 @@ from hew import Normalizer
 
 normalizer = Normalizer()
 
+
 def get_input():  # pragma: no cover
     if sys.version < '3':
         return raw_input('> ').upper()
@@ -15,8 +16,6 @@ def get_input():  # pragma: no cover
 
 
 def wrapped_out(i, s):
-    global normalizer
-
     lead = '{0}. '.format(i) if i else ''
     wrapper = textwrap.TextWrapper(width=80, initial_indent=lead,
                                    subsequent_indent=' ' * len(lead))
