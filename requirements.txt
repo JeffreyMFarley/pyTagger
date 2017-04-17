@@ -6,3 +6,4 @@ nose_parameterized
 pymonad
 requests
 configargparse
+git+git://github.com/JeffreyMFarley/hew.git
