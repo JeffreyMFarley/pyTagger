@@ -1,11 +1,16 @@
 from __future__ import unicode_literals
 import unittest
+import collections
 import os
 import shutil
 import sys
 import pyTagger.operations.on_mp3 as target
 from pyTagger.proxies.id3 import ID3Proxy
 from tests import *
+try:
+    from unittest.mock import patch
+except ImportError:
+    from mock import patch
 
 IMAGES_DIRECTORY = os.path.join(RESULT_DIRECTORY, r'images')
 
@@ -69,6 +74,18 @@ class TestOnMp3s(unittest.TestCase):
         self.assertEqual(processed['extracted'], 1)
         self.assertEqual(processed['skipped'], 1)
         self.assertEqual(processed['errors'], 0)
+
+    @patch('pyTagger.proxies.id3.ID3Proxy')
+    def test_updateOne_fails(self, proxy):
+        Track = collections.namedtuple('Track', 'tag')
+        track = Track({'album': 'foo'})
+
+        instance = proxy.return_value
+        instance.loadID3.return_value = track
+        instance.extractTagsFromTrack.side_effect = IOError
+
+        actual = target.updateOne(instance, 'foo.mp3', {})
+        self.assertEqual(actual, 0)
 
 if __name__ == '__main__':
     unittest.main()
