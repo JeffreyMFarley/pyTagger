@@ -21,6 +21,7 @@ albumFields = {
     'albumArtist': 3,
     'barcode': 1,
     'compilation': 0,
+    'disc': 0,
     'genre': 1,
     'media': 1,
     'publisher': 1,
@@ -44,6 +45,8 @@ p = getArgumentParser('tag-album',
                       parents=[getArgumentParser()],
                       description='settings for editing whole albums')
 group = p.add_argument_group('tag-album')
+group.add('--tag-album-file', default='albums.json',
+          help='a snapshot of the mp3s to edit')
 group.add('--tag-album-logging',
           choices=[logging.NOTSET, logging.INFO, logging.WARNING,
                    logging.ERROR],
@@ -90,6 +93,9 @@ class Album(object):
         for _, tags in self.tracks:
             tags[field] = value
 
+    def assignDisc(self):
+        pass
+
     def assignToBlank(self, field, value):
         for _, tags in self.tracks:
             if field not in tags or not tags[field]:
@@ -97,6 +103,9 @@ class Album(object):
                     self.name, safeGet(tags, 'title'), field, '=', value
                 ))
                 tags[field] = value
+
+    def assignTotalDisc(self):
+        pass
 
     def assignTotalTrack(self):
         last = max([safeGet(tags, 'track') or 0 for _, tags in self.tracks])
@@ -173,12 +182,17 @@ class AlbumTagger(object):
         else:
             album.assign(field, value)
 
-    def _tallyStatuses(self):
+    def _reportStatus(self):
+        self._triage()
+
         tally = Counter()
         for album in self:
             album.evaluate()
             tally[album.status] += 1
-        return tally
+
+        descr = ['{2}\t{1} {0}'.format(x, tally[x], os.linesep) for x in tally]
+        text = 'The state of the albums:' + ''.join(descr)
+        wrapped_out(0, text)
 
     def _triage(self):
         self.autoFixes = deque()
@@ -198,15 +212,19 @@ class AlbumTagger(object):
 
             for field in sorted(albumFields):
                 variations = list(sorted(album.variations[field]))
-                if len(variations) == 1 and variations[0]:
+                if len(variations) == 2 and not variations[0]:
+                    addToAuto(album.assign, field, variations[1])
+                elif len(variations) == 1 and variations[0]:
                     continue
                 elif len(variations) == 1:
-                    if field == 'totalTrack':
+                    if field == 'disc':
+                        addToAuto(album.assignDisc)
+                    elif field == 'totalTrack':
                         addToAuto(album.assignTotalTrack)
+                    elif field == 'totalDisc':
+                        addToAuto(album.assignTotalDisc)
                     else:
                         addToAsk(album, field, [])
-                elif len(variations) == 2 and not variations[0]:
-                    addToAuto(album.assign, field, variations[1])
                 else:
                     addToAsk(album, field, variations)
 
@@ -260,7 +278,10 @@ class AlbumTagger(object):
                 if len(a) == 1:
                     try:
                         index = int(a) - 1
-                        self._routeAssign(album, field, variations[index])
+                        if field != 'compilation':
+                            self._routeAssign(album, field, variations[index])
+                        else:
+                            self._routeAssign(album, field, int(a))
                     except ValueError:
                         if a == 'S':
                             self.skipped.append((album, field, variations))
@@ -280,13 +301,7 @@ class AlbumTagger(object):
 
     def conduct(self):
         result = self.applyAutoFix() and self.askManualFix()
-
-        self._triage()
-        tally = self._tallyStatuses()
-        descr = ['{2}\t{1} {0}'.format(x, tally[x], os.linesep) for x in tally]
-        text = 'The results of the edits:' + ''.join(descr)
-        wrapped_out(0, text)
-
+        self._reportStatus()
         return result
 
     def proceed(self):
@@ -306,10 +321,12 @@ if __name__ == '__main__':
 
     logging.basicConfig()
 
-    fileName = os.path.dirname(__file__) + '/../../tests/operations/' + \
-        'tag_album_fixture_snapshot.json'
+    options = configurationOptions('tag-album')
+    fileName = options.tag_album_file
     snapshot = loadJson(fileName)
 
     instance = AlbumTagger.createFromSnapshot(snapshot)
     if instance.proceed():
         instance.conduct()
+        if not instance.userDiscard:
+            instance.save(fileName)

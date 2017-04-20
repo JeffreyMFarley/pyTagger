@@ -39,18 +39,29 @@ class TestAlbumTagger(unittest.TestCase):
 
     @patch('pyTagger.operations.tag_album.askMultipleChoice')
     def test_proceed_yes(self, ask):
+        self.target._triage = Mock()
         ask.return_value = 'Y'
         actual = self.target.proceed()
+        self.assertEqual(self.target._triage.call_count, 1)
         self.assertTrue(actual)
 
     @patch('pyTagger.operations.tag_album.askMultipleChoice')
     def test_proceed_no(self, ask):
+        self.target._triage = Mock()
         ask.return_value = 'N'
         actual = self.target.proceed()
+        self.assertEqual(self.target._triage.call_count, 1)
         self.assertFalse(actual)
 
     def test_conduct(self):
+        self.target.applyAutoFix = Mock(return_value=True)
+        self.target.askManualFix = Mock(return_value=True)
+        self.target._reportStatus = Mock()
+
         actual = self.target.conduct()
+        self.assertEqual(self.target.applyAutoFix.call_count, 1)
+        self.assertEqual(self.target.askManualFix.call_count, 1)
+        self.assertEqual(self.target._reportStatus.call_count, 1)
         self.assertEqual(actual, True)
 
 if __name__ == '__main__':
