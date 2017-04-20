@@ -26,7 +26,7 @@ class TestAlbumTagger(unittest.TestCase):
 
     def test_createFromSnapshot(self):
         self.assertEqual(len(self.target.albums), 21)
-        self.assertEqual(self.target.albums['now1'].status, 'complete')
+        self.assertEqual(self.target.albums['now1'].status, 'pending')
 
     @unittest.skipUnless(sampleFilesExist, 'No results directory to use')
     def test_save(self):
@@ -49,9 +49,9 @@ class TestAlbumTagger(unittest.TestCase):
         actual = self.target.proceed()
         self.assertFalse(actual)
 
-    # def test_conduct(self):
-    #     actual = self.target.conduct()
-    #     self.assertEqual(actual, True)
+    def test_conduct(self):
+        actual = self.target.conduct()
+        self.assertEqual(actual, True)
 
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main(failfast=True)

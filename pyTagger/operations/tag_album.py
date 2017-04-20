@@ -1,9 +1,13 @@
 from __future__ import unicode_literals
 from __future__ import print_function
+import logging
+import os
 from collections import *
+from configargparse import getArgumentParser
 from hew import Normalizer
-from pyTagger.operations.ask import askMultipleChoice
+from pyTagger.operations.ask import *
 from pyTagger.operations.name import _safeGet as safeGet
+from pyTagger.utils import configurationOptions, defaultConfigFiles
 from pyTagger.utils import saveJsonIncrementalDict
 
 REQUIRED = 3
@@ -33,6 +37,21 @@ normalizer = Normalizer()
 
 
 # -----------------------------------------------------------------------------
+# Configuration
+
+p = getArgumentParser('tag-album',
+                      default_config_files=defaultConfigFiles,
+                      parents=[getArgumentParser()],
+                      description='settings for editing whole albums')
+group = p.add_argument_group('tag-album')
+group.add('--tag-album-logging',
+          choices=[logging.NOTSET, logging.INFO, logging.WARNING,
+                   logging.ERROR],
+          default=logging.WARNING, type=int,
+          help='how verbose the process should be')
+
+
+# -----------------------------------------------------------------------------
 # Methods
 
 def _albumKey(tags):
@@ -47,9 +66,6 @@ def _buildAlbums(snapshot):
         key = _albumKey(tags)
         albums[key].add(path, tags)
 
-    for key, album in albums.items():
-        album.evaluate()
-
     return albums
 
 
@@ -57,17 +73,38 @@ def _buildAlbums(snapshot):
 # Album Class
 
 class Album(object):
-    def __init__(self, tracks=None, variations=None, status=None):
+    def __init__(self, tracks=None, status=None):
+        options = configurationOptions('tag-album')
+        self.log = logging.getLogger(__name__)
+        self.log.setLevel(options.tag_album_logging)
+
         self.tracks = tracks or []
-        self.variations = variations or defaultdict(set)
+        self.variations = defaultdict(set)
         self.status = status or 'pending'
 
     def add(self, path, tags):
         self.tracks.append((path, tags))
-        for field in albumFields:
-            self.variations[field].add(safeGet(tags, field) or '')
+
+    def assign(self, field, value):
+        self.log.info('{} {} {} {}'.format(self.name, field, '=', value))
+        for _, tags in self.tracks:
+            tags[field] = value
+
+    def assignToBlank(self, field, value):
+        for _, tags in self.tracks:
+            if field not in tags or not tags[field]:
+                self.log.info('{} {} {} {} {}'.format(
+                    self.name, safeGet(tags, 'title'), field, '=', value
+                ))
+                tags[field] = value
+
+    def assignTotalTrack(self):
+        last = max([safeGet(tags, 'track') or 0 for _, tags in self.tracks])
+        self.assign('totalTrack', last)
 
     def evaluate(self):
+        self.findVariations()
+
         # Count the number of non-blank entries for each field
         tally = Counter()
         for field in albumFields:
@@ -87,26 +124,91 @@ class Album(object):
         else:
             self.status = 'multiples'
 
+    def findVariations(self):
+        self.variations = defaultdict(set)
+        for _, tags in self.tracks:
+            for field in albumFields:
+                self.variations[field].add(safeGet(tags, field) or '')
+
+    @property
+    def name(self):
+        return self.variations['album'].copy().pop()
+
 
 # -----------------------------------------------------------------------------
 # Process Class
 
 class AlbumTagger(object):
     def __init__(self):
+        options = configurationOptions('tag-album')
+        self.log = logging.getLogger(__name__)
+        self.log.setLevel(options.tag_album_logging)
+
         self.albums = []
+        self.autoFixes = deque()
+        self.manualFixes = deque()
+        self.skipped = deque()
+
+        self.userQuit = False
+        self.userDiscard = False
 
     def __iter__(self):
-        for album in self.albums.values():
-            yield album
+        for key in sorted(self.albums):
+            yield self.albums[key]
 
     # -------------------------------------------------------------------------
     # Private
 
+    def _routeAssign(self, album, field, value):
+        if len(album.variations[field]) > 1:
+            toAll = {
+                'A': 'Apply to all tracks',
+                'B': 'Apply only to blank tracks'
+            }
+            a = askMultipleChoice(0, value or u'(blank)', toAll, False)
+            if a == 'A':
+                album.assign(field, value)
+            else:
+                album.assignToBlank(field, value)
+        else:
+            album.assign(field, value)
+
     def _tallyStatuses(self):
         tally = Counter()
         for album in self:
+            album.evaluate()
             tally[album.status] += 1
         return tally
+
+    def _triage(self):
+        self.autoFixes = deque()
+        self.manualFixes = deque()
+
+        def addToAuto(fn, *args):
+            self.autoFixes.append((fn, args))
+
+        def addToAsk(album, field, variations):
+            self.manualFixes.append((album, field, variations))
+
+        for album in self:
+            album.evaluate()
+
+            if album.status == 'complete':
+                continue
+
+            for field in sorted(albumFields):
+                variations = list(sorted(album.variations[field]))
+                if len(variations) == 1 and variations[0]:
+                    continue
+                elif len(variations) == 1:
+                    if field == 'totalTrack':
+                        addToAuto(album.assignTotalTrack)
+                    else:
+                        addToAsk(album, field, [])
+                elif len(variations) == 2 and not variations[0]:
+                    addToAuto(album.assign, field, variations[1])
+                else:
+                    addToAsk(album, field, variations)
 
     # -------------------------------------------------------------------------
     # I/O
@@ -131,19 +233,83 @@ class AlbumTagger(object):
     # -------------------------------------------------------------------------
     # Public Methods
 
-    def proceed(self):
-        tally = self._tallyStatuses()
-        descr = ['\n\t{1} {0}'.format(x, tally[x]) for x in tally]
-        text = 'Would you like to edit this set of albums?{}'.format(
-            ''.join(descr)
-        )
+    def applyAutoFix(self):
+        while self.autoFixes:
+            fn, args = self.autoFixes.popleft()
+            fn(*args)
 
+        return len(self.autoFixes) == 0
+
+    def askManualFix(self):
+        basicOptions = {
+            'S': 'Skip',
+            'X': 'Save the edits and Exit',
+            'Z': 'Discard the edits'
+        }
+
+        self.skipped = deque()
+        while self.manualFixes and not self.userQuit and not self.userDiscard:
+            album, field, variations = self.manualFixes.popleft()
+            options = dict(basicOptions)
+            for i, v in enumerate(variations):
+                options[str(i + 1)] = v or u'(blank)'
+            text = '{} - {}'.format(album.name, field)
+
+            try:
+                a = askOrEnterMultipleChoice(0, text, options, False)
+                if len(a) == 1:
+                    try:
+                        index = int(a) - 1
+                        self._routeAssign(album, field, variations[index])
+                    except ValueError:
+                        if a == 'S':
+                            self.skipped.append((album, field, variations))
+                        elif a == 'X':
+                            self.userQuit = True
+                        elif a == 'Z':
+                            self.userDiscard = True
+                        else:
+                            self._routeAssign(album, field, a)
+                else:
+                    self._routeAssign(album, field, a)
+
+            except KeyboardInterrupt:
+                self.userDiscard = True
+
+        return len(self.manualFixes) == 0 and len(self.skipped) == 0
+
+    def conduct(self):
+        result = self.applyAutoFix() and self.askManualFix()
+
+        self._triage()
+        tally = self._tallyStatuses()
+        descr = ['{2}\t{1} {0}'.format(x, tally[x], os.linesep) for x in tally]
+        text = 'The results of the edits:' + ''.join(descr)
+        wrapped_out(0, text)
+
+        return result
+
+    def proceed(self):
+        self._triage()
+
+        text = 'There are {} auto-fixes and {} fixes that require input. ' \
+               'Proceed?'.format(len(self.autoFixes), len(self.manualFixes))
         a = askMultipleChoice(0, text, {
             'Y': 'Yes',
             'N': 'No'
-        }, False)
+        })
 
         return a == 'Y'
 
-    def conduct(self):
-        return False
+if __name__ == '__main__':
+    from pyTagger.utils import loadJson
+
+    logging.basicConfig()
+
+    fileName = os.path.dirname(__file__) + '/../../tests/operations/' + \
+        'tag_album_fixture_snapshot.json'
+    snapshot = loadJson(fileName)
+
+    instance = AlbumTagger.createFromSnapshot(snapshot)
+    if instance.proceed():
+        instance.conduct()

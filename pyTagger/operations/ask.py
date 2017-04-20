@@ -5,14 +5,20 @@ import sys
 import textwrap
 from hew import Normalizer
 
+if sys.version < '3':  # pragma: no cover
+    _unicode = unicode
+else:  # pragma: no cover
+    _unicode = lambda x: x
+
+
 normalizer = Normalizer()
 
 
 def get_input():  # pragma: no cover
     if sys.version < '3':
-        return raw_input('> ').upper()
+        return raw_input('> ')
     else:
-        return input('> ').upper()
+        return input('> ')
 
 
 def wrapped_out(i, s):
@@ -20,7 +26,8 @@ def wrapped_out(i, s):
     wrapper = textwrap.TextWrapper(width=80, initial_indent=lead,
                                    subsequent_indent=' ' * len(lead))
     s = normalizer.to_ascii(s)
-    s = wrapper.fill(s)
+    lines = [wrapper.fill(x) for x in s.splitlines()]
+    s = os.linesep.join(lines)
     print(s)
 
 
@@ -37,6 +44,25 @@ def askMultipleChoice(i, title, choices, clear=True):
             wrapped_out(k, choices[k])
         print('\n')
 
-        a = get_input()
+        a = get_input().upper()
 
     return a
+
+
+def askOrEnterMultipleChoice(i, title, choices, clear=True):
+    a = None
+    if clear:
+        os.system('cls' if os.name == 'nt' else 'clear')
+
+    wrapped_out(i, title)
+    print('\n')
+
+    for k in sorted(choices):
+        wrapped_out(k, choices[k])
+    print('\n')
+
+    a = get_input()
+    if a.upper() in choices.keys():
+        return a.upper()
+
+    return _unicode(a)
