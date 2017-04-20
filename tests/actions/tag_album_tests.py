@@ -4,7 +4,7 @@ import io
 import os
 import sys
 import unittest
-import pyTagger.operations.tag_album as sut
+import pyTagger.actions.tag_album as sut
 from pyTagger.utils import loadJson
 from tests import *
 
@@ -37,7 +37,7 @@ class TestAlbumTagger(unittest.TestCase):
         actual = loadJson(outFile)
         self.assertEqual(actual, expected)
 
-    @patch('pyTagger.operations.tag_album.askMultipleChoice')
+    @patch('pyTagger.actions.tag_album.askMultipleChoice')
     def test_proceed_yes(self, ask):
         self.target._triage = Mock()
         ask.return_value = 'Y'
@@ -45,7 +45,7 @@ class TestAlbumTagger(unittest.TestCase):
         self.assertEqual(self.target._triage.call_count, 1)
         self.assertTrue(actual)
 
-    @patch('pyTagger.operations.tag_album.askMultipleChoice')
+    @patch('pyTagger.actions.tag_album.askMultipleChoice')
     def test_proceed_no(self, ask):
         self.target._triage = Mock()
         ask.return_value = 'N'
