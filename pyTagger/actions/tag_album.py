@@ -93,9 +93,6 @@ class Album(object):
         for _, tags in self.tracks:
             tags[field] = value
 
-    def assignDisc(self):
-        pass
-
     def assignToBlank(self, field, value):
         for _, tags in self.tracks:
             if field not in tags or not tags[field]:
@@ -103,9 +100,6 @@ class Album(object):
                     self.name, safeGet(tags, 'title'), field, '=', value
                 ))
                 tags[field] = value
-
-    def assignTotalDisc(self):
-        pass
 
     def assignTotalTrack(self):
         last = max([safeGet(tags, 'track') or 0 for _, tags in self.tracks])
@@ -215,14 +209,12 @@ class AlbumTagger(object):
                 if len(variations) == 2 and not variations[0]:
                     addToAuto(album.assign, field, variations[1])
                 elif len(variations) == 1 and variations[0]:
-                    continue
+                    pass
                 elif len(variations) == 1:
-                    if field == 'disc':
-                        addToAuto(album.assignDisc)
+                    if field in ['disc', 'totalDisc']:
+                        pass
                     elif field == 'totalTrack':
                         addToAuto(album.assignTotalTrack)
-                    elif field == 'totalDisc':
-                        addToAuto(album.assignTotalDisc)
                     else:
                         addToAsk(album, field, [])
                 else:
@@ -278,10 +270,10 @@ class AlbumTagger(object):
                 if len(a) == 1:
                     try:
                         index = int(a) - 1
-                        if field != 'compilation':
-                            self._routeAssign(album, field, variations[index])
-                        else:
+                        if field in ['compilation', 'disc', 'totalDisc']:
                             self._routeAssign(album, field, int(a))
+                        else:
+                            self._routeAssign(album, field, variations[index])
                     except ValueError:
                         if a == 'S':
                             self.skipped.append((album, field, variations))
