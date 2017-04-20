@@ -11,6 +11,7 @@ import pyTagger.actions.prepare as prepare
 import pyTagger.actions.rename as rename
 import pyTagger.actions.reripped as reripped
 import pyTagger.actions.scan as scan
+import pyTagger.actions.tag_album as tag_album
 import pyTagger.actions.update as update
 import pyTagger.actions.upload as upload
 from pyTagger.utils import rootParser as parser
@@ -30,6 +31,7 @@ modules = {
     'rename': rename.process,
     'reripped': reripped.process,
     'scan': scan.process,
+    'tag-album': tag_album.process,
     'to-csv': export.process,
     'update': update.process,
     'upload': upload.uploadToElasticsearch

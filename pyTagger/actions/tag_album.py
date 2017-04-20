@@ -42,6 +42,7 @@ normalizer = Normalizer()
 
 p = getArgumentParser('tag-album',
                       default_config_files=defaultConfigFiles,
+                      ignore_unknown_config_file_keys=True,
                       parents=[getArgumentParser()],
                       description='settings for editing whole albums')
 group = p.add_argument_group('tag-album')
@@ -304,17 +305,24 @@ class AlbumTagger(object):
         a = askMultipleChoice(0, text, {
             'Y': 'Yes',
             'N': 'No'
-        })
+        }, False)
 
         return a == 'Y'
 
-if __name__ == '__main__':
+
+# -----------------------------------------------------------------------------
+# Action Main
+
+_success = "Success"
+_notFinished = "Not Complete"
+
+
+def process(args):
+    result = _notFinished
+
     from pyTagger.utils import loadJson
 
-    logging.basicConfig()
-
-    options = configurationOptions('tag-album')
-    fileName = options.tag_album_file
+    fileName = args.tag_album_file
     snapshot = loadJson(fileName)
 
     instance = AlbumTagger.createFromSnapshot(snapshot)
@@ -322,3 +330,6 @@ if __name__ == '__main__':
         instance.conduct()
         if not instance.userDiscard:
             instance.save(fileName)
+            result = _success
+
+    return result
