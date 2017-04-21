@@ -1,8 +1,10 @@
 from __future__ import print_function
 from __future__ import unicode_literals
 import io
+import logging
 import os
 import pyTagger.actions.isonom as isonom
+import pyTagger.actions.tag_album as tag_album
 from configargparse import getArgumentParser
 from pyTagger.operations.ask import askMultipleChoice
 from pyTagger.operations.from_csv import convert
@@ -13,7 +15,7 @@ from pyTagger.operations.on_mp3 import updateFromSnapshot
 from pyTagger.operations.to_csv import writeCsv
 from pyTagger.operations.two_tags import union
 from pyTagger.proxies.id3 import ID3Proxy
-from pyTagger.utils import loadJson, generateUfid
+from pyTagger.utils import loadJson, saveJson, generateUfid
 from pyTagger.utils import defaultConfigFiles
 
 # -----------------------------------------------------------------------------
@@ -22,11 +24,21 @@ from pyTagger.utils import defaultConfigFiles
 p = getArgumentParser('reripped',
                       default_config_files=defaultConfigFiles,
                       ignore_unknown_config_file_keys=True,
-                      parents=[getArgumentParser('isonom')],
+                      parents=[
+                          getArgumentParser('isonom'),
+                      ],
                       description='process re-ripped files and merge into '
                       'house library')
 p.add('step', choices=[1, 2, 3], type=int, default=1,
       help='which step to execute')
+group = p.add_argument_group('tag-album')
+group.add('--tag-album-file', default='albums.json',
+          help='a snapshot of the mp3s to edit')
+group.add('--tag-album-logging',
+          choices=[logging.NOTSET, logging.INFO, logging.WARNING,
+                   logging.ERROR],
+          default=logging.WARNING, type=int,
+          help='how verbose the process should be')
 group = p.add_argument_group('Step 1')
 group.add('--goal-csv', default='goal.csv',
           help='a CSV version of the goal snapshot')
@@ -72,16 +84,29 @@ def _mergeAll(args):
     return merged
 
 
+def _tagAlbum(args):
+    result = tag_album.process(args)
+    if result == 'Success':
+        snapshot = loadJson(args.tag_album_file)
+        print('Creating ', args.goal_csv)
+        writeCsv(snapshot, args.goal_csv)
+    return result
+
+
 def _step1(args):
     if os.path.exists(args.goal_csv):
         print('Using existing goals file')
         return SUCCESS
 
+    if os.path.exists(args.tag_album_file):
+        return _tagAlbum(args)
+
     result = isonom.process(args)
     if result == 'Success':
-        print('Creating ', args.goal_csv)
+        print('Creating ', args.tag_album_file)
         merged = _mergeAll(args)
-        writeCsv(merged, args.goal_csv)
+        saveJson(args.tag_album_file, merged)
+        return _tagAlbum(args)
 
     return result
 
