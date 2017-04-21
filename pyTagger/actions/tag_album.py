@@ -236,7 +236,8 @@ class AlbumTagger(object):
         _ = next(output)
 
         for album in self:
-            for pair in album.tracks:
+            for fullPath, row in album.tracks:
+                pair = (fullPath.replace('\\', '\\\\'), row)
                 _ = output.send(pair)
 
         output.close()
