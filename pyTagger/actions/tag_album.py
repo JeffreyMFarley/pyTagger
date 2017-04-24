@@ -115,12 +115,17 @@ class Album(object):
 
     @property
     def name(self):
+        if len(self.variations['album']) == 0:
+            return u'Unknown'
         return self.variations['album'].copy().pop()
 
     @property
     def nameAndDisc(self):
         name = self.variations['album'].copy().pop()
-        disc = self.variations['disc'].copy().pop()
+        if len(self.variations['disc']) == 0:
+            disc = ''
+        else:
+            disc = self.variations['disc'].copy().pop()
         return '{} **{}**'.format(name, disc)
 
 
