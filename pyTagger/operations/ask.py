@@ -21,10 +21,11 @@ def get_input():  # pragma: no cover
         return input('> ')
 
 
-def wrapped_out(i, s):
+def wrapped_out(i, v):
     lead = '{0}. '.format(i) if i else ''
     wrapper = textwrap.TextWrapper(width=80, initial_indent=lead,
                                    subsequent_indent=' ' * len(lead))
+    s = '{}'.format(v or u'(blank)')
     s = normalizer.to_ascii(s)
     lines = [wrapper.fill(x) for x in s.splitlines()]
     s = os.linesep.join(lines)

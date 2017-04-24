@@ -14,6 +14,16 @@ class TestAsk(unittest.TestCase):
         target.wrapped_out(1, u'f\u00f2\u00f3 b\u00e3r b\u00e5z q\u00e2z')
         self.assertEqual(stdout.getvalue(), '1. foo bar baaz qaz\n')
 
+    @patch('sys.stdout', new_callable=io.StringIO)
+    def test_wrapped_out_null(self, stdout):
+        target.wrapped_out(1, None)
+        self.assertEqual(stdout.getvalue(), '1. (blank)\n')
+
+    @patch('sys.stdout', new_callable=io.StringIO)
+    def test_wrapped_out_number(self, stdout):
+        target.wrapped_out(1, 33)
+        self.assertEqual(stdout.getvalue(), '1. 33\n')
+
     @patch('pyTagger.operations.ask.get_input')
     def test_askMultipleChoice(self, userInput):
         userInput.return_value = '1'
