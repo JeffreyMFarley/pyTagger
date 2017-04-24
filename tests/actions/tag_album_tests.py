@@ -5,6 +5,7 @@ import os
 import sys
 import unittest
 import pyTagger.actions.tag_album as sut
+from pyTagger.utils import configurationOptions
 from pyTagger.utils import loadJson
 from tests import *
 
@@ -37,32 +38,40 @@ class TestAlbumTagger(unittest.TestCase):
         actual = loadJson(outFile)
         self.assertEqual(actual, expected)
 
-    @patch('pyTagger.actions.tag_album.askMultipleChoice')
-    def test_proceed_yes(self, ask):
-        self.target._triage = Mock()
-        ask.return_value = 'Y'
-        actual = self.target.proceed()
-        self.assertEqual(self.target._triage.call_count, 1)
-        self.assertTrue(actual)
 
-    @patch('pyTagger.actions.tag_album.askMultipleChoice')
-    def test_proceed_no(self, ask):
-        self.target._triage = Mock()
-        ask.return_value = 'N'
-        actual = self.target.proceed()
-        self.assertEqual(self.target._triage.call_count, 1)
-        self.assertFalse(actual)
+class TestTagAlbumProcess(unittest.TestCase):
+    def setUp(self):
+        import sys
+        with patch.object(sys, 'argv', ['test']):
+            self.options = configurationOptions('tag-album')
 
-    def test_conduct(self):
-        self.target.applyAutoFix = Mock(return_value=True)
-        self.target.askManualFix = Mock(return_value=True)
-        self.target._reportStatus = Mock()
+        self.target = Mock(spec=['conduct', 'save'])
+        self.target.userDiscard = False
 
-        actual = self.target.conduct()
-        self.assertEqual(self.target.applyAutoFix.call_count, 1)
-        self.assertEqual(self.target.askManualFix.call_count, 1)
-        self.assertEqual(self.target._reportStatus.call_count, 1)
-        self.assertEqual(actual, True)
+        p = patch('pyTagger.actions.tag_album.loadJson')
+        self.addCleanup(p.stop)
+        self.loadJson = p.start()
+        self.loadJson.return_value = loadSnapshot
+
+        p = patch('pyTagger.actions.tag_album.AlbumTagger.createFromSnapshot')
+        self.addCleanup(p.stop)
+        self.create = p.start()
+        self.create.return_value = self.target
+
+    def test_process_success(self):
+        actual = sut.process(self.options)
+        self.assertEqual(self.loadJson.call_count, 1)
+        self.assertEqual(self.target.conduct.call_count, 1)
+        self.assertEqual(self.target.save.call_count, 1)
+        self.assertEqual(actual, 'Success')
+
+    def test_process_discard(self):
+        self.target.userDiscard = True
+        actual = sut.process(self.options)
+        self.assertEqual(self.loadJson.call_count, 1)
+        self.assertEqual(self.target.conduct.call_count, 1)
+        self.assertEqual(self.target.save.call_count, 0)
+        self.assertEqual(actual, 'Not Complete')
 
 if __name__ == '__main__':
     unittest.main(failfast=True)
