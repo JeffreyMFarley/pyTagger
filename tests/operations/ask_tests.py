@@ -29,5 +29,29 @@ class TestAsk(unittest.TestCase):
             target.askMultipleChoice('A', 'title', options, False)
             self.assertEqual(stdout.getvalue(), 'A. title\n\n\n1. One\n\n\n')
 
+    @patch('sys.stdout', new_callable=io.StringIO)
+    @patch('pyTagger.operations.ask.get_input')
+    def test_askOrEnterMultipleChoice_enter(self, userInput, stdout):
+        userInput.return_value = 'Echo'
+        options = {'A': 'Alpha'}
+        actual = target.askOrEnterMultipleChoice('1', 'title', options)
+        self.assertEqual(actual, 'Echo')
+
+    @patch('sys.stdout', new_callable=io.StringIO)
+    @patch('pyTagger.operations.ask.get_input')
+    def test_askOrEnterMultipleChoice_choose(self, userInput, stdout):
+        userInput.return_value = 'a'
+        options = {'A': 'Alpha'}
+        actual = target.askOrEnterMultipleChoice('1', 'title', options, False)
+        self.assertEqual(actual, 'A')
+
+    @patch('sys.stdout', new_callable=io.StringIO)
+    @patch('pyTagger.operations.ask.get_input')
+    def test_askOrEnterMultipleChoice_enterSingle(self, userInput, stdout):
+        userInput.return_value = 'm'
+        options = {'A': 'Alpha'}
+        actual = target.askOrEnterMultipleChoice('1', 'title', options)
+        self.assertEqual(actual, 'm')
+
 if __name__ == '__main__':
     unittest.main()
