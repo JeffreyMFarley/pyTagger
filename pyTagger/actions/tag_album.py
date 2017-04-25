@@ -78,14 +78,13 @@ def _buildAlbums(snapshot):
 # Album Class
 
 class Album(object):
-    def __init__(self, tracks=None, status=None):
+    def __init__(self, tracks=None):
         options = configurationOptions('tag-album')
         self.log = logging.getLogger(__name__)
         self.log.setLevel(options.tag_album_logging)
 
         self.tracks = tracks or []
         self.variations = defaultdict(set)
-        self.status = status or 'pending'
 
     def add(self, path, tags):
         self.tracks.append((path, tags))
@@ -152,6 +151,12 @@ class AlbumTagger(object):
     # -------------------------------------------------------------------------
     # Private
 
+    def _addToAuto(self, fn, *args):
+        self.autoFixes.append((fn, args))
+
+    def _addToAsk(self, album, field, variations):
+        self.manualFixes.append((album, field, variations))
+
     def _routeAssign(self, album, field, value):
         if len(album.variations[field]) > 1:
             toAll = {
@@ -170,33 +175,27 @@ class AlbumTagger(object):
         self.autoFixes = deque()
         self.manualFixes = deque()
 
-        def addToAuto(fn, *args):
-            self.autoFixes.append((fn, args))
-
-        def addToAsk(album, field, variations):
-            self.manualFixes.append((album, field, variations))
-
         for album in self:
-            album.findVariations()
+            self._triageOne(album)
 
-            if album.status == 'complete':
-                continue
+    def _triageOne(self, album):
+            album.findVariations()
 
             for field in sorted(albumFields):
                 variations = list(sorted(album.variations[field]))
                 if len(variations) == 2 and not variations[0]:
-                    addToAuto(album.assign, field, variations[1])
+                    self._addToAuto(album.assign, field, variations[1])
                 elif len(variations) == 1 and variations[0]:
                     pass
                 elif len(variations) == 1:
                     if field in ['disc', 'totalDisc']:
                         pass
                     elif field == 'totalTrack':
-                        addToAuto(album.assignTotalTrack)
+                        self._addToAuto(album.assignTotalTrack)
                     else:
-                        addToAsk(album, field, [])
+                        self._addToAsk(album, field, [])
                 else:
-                    addToAsk(album, field, variations)
+                    self._addToAsk(album, field, variations)
 
     # -------------------------------------------------------------------------
     # I/O
@@ -279,10 +278,7 @@ class AlbumTagger(object):
                 if a in options.keys():
                     try:
                         index = int(a) - 1
-                        if field in ['compilation', 'disc', 'totalDisc']:
-                            self._routeAssign(album, field, int(a))
-                        else:
-                            self._routeAssign(album, field, variations[index])
+                        self._routeAssign(album, field, variations[index])
                     except ValueError:
                         if a == 'I':
                             pass
@@ -291,7 +287,12 @@ class AlbumTagger(object):
                         elif a == 'Z':
                             self.userDiscard = True
                         else:
-                            self._routeAssign(album, field, a)
+                            raise AssertionError("Unexpected path" + a)
+                elif field in ['compilation', 'disc', 'totalDisc']:
+                    try:
+                        self._routeAssign(album, field, int(a))
+                    except ValueError:
+                        self._addToAsk(album, field, variations)
                 else:
                     self._routeAssign(album, field, a)
 
@@ -337,6 +338,8 @@ class AlbumTagger(object):
                     self.userQuit = True
                 elif a == 'Z':
                     self.userDiscard = True
+                else:
+                    raise AssertionError("Unexpected path" + a)
             except KeyboardInterrupt:
                 self.userDiscard = True
 
