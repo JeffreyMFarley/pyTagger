@@ -67,3 +67,28 @@ def askOrEnterMultipleChoice(i, title, choices, clear=True):
         return a.upper()
 
     return _unicode(a)
+
+
+def editSet(i, title, items, clear=True):
+    options = {
+        str(i + 1): item for i, item in enumerate(items)
+    }
+    options['X'] = 'Cancel'
+
+    a = askMultipleChoice(i, title, options, clear)
+    if a == 'X':
+        return -1, None
+    else:
+        index = int(a) - 1
+        item = items[index]
+        del options[a]
+        question = 'What should "{}" be replaced with?'.format(item)
+
+        b = askOrEnterMultipleChoice(i, question, options, False)
+        if b == 'X':
+            return -1, None
+        elif b in options.keys():
+            replaceWith = int(b) - 1
+            return index, replaceWith
+        else:
+            return index, b

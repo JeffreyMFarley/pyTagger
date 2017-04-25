@@ -196,8 +196,39 @@ class TestAlbumTagger(unittest.TestCase):
         actual = self.target.applyAutoFix()
         self.assertEqual(actual, True)
 
-    def test_askAlbumNames(self):
-        pass
+    @patch('pyTagger.actions.tag_album.ask')
+    def test_askAlbumNames_noEdit(self, ask):
+        ask.editSet.return_value = (-1, None)
+        actual = self.target.askAlbumName()
+        self.assertEqual(actual, None)
+
+    @patch('pyTagger.actions.tag_album.ask')
+    def test_askAlbumNames_setOtherIndex(self, ask):
+        for album in self.target:
+            album.findVariations()
+            album.assign = Mock()
+        ask.editSet.return_value = (9, 8)
+        actual = self.target.askAlbumName()
+        self.assertEqual(actual, None)
+        changed = self.target.albums['loopsoffuryep1']
+        changed.assign.assert_called_once_with('album', 'Loops of Fury')
+
+    @patch('pyTagger.actions.tag_album.ask')
+    def test_askAlbumNames_setValue(self, ask):
+        for album in self.target:
+            album.assign = Mock()
+        ask.editSet.return_value = (9, 'foobar')
+        actual = self.target.askAlbumName()
+        self.assertEqual(actual, None)
+        changed = self.target.albums['loopsoffuryep1']
+        changed.assign.assert_called_once_with('album', 'foobar')
+
+    @patch('pyTagger.actions.tag_album.ask')
+    def test_askAlbumNames_control_c(self, ask):
+        ask.editSet.side_effect = KeyboardInterrupt
+        actual = self.target.askAlbumName()
+        self.assertEqual(actual, None)
+        self.assertEqual(self.target.userDiscard, True)
 
     @patch('pyTagger.actions.tag_album.ask')
     def test_askManualFix_empty(self, ask):
@@ -271,6 +302,18 @@ class TestAlbumTagger(unittest.TestCase):
 
         self.assertEqual(actual, True)
         ra.assert_called_once_with(self.mockAlbum, 'compilation', 1)
+
+    @patch('pyTagger.actions.tag_album.ask')
+    def test_askManualFix_enter_compliation_blank(self, ask):
+        self.target._addToAsk(self.mockAlbum, 'compilation', [])
+        ask.askOrEnterMultipleChoice.return_value = ''
+        ra = Mock()
+        self.target._routeAssign = ra
+
+        actual = self.target.askManualFix()
+
+        self.assertEqual(actual, True)
+        ra.assert_called_once_with(self.mockAlbum, 'compilation', '')
 
     @patch('pyTagger.actions.tag_album.ask')
     def test_askManualFix_enter_compilation_y(self, ask):

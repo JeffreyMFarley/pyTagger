@@ -63,5 +63,36 @@ class TestAsk(unittest.TestCase):
         actual = target.askOrEnterMultipleChoice('1', 'title', options)
         self.assertEqual(actual, 'm')
 
+    @patch('pyTagger.operations.ask.askMultipleChoice')
+    def test_editSet_cancel(self, step1):
+        step1.return_value = 'X'
+        actual = target.editSet(0, 'foo', ['one', 'two', 'three'])
+        self.assertEqual(actual, (-1, None))
+
+    @patch('pyTagger.operations.ask.askOrEnterMultipleChoice')
+    @patch('pyTagger.operations.ask.askMultipleChoice')
+    def test_editSet_choose(self, step1, step2):
+        step1.return_value = '2'
+        step2.return_value = '1'
+        actual = target.editSet(0, 'foo', ['one', 'two', 'three'])
+        self.assertEqual(actual, (1, 0))
+
+    @patch('pyTagger.operations.ask.askOrEnterMultipleChoice')
+    @patch('pyTagger.operations.ask.askMultipleChoice')
+    def test_editSet_enter(self, step1, step2):
+        step1.return_value = '2'
+        step2.return_value = 'bar'
+        actual = target.editSet(0, 'foo', ['one', 'two', 'three'])
+        self.assertEqual(actual, (1, 'bar'))
+
+    @patch('pyTagger.operations.ask.askOrEnterMultipleChoice')
+    @patch('pyTagger.operations.ask.askMultipleChoice')
+    def test_editSet_choose_or_cancel(self, step1, step2):
+        step1.return_value = '2'
+        step2.return_value = 'X'
+        actual = target.editSet(0, 'foo', ['one', 'two', 'three'])
+        self.assertEqual(actual, (-1, None))
+
+
 if __name__ == '__main__':
     unittest.main()

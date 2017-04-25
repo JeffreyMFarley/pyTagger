@@ -120,12 +120,11 @@ class Album(object):
 
     @property
     def nameAndDisc(self):
-        name = self.variations['album'].copy().pop()
         if len(self.variations['disc']) == 0:
             disc = ''
         else:
             disc = self.variations['disc'].copy().pop()
-        return '{} **{}**'.format(name, disc)
+        return '{} **{}**'.format(self.name, disc)
 
 
 # -----------------------------------------------------------------------------
@@ -238,24 +237,17 @@ class AlbumTagger(object):
 
     def askAlbumName(self):
         albums = [album for album in self]
-        options = {
-            str(i + 1): album.nameAndDisc for i, album in enumerate(albums)
-        }
-        options['X'] = 'Return to menu'
+        names = [album.nameAndDisc for album in self]
         try:
-            a = ask.askMultipleChoice(0, 'Select an album to change', options)
-            if a == 'X':
+            index, other = ask.editSet(0, 'Select an album to change', names)
+            if index == -1:
                 return
             else:
-                index = int(a) - 1
                 album = albums[index]
-                b = ask.askOrEnterMultipleChoice(0, album.name, options, False)
-                try:
-                    index = int(b) - 1
-                    other = albums[index]
-                    album.assign('album', other.name)
-                except ValueError:
-                    album.assign('album', a)
+                if isinstance(other, int):
+                    album.assign('album', albums[other].name)
+                else:
+                    album.assign('album', other)
         except KeyboardInterrupt:
             self.userDiscard = True
 
@@ -288,7 +280,7 @@ class AlbumTagger(object):
                             self.userDiscard = True
                         else:
                             raise AssertionError("Unexpected path" + a)
-                elif field in ['compilation', 'disc', 'totalDisc']:
+                elif field in ['compilation', 'disc', 'totalDisc'] and a:
                     try:
                         self._routeAssign(album, field, int(a))
                     except ValueError:
