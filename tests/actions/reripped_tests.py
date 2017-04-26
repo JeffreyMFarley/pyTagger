@@ -68,15 +68,47 @@ class TestRerippedAction(unittest.TestCase):
         self.assertEqual(actual, expected)
 
     @patch('pyTagger.actions.reripped.writeCsv')
+    @patch('pyTagger.actions.reripped.loadJson')
+    @patch('pyTagger.actions.reripped.tag_album')
+    def test_process_tag_album_success(self, tag_album, loadJson, writeCsv):
+        tag_album.process.return_value = "Success"
+        actual = target._tagAlbum(self.options)
+        self.assertEqual(actual, "Success")
+        self.assertEqual(loadJson.call_count, 1)
+        self.assertEqual(writeCsv.call_count, 1)
+
+    @patch('pyTagger.actions.reripped.writeCsv')
+    @patch('pyTagger.actions.reripped.loadJson')
+    @patch('pyTagger.actions.reripped.tag_album')
+    def test_process_tag_album_fails(self, tag_album, loadJson, writeCsv):
+        tag_album.process.return_value = "Foo"
+        actual = target._tagAlbum(self.options)
+        self.assertEqual(actual, "Foo")
+        self.assertEqual(loadJson.call_count, 0)
+        self.assertEqual(writeCsv.call_count, 0)
+
+    @patch('pyTagger.actions.reripped._tagAlbum')
+    def test_process_step1_album_file_exists(self, tagAlbum):
+        self.path_exists.side_effect = [False, True]
+        tagAlbum.return_value = "Foo"
+        actual = target._step1(self.options)
+        self.assertEqual(actual, "Foo")
+        self.assertEqual(tagAlbum.call_count, 1)
+
+    @patch('pyTagger.actions.reripped._tagAlbum')
+    @patch('pyTagger.actions.reripped.saveJson')
     @patch('pyTagger.actions.reripped.isonom')
-    def test_process_step1_isonom_ok(self, isonom, writeCsv):
+    def test_process_step1_isonom_ok(self, isonom, saveJson, tagAlbum):
+        self.path_exists.side_effect = [False, False]
         isonom.process.return_value = "Success"
+        tagAlbum.return_value = "Foo"
         with patch.object(target, '_mergeAll', Mock()):
             actual = target._step1(self.options)
 
-        self.assertEqual(actual, "Success")
+        self.assertEqual(actual, "Foo")
         self.assertEqual(isonom.process.call_count, 1)
-        self.assertEqual(writeCsv.call_count, 1)
+        self.assertEqual(saveJson.call_count, 1)
+        self.assertEqual(tagAlbum.call_count, 1)
 
     @patch('pyTagger.actions.reripped.isonom')
     def test_process_step1_isonom_fails(self, isonom):
