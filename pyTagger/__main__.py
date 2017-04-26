@@ -4,6 +4,7 @@ import os
 import sys
 import traceback
 import pyTagger.actions.convert_csv as convert_csv
+import pyTagger.actions.diff as diff
 import pyTagger.actions.export as export
 import pyTagger.actions.images as images
 import pyTagger.actions.isonom as isonom
@@ -25,6 +26,7 @@ except ImportError:
 
 modules = {
     'convert-csv': convert_csv.process,
+    'diff': diff.process,
     'images': images.process,
     'isonom': isonom.process,
     'prepare': prepare.process,
