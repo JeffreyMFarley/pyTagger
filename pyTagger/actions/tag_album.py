@@ -139,6 +139,7 @@ class AlbumTagger(object):
         self.albums = []
         self.autoFixes = deque()
         self.manualFixes = deque()
+        self.setEdits = []
 
         self.userQuit = False
         self.userDiscard = False
@@ -155,6 +156,9 @@ class AlbumTagger(object):
 
     def _addToAsk(self, album, field, variations):
         self.manualFixes.append((album, field, variations))
+
+    def _addToSetEdit(self, album, field, variations):
+        self.setEdits.append((album, field, variations))
 
     def _routeAssign(self, album, field, value):
         if len(album.variations[field]) > 1:
@@ -173,6 +177,7 @@ class AlbumTagger(object):
     def _triage(self):
         self.autoFixes = deque()
         self.manualFixes = deque()
+        self.setEdits = []
 
         for album in self:
             self._triageOne(album)
@@ -182,10 +187,17 @@ class AlbumTagger(object):
 
             for field in sorted(albumFields):
                 variations = list(sorted(album.variations[field]))
-                if len(variations) == 2 and not variations[0]:
+                hasBlank = any([True for x in variations if not x])
+
+                # There are two entries, one has a value, one does not
+                if len(variations) == 2 and hasBlank:
                     self._addToAuto(album.assign, field, variations[1])
-                elif len(variations) == 1 and variations[0]:
+
+                # There is one entry, it has a value
+                elif len(variations) == 1 and not hasBlank:
                     pass
+
+                # There is one entry, it is blank
                 elif len(variations) == 1:
                     if field in ['disc', 'totalDisc']:
                         pass
@@ -193,6 +205,12 @@ class AlbumTagger(object):
                         self._addToAuto(album.assignTotalTrack)
                     else:
                         self._addToAsk(album, field, [])
+
+                # There are multiple entries, no blanks
+                elif len(variations) > 1 and not hasBlank:
+                    self._addToSetEdit(album, field, variations)
+
+                # There are multiple entries, there is a blank
                 else:
                     self._addToAsk(album, field, variations)
 
@@ -298,9 +316,10 @@ class AlbumTagger(object):
 
     def conduct(self, args):
         menu = {
-            '1': 'Apply Auto Fixes',
-            '2': 'Answer questions',
-            '3': 'Update Album Names',
+            '1': 'Update Album Names',
+            '2': 'Apply Auto Fixes',
+            '3': 'Answer questions',
+            '4': 'Edit Set',
             'S': 'Save current edits',
             'X': 'Save current edits and exit',
             'Z': 'Discard current edits and exit'
@@ -309,20 +328,24 @@ class AlbumTagger(object):
         self._triage()
         while not self.bail():
             options = dict(menu)
-            options['1'] = 'Apply {} auto-fixes'.format(len(self.autoFixes))
-            options['2'] = 'Answer {} questions'.format(len(self.manualFixes))
+            options['2'] = 'Apply {} auto-fixes'.format(len(self.autoFixes))
+            options['3'] = 'Answer {} questions'.format(len(self.manualFixes))
+            options['4'] = 'Edit {} sets'.format(len(self.setEdits))
 
             try:
                 a = ask.askMultipleChoice(0, 'Enter a choice', options)
                 if a == '1':
-                    self.applyAutoFix()
-                    self._triage()
-                elif a == '2':
-                    self.askManualFix()
-                    self._triage()
-                elif a == '3':
                     self.askAlbumName()
                     self.rebuild()
+                    self._triage()
+                elif a == '2':
+                    self.applyAutoFix()
+                    self._triage()
+                elif a == '3':
+                    self.askManualFix()
+                    self._triage()
+                elif a == '4':
+                    self.editSets()
                     self._triage()
                 elif a == 'S':
                     self.save(args.tag_album_file)
@@ -331,7 +354,57 @@ class AlbumTagger(object):
                 elif a == 'Z':
                     self.userDiscard = True
                 else:
-                    raise AssertionError("Unexpected path" + a)
+                    raise AssertionError("Unexpected path " + a)
+            except KeyboardInterrupt:
+                self.userDiscard = True
+
+    def editOneSet(self, album, field, variations):
+        try:
+            text = '{}: {}'.format(album.name, field)
+            index, other = ask.editSet(0, text, variations)
+            if index != -1:
+                value = variations[index]
+                if isinstance(other, int):
+                    album.assign(field, variations[other])
+                else:
+                    album.assign(field, other)
+                return True
+        except KeyboardInterrupt:
+            self.userDiscard = True
+
+        return False
+
+    def editSets(self):
+        menu = {
+            'R': 'Return to Main Menu',
+            'X': 'Save the edits and Exit',
+            'Z': 'Discard the edits'
+        }
+
+        while self.setEdits and not self.bail():
+            options = dict(menu)
+            for i, t in enumerate(self.setEdits):
+                album, field, variations = t
+                options[str(i+1)] = "{1}:{2} ({0})".format(
+                    len(variations), album.name, field
+                )
+
+            try:
+                a = ask.askMultipleChoice(0, 'Enter a choice', options)
+                if a == 'R':
+                    return
+                elif a == 'X':
+                    self.userQuit = True
+                elif a == 'Z':
+                    self.userDiscard = True
+                else:
+                    try:
+                        index = int(a) - 1
+                        album, field, variations = self.setEdits[index]
+                        if self.editOneSet(album, field, variations):
+                            self._triage()
+                    except ValueError:
+                        raise AssertionError("Unexpected path " + a)
             except KeyboardInterrupt:
                 self.userDiscard = True
 

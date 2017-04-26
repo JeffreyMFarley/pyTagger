@@ -159,10 +159,12 @@ class TestAlbumTagger(unittest.TestCase):
         self.assertEqual(af[4][1], ())
 
         mf = self.target.manualFixes
-        self.assertEqual(mf[0][1], u'albumArtist')
-        self.assertEqual(mf[1][1], u'barcode')
-        self.assertEqual(mf[2][1], u'genre')
-        self.assertEqual(mf[3][1], u'year')
+        self.assertEqual(mf[0][1], u'barcode')
+        self.assertEqual(mf[1][1], u'year')
+
+        se = self.target.setEdits
+        self.assertEqual(se[0][1], u'albumArtist')
+        self.assertEqual(se[1][1], u'genre')
 
     # -------------------------------------------------------------------------
 
@@ -365,6 +367,18 @@ class TestAlbumTagger(unittest.TestCase):
     def test_conduct_option1(self, ask):
         ask.askMultipleChoice.return_value = '1'
         self.target.bail = Mock(side_effect=[False, True])
+        self.target.askAlbumName = Mock()
+        self.target.rebuild = Mock()
+
+        self.target.conduct({})
+        self.assertEqual(self.target._triage.call_count, 2)
+        self.assertEqual(self.target.askAlbumName.call_count, 1)
+        self.assertEqual(self.target.rebuild.call_count, 1)
+
+    @patch('pyTagger.actions.tag_album.ask')
+    def test_conduct_option2(self, ask):
+        ask.askMultipleChoice.return_value = '2'
+        self.target.bail = Mock(side_effect=[False, True])
         self.target.applyAutoFix = Mock()
 
         self.target.conduct({})
@@ -372,8 +386,8 @@ class TestAlbumTagger(unittest.TestCase):
         self.assertEqual(self.target.applyAutoFix.call_count, 1)
 
     @patch('pyTagger.actions.tag_album.ask')
-    def test_conduct_option2(self, ask):
-        ask.askMultipleChoice.return_value = '2'
+    def test_conduct_option3(self, ask):
+        ask.askMultipleChoice.return_value = '3'
         self.target.bail = Mock(side_effect=[False, True])
         self.target.askManualFix = Mock()
 
@@ -382,16 +396,14 @@ class TestAlbumTagger(unittest.TestCase):
         self.assertEqual(self.target.askManualFix.call_count, 1)
 
     @patch('pyTagger.actions.tag_album.ask')
-    def test_conduct_option3(self, ask):
-        ask.askMultipleChoice.return_value = '3'
+    def test_conduct_option4(self, ask):
+        ask.askMultipleChoice.return_value = '4'
         self.target.bail = Mock(side_effect=[False, True])
-        self.target.askAlbumName = Mock()
-        self.target.rebuild = Mock()
+        self.target.editSets = Mock()
 
         self.target.conduct({})
         self.assertEqual(self.target._triage.call_count, 2)
-        self.assertEqual(self.target.askAlbumName.call_count, 1)
-        self.assertEqual(self.target.rebuild.call_count, 1)
+        self.assertEqual(self.target.editSets.call_count, 1)
 
     @patch('pyTagger.actions.tag_album.ask')
     def test_conduct_optionS(self, ask):
