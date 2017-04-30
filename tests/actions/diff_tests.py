@@ -8,12 +8,12 @@ except ImportError:
     from mock import patch
 
 fixture_a = {
-    'foo': {'album': None, 'artist': 'w', 'bitRate': 128},
-    'bar': {'album': 1, 'artist': None, 'length': 438}
+    'foo': {'album': None, 'artist': 'w', 'bitRate': 128, 'id': '123456'},
+    'bar': {'album': 1, 'artist': None, 'length': 438, 'id': '987654'}
 }
 fixture_b = {
-    'foo': {'album': 1, 'artist': 'www'},
-    'bar': {'album': 1, 'artist': 'w'}
+    'foo': {'album': 1, 'artist': 'www', 'id': '123456'},
+    'bar': {'album': 1, 'artist': 'w', 'id': '987654'}
 }
 
 
@@ -45,6 +45,29 @@ class TestDiffAction(unittest.TestCase):
         saveJson.side_effect = self.noop_coroutine
         actual = target.process(self.options)
         self.assertEqual(actual, '2 tags processed')
+
+    @patch('pyTagger.actions.diff.saveJsonIncrementalDict')
+    @patch('pyTagger.actions.diff.loadJson')
+    def test_process_match_on_ids(self, loadJson, saveJson):
+        self.options.match_on = 'id'
+        loadJson.side_effect = [dict(fixture_a), dict(fixture_b)]
+        saveJson.side_effect = self.noop_coroutine
+        actual = target.process(self.options)
+        self.assertEqual(actual, '1 tags processed')
+
+    @patch('pyTagger.actions.diff.saveJsonIncrementalDict')
+    @patch('pyTagger.actions.diff.loadJson')
+    def test_process_match_on_ids_missing_ids(self, loadJson, saveJson):
+        self.options.match_on = 'id'
+        a = dict(fixture_a)
+        del a['foo']['id']
+        b = dict(fixture_b)
+        del b['foo']['id']
+
+        loadJson.side_effect = [a, b]
+        saveJson.side_effect = self.noop_coroutine
+        actual = target.process(self.options)
+        self.assertEqual(actual, '0 tags processed')
 
 if __name__ == '__main__':
     unittest.main()

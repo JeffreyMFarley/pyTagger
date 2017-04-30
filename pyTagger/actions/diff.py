@@ -22,12 +22,13 @@ group.add('--compact', action='store_true', dest='compact',
           help='output the JSON in a compact format')
 group.add('--include-nulls', action='store_true',
           help='include nulls in the difference')
+group.add('--match-on', choices=['id', 'path'], default='path',
+          help='select which field should be used for comparison')
 group.add('--write-empty', action='store_true',
           help='output empty differences')
 
 
 # type: same, left-only, right-only, diff-left, diff-right
-# match-on: id, file
 
 # -----------------------------------------------------------------------------
 
@@ -48,11 +49,24 @@ def _removeNulls(tags):
     return tags
 
 
+def _keyOnId(tags):
+    t = {}
+    for k, v in tags.items():
+        if 'id' in v:
+            v['path'] = k
+            t[v['id']] = v
+    return t
+
+
 def process(args):
     a = loadJson(args.left)
     b = loadJson(args.right)
 
     # Scope the work
+    if args.match_on == 'id':
+        a = _keyOnId(a)
+        b = _keyOnId(b)
+
     ka = set(a.keys())
     kb = set(b.keys())
     kboth = ka & kb
