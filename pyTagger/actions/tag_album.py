@@ -93,6 +93,15 @@ class Album(object):
         for _, tags in self.tracks:
             tags[field] = value
 
+    def assignIf(self, ifField, ifValue, assignField, assignValue):
+        for _, tags in self.tracks:
+            if ifField in tags and tags[ifField] == ifValue:
+                self.log.info(
+                    '%s %s %s = %s', self.name, safeGet(tags, 'title'),
+                    assignField, assignValue
+                )
+                tags[assignField] = assignValue
+
     def assignToBlank(self, field, value):
         for _, tags in self.tracks:
             if field not in tags or not tags[field]:
@@ -365,9 +374,9 @@ class AlbumTagger(object):
             if index != -1:
                 value = variations[index]
                 if isinstance(other, int):
-                    album.assign(field, variations[other])
+                    album.assignIf(field, value, field, variations[other])
                 else:
-                    album.assign(field, other)
+                    album.assignIf(field, value, field, other)
                 return True
         except KeyboardInterrupt:
             self.userDiscard = True
