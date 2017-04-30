@@ -2,8 +2,7 @@ from __future__ import unicode_literals
 from __future__ import print_function
 import logging
 import pyTagger.operations.ask as ask
-import os
-from collections import Counter, defaultdict, deque
+from collections import defaultdict, deque
 from configargparse import getArgumentParser
 from hew import Normalizer
 from pyTagger.operations.name import _safeGet as safeGet
@@ -90,16 +89,17 @@ class Album(object):
         self.tracks.append((path, tags))
 
     def assign(self, field, value):
-        self.log.info('%s %s = %s' % (self.name, field, value))
+        self.log.info('%s %s = %s', self.name, field, value)
         for _, tags in self.tracks:
             tags[field] = value
 
     def assignToBlank(self, field, value):
         for _, tags in self.tracks:
             if field not in tags or not tags[field]:
-                self.log.info('%s %s %s = %s' % (
-                    self.name, safeGet(tags, 'title'), field, value
-                ))
+                self.log.info(
+                    '%s %s %s = %s', self.name, safeGet(tags, 'title'), field,
+                    value
+                )
                 tags[field] = value
 
     def assignTotalTrack(self):
@@ -183,36 +183,36 @@ class AlbumTagger(object):
             self._triageOne(album)
 
     def _triageOne(self, album):
-            album.findVariations()
+        album.findVariations()
 
-            for field in sorted(albumFields):
-                variations = list(sorted(album.variations[field]))
-                hasBlank = any([True for x in variations if not x])
+        for field in sorted(albumFields):
+            variations = list(sorted(album.variations[field]))
+            hasBlank = any([True for x in variations if not x])
 
-                # There are two entries, one has a value, one does not
-                if len(variations) == 2 and hasBlank:
-                    self._addToAuto(album.assign, field, variations[1])
+            # There are two entries, one has a value, one does not
+            if len(variations) == 2 and hasBlank:
+                self._addToAuto(album.assign, field, variations[1])
 
-                # There is one entry, it has a value
-                elif len(variations) == 1 and not hasBlank:
+            # There is one entry, it has a value
+            elif len(variations) == 1 and not hasBlank:
+                pass
+
+            # There is one entry, it is blank
+            elif len(variations) == 1:
+                if field in ['disc', 'totalDisc']:
                     pass
-
-                # There is one entry, it is blank
-                elif len(variations) == 1:
-                    if field in ['disc', 'totalDisc']:
-                        pass
-                    elif field == 'totalTrack':
-                        self._addToAuto(album.assignTotalTrack)
-                    else:
-                        self._addToAsk(album, field, [])
-
-                # There are multiple entries, no blanks
-                elif len(variations) > 1 and not hasBlank:
-                    self._addToSetEdit(album, field, variations)
-
-                # There are multiple entries, there is a blank
+                elif field == 'totalTrack':
+                    self._addToAuto(album.assignTotalTrack)
                 else:
-                    self._addToAsk(album, field, variations)
+                    self._addToAsk(album, field, [])
+
+            # There are multiple entries, no blanks
+            elif len(variations) > 1 and not hasBlank:
+                self._addToSetEdit(album, field, variations)
+
+            # There are multiple entries, there is a blank
+            else:
+                self._addToAsk(album, field, variations)
 
     # -------------------------------------------------------------------------
     # I/O
@@ -234,7 +234,7 @@ class AlbumTagger(object):
     def save(self, fileName):
         output = saveJsonIncrementalDict(fileName)
 
-        _ = next(output)
+        next(output)
 
         for album in self:
             for fullPath, row in album.tracks:
