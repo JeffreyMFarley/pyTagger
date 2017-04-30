@@ -49,12 +49,15 @@ def _walkFile(path, filterFn):
                 yield fullPath
 
 
-def walk(path):
+def walk(path, filterFn=None):
+    if not filterFn:
+        filterFn = _filterMp3s
+
     if os.path.isfile(path):
-        for f in _walkFile(path, _filterMp3s):
+        for f in _walkFile(path, filterFn):
             yield f
     elif os.path.isdir(path):
-        for f in _walkDirectory(path, _filterMp3s):
+        for f in _walkDirectory(path, filterFn):
             yield f
     else:
         raise ValueError(path + ' is not a file or directory')
@@ -87,13 +90,15 @@ def needsMove(current, proposed):
 # Directory Functions
 
 
-def buildSnapshot(path, outFileName, id3Reader, compact=False):
+def buildSnapshot(
+    path, outFileName, id3Reader, compact=False, walkFilter=None
+):
     output = saveJsonIncrementalDict(outFileName, compact)
 
     extracted = next(output)
     failed = 0
 
-    for fullPath in walk(path):
+    for fullPath in walk(path, walkFilter):
         row = id3Reader.extractTags(fullPath)
         if row:
             pair = (fullPath.replace('\\', '\\\\'), row)

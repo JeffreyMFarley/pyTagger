@@ -46,6 +46,22 @@ class TestOnDirectory(unittest.TestCase):
         self.assertEqual(actual, expected)
         innerWalk.assert_called_with('foo', target._filterMp3s)
 
+    @patch('pyTagger.operations.on_directory._walkDirectory')
+    @patch('pyTagger.operations.on_directory.os')
+    def test_walk_filterFn(self, os, innerWalk):
+        def filterFn(path):
+            self.assertIn(path, ['foo.mp3', 'bar.txt'])
+
+        expected = ['alpha', 'beta', 'gamma']
+        os.path.isdir.return_value = True
+        os.path.isfile.return_value = False
+        innerWalk.return_value = expected
+
+        actual = list(target.walk('foo', filterFn))
+
+        self.assertEqual(actual, expected)
+        innerWalk.assert_called_with('foo', filterFn)
+
     @patch('pyTagger.operations.on_directory._walkFile')
     @patch('pyTagger.operations.on_directory.os')
     def test_walk_file(self, os, innerWalk):
