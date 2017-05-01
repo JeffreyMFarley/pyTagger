@@ -44,6 +44,11 @@ class TestAlbum(unittest.TestCase):
         self.assertEqual(self.target.tracks[0][1]['albumArtist'], 'Quux')
         self.assertEqual(self.target.tracks[1][1]['albumArtist'], 'Quux')
 
+    def test_assignIf(self):
+        self.target.assignIf('track', 9, 'media', 'DIG')
+        self.assertNotIn('media', self.target.tracks[0][1])
+        self.assertEqual(self.target.tracks[1][1]['media'], 'DIG')
+
     def test_assignToBlankExists(self):
         self.target.assignToBlank('albumArtist', 'Quux')
         self.assertEqual(self.target.tracks[0][1]['albumArtist'], 'Qaz')
@@ -107,6 +112,11 @@ class TestAlbumTagger(unittest.TestCase):
         self.target._triage = Mock()
 
         self.mockAlbum = Mock(spec=sut.Album)
+
+    def fillSetEdits(self):
+        a1 = (Mock(spec=sut.Album), 'foo', ['bar', 'baz', 'qaz'])
+        a2 = (Mock(spec=sut.Album), 'alpha', ['beta', 'gamma', 'delta'])
+        self.target.setEdits = [a1, a2]
 
     # -------------------------------------------------------------------------
 
@@ -440,6 +450,108 @@ class TestAlbumTagger(unittest.TestCase):
         ask.askMultipleChoice.side_effect = KeyboardInterrupt
         self.target.conduct({})
         self.assertEqual(self.target._triage.call_count, 1)
+        self.assertEqual(self.target.userQuit, False)
+        self.assertEqual(self.target.userDiscard, True)
+
+    @patch('pyTagger.actions.tag_album.ask')
+    def test_editOneSet_cancel(self, ask):
+        ask.editSet.return_value = (-1, None)
+        actual = self.target.editOneSet(self.mockAlbum, 'foo', [])
+        self.assertEqual(self.mockAlbum.assignIf.call_count, 0)
+        self.assertEqual(actual, False)
+
+    @patch('pyTagger.actions.tag_album.ask')
+    def test_editOneSet_byIndex(self, ask):
+        ask.editSet.return_value = (0, 1)
+        actual = self.target.editOneSet(self.mockAlbum, 'foo', ['bar', 'baz'])
+        self.mockAlbum.assignIf.assert_called_once_with(
+            'foo', 'bar', 'foo', 'baz'
+        )
+        self.assertEqual(actual, True)
+
+    @patch('pyTagger.actions.tag_album.ask')
+    def test_editOneSet_byString(self, ask):
+        ask.editSet.return_value = (0, 'qux')
+        actual = self.target.editOneSet(self.mockAlbum, 'foo', ['bar', 'baz'])
+        self.mockAlbum.assignIf.assert_called_once_with(
+            'foo', 'bar', 'foo', 'qux'
+        )
+        self.assertEqual(actual, True)
+
+    @patch('pyTagger.actions.tag_album.ask')
+    def test_editOneSet_control_c(self, ask):
+        ask.editSet.side_effect = KeyboardInterrupt
+        actual = self.target.editOneSet(self.mockAlbum, 'foo', ['bar', 'baz'])
+        self.assertEqual(self.mockAlbum.assignIf.call_count, 0)
+        self.assertEqual(actual, False)
+        self.assertEqual(self.target.userDiscard, True)
+
+    @patch('pyTagger.actions.tag_album.ask')
+    def test_editSets_optionR(self, ask):
+        self.fillSetEdits()
+        ask.askMultipleChoice.return_value = 'R'
+        actual = self.target.editSets()
+        self.assertEqual(actual, None)
+        self.assertEqual(self.target.userQuit, False)
+        self.assertEqual(self.target.userDiscard, False)
+
+    @patch('pyTagger.actions.tag_album.ask')
+    def test_editSets_optionX(self, ask):
+        self.fillSetEdits()
+        ask.askMultipleChoice.return_value = 'X'
+        actual = self.target.editSets()
+        self.assertEqual(actual, None)
+        self.assertEqual(self.target.userQuit, True)
+        self.assertEqual(self.target.userDiscard, False)
+
+    @patch('pyTagger.actions.tag_album.ask')
+    def test_editSets_optionZ(self, ask):
+        self.fillSetEdits()
+        ask.askMultipleChoice.return_value = 'Z'
+        actual = self.target.editSets()
+        self.assertEqual(actual, None)
+        self.assertEqual(self.target.userQuit, False)
+        self.assertEqual(self.target.userDiscard, True)
+
+    @patch('pyTagger.actions.tag_album.ask')
+    def test_editSets_optionIndex_success(self, ask):
+        self.fillSetEdits()
+        ask.askMultipleChoice.return_value = '1'
+        self.target.editOneSet = Mock(return_value=True)
+        self.target.bail = Mock(side_effect=[False, True])
+
+        self.target.editSets()
+        self.target.editOneSet.assert_called_once_with(
+            *self.target.setEdits[0]
+        )
+        self.assertEqual(self.target._triage.call_count, 1)
+
+    @patch('pyTagger.actions.tag_album.ask')
+    def test_editSets_optionIndex_fail(self, ask):
+        self.fillSetEdits()
+        ask.askMultipleChoice.return_value = '1'
+        self.target.editOneSet = Mock(return_value=False)
+        self.target.bail = Mock(side_effect=[False, True])
+
+        self.target.editSets()
+        self.target.editOneSet.assert_called_once_with(
+            *self.target.setEdits[0]
+        )
+        self.assertEqual(self.target._triage.call_count, 0)
+
+    @patch('pyTagger.actions.tag_album.ask')
+    def test_editSets_optionIllegal(self, ask):
+        self.fillSetEdits()
+        ask.askMultipleChoice.return_value = '$'
+        with self.assertRaises(AssertionError):
+            actual = self.target.editSets()
+
+    @patch('pyTagger.actions.tag_album.ask')
+    def test_editSets_option_control_c(self, ask):
+        self.fillSetEdits()
+        ask.askMultipleChoice.side_effect = KeyboardInterrupt
+        actual = self.target.editSets()
+        self.assertEqual(actual, None)
         self.assertEqual(self.target.userQuit, False)
         self.assertEqual(self.target.userDiscard, True)
 
