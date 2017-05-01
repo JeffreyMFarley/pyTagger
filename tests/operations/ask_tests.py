@@ -40,8 +40,9 @@ class TestAsk(unittest.TestCase):
             self.assertEqual(stdout.getvalue(), 'A. title\n\n\n1. One\n\n\n')
 
     @patch('sys.stdout', new_callable=io.StringIO)
+    @patch('os.system')
     @patch('pyTagger.operations.ask.get_input')
-    def test_askOrEnterMultipleChoice_enter(self, userInput, stdout):
+    def test_askOrEnterMultipleChoice_enter(self, userInput, osSystem, stdout):
         userInput.return_value = 'Echo'
         options = {'A': 'Alpha'}
         actual = target.askOrEnterMultipleChoice('1', 'title', options)
@@ -60,7 +61,7 @@ class TestAsk(unittest.TestCase):
     def test_askOrEnterMultipleChoice_enterSingle(self, userInput, stdout):
         userInput.return_value = 'm'
         options = {'A': 'Alpha'}
-        actual = target.askOrEnterMultipleChoice('1', 'title', options)
+        actual = target.askOrEnterMultipleChoice('1', 'title', options, False)
         self.assertEqual(actual, 'm')
 
     @patch('pyTagger.operations.ask.askMultipleChoice')
