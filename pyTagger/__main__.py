@@ -46,7 +46,8 @@ for m in sorted(modules):
     del subs._name_parser_map[m]
     subs._name_parser_map[m] = p
 
-if __name__ == "__main__":
+
+def main():
     Tk().withdraw()
     logging.basicConfig()
     os.system('cls' if os.name == 'nt' else 'clear')
@@ -72,3 +73,6 @@ if __name__ == "__main__":
     else:
         args = parser.parse()
         parser.print_values()
+
+if __name__ == "__main__":
+    main()

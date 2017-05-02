@@ -42,4 +42,9 @@ setup(name='pyTagger',
       install_requires=install_requires,
       test_suite='tests',
       tests_require=['nose', 'nose_parameterized'],
+      entry_points={
+          'console_scripts': [
+              'pyTagger = pyTagger.__main__:main'
+          ]
+      },
       zip_safe=False)

@@ -10,6 +10,8 @@
 /*.egg-info
 /.eggs/
 /tests/*.egg-info
+/build/
+/dist/
 
 # Don't store api keys in source control
 .coveralls.yml
