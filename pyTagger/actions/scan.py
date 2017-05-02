@@ -40,7 +40,7 @@ group.add('--modified-max', default=MAX_DATE,
 # -----------------------------------------------------------------------------
 
 # https://en.wikipedia.org/wiki/Robustness_principle
-def postel_date(s):
+def postelDate(s):
     d0 = eyed3.core.Date.parse(s)
     d1 = datetime.datetime(
         d0.year,
@@ -53,7 +53,7 @@ def postel_date(s):
     return d1
 
 
-def creationDate(path):
+def creationDate(path):  # pragma: no cover
     """
     Try to get the date that a file was created, falling back to when it was
     last modified if that isn't possible.
@@ -72,10 +72,10 @@ def creationDate(path):
 
 
 def buildFilter(args):
-    minModTime = postel_date(args.modified_min)
-    maxModTime = postel_date(args.modified_max)
-    minCreateTime = postel_date(args.created_min)
-    maxCreateTime = postel_date(args.created_max)
+    minModTime = postelDate(args.modified_min)
+    maxModTime = postelDate(args.modified_max)
+    minCreateTime = postelDate(args.created_min)
+    maxCreateTime = postelDate(args.created_max)
 
     def innerFilter(path):
         if path[-3:].lower() not in ['mp3']:
@@ -88,7 +88,6 @@ def buildFilter(args):
         createOk = minCreateTime <= createTime <= maxCreateTime
         modOk = minModTime <= modTime <= maxModTime
         if createOk and modOk:
-            print(path)
             return True
 
         return False
