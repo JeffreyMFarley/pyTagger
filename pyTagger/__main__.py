@@ -62,7 +62,7 @@ def main():
         p = getArgumentParser(action)
         args = p.parse()
         print('=' * 31, ' Configuration ', '=' * 32)
-        p.print_values()
+        print(p.format_values())
         print('=' * 80)
         try:
             print(modules[action](args))
