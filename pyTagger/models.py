@@ -2,12 +2,28 @@ from configargparse import getArgumentParser
 from collections import namedtuple
 from pyTagger.utils import defaultConfigFiles
 
+
+def makeEnum(name, *sequential, **named):
+    enums = dict(zip(sequential, range(len(sequential))), **named)
+    return type(name, (), enums)
+
+
+COMPARISON = makeEnum(
+    'Comparison', 'EQUAL', 'NOT', 'GT', 'GTE', 'LT', 'LTE', 'LIKE'
+)
+
+
+FilterCondition = namedtuple('FilterCondition', [
+    'field', 'comparison', 'value'
+])
+
+
 TrackMatch = namedtuple('TrackMatch', [
     'status', 'newPath', 'oldPath', 'score', 'newTags', 'oldTags'
 ])
 
-#------ Snapshot --------------------------------------------------------------
 
+#------ Snapshot --------------------------------------------------------------
 
 class Snapshot(object):
     basic = ['title', 'track', 'totalTrack', 'artist',
@@ -22,6 +38,13 @@ class Snapshot(object):
 
     dltTags = ['comments', 'lyrics']
     complexTags = ['comments', 'lyrics', 'ufid']
+
+    integerTags = [
+        'track', 'totalTrack', 'length',
+        'disc', 'totalDisc',
+        'compilation', 'playCount',
+        'bitRate'
+    ]
 
     @staticmethod
     def orderedAllColumns():

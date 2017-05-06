@@ -15,6 +15,7 @@ import pyTagger.actions.scan as scan
 import pyTagger.actions.tag_album as tag_album
 import pyTagger.actions.update as update
 import pyTagger.actions.upload as upload
+import pyTagger.actions.where as where
 from pyTagger.utils import rootParser as parser
 from configargparse import getArgumentParser
 
@@ -36,7 +37,8 @@ modules = {
     'tag-album': tag_album.process,
     'to-csv': export.process,
     'update': update.process,
-    'upload': upload.uploadToElasticsearch
+    'upload': upload.uploadToElasticsearch,
+    'where': where.process
 }
 
 subs = parser.add_subparsers(help='available commands')
