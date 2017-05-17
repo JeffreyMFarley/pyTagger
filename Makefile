@@ -5,8 +5,10 @@ SPHINXPROJ    = pyTagger
 SOURCEDIR     = docsrc
 BUILDDIR      = docs
 
-GENDOCSRC := $(wildcard $(SOURCEDIR)/*.rst)
-GENDOCSRC := $(filter-out $(SOURCEDIR)/index.rst, $(GENDOCSRC))
+MODULES := pyTagger pyTagger.actions pyTagger.operations pyTagger.proxies
+GENDOCSRC := $(addsuffix .rst, $(MODULES))
+GENDOCSRC := $(addprefix $(SOURCEDIR)/, $(GENDOCSRC))
+
 
 all: clean-pyc test
 
@@ -19,9 +21,23 @@ clean-pyc:
 	find . -name '*.pyo' -exec rm -f {} +
 	find . -name '*~' -exec rm -f {} +
 
-docs: $(GENDOCSRC) $(SOURCEDIR)/index.rst
+docs: $(BUILDDIR)/index.html
+
+$(BUILDDIR)/index.html: $(SOURCEDIR)/*.rst $(GENDOCSRC)
 	@$(SPHINXBUILD) "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
-gendocs:
-	rm -rf $(GENDOCSRC)
+$(SOURCEDIR)/pyTagger.rst: $(SPHINXPROJ)/*.py
+	rm -rf $@
+	sphinx-apidoc -o "$(SOURCEDIR)" "$(SPHINXPROJ)"
+
+$(SOURCEDIR)/pyTagger.actions.rst: $(SPHINXPROJ)/actions/*.py
+	rm -rf $@
+	sphinx-apidoc -o "$(SOURCEDIR)" "$(SPHINXPROJ)"
+
+$(SOURCEDIR)/pyTagger.operations.rst: $(SPHINXPROJ)/operations/*.py
+	rm -rf $@
+	sphinx-apidoc -o "$(SOURCEDIR)" "$(SPHINXPROJ)"
+
+$(SOURCEDIR)/pyTagger.proxies.rst: $(SPHINXPROJ)/proxies/*.py
+	rm -rf $@
 	sphinx-apidoc -o "$(SOURCEDIR)" "$(SPHINXPROJ)"
