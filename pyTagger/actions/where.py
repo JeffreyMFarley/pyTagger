@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-import os
 from configargparse import getArgumentParser
 from pyTagger.models import COMPARISON, FilterCondition, Snapshot
 from pyTagger.operations.name import _safeGet as safeGet
