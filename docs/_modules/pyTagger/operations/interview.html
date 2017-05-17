@@ -1,0 +1,337 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pyTagger.operations.interview &#8212; pyTagger 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pyTagger.operations.interview</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">unicode_literals</span>
+<span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
+<span class="kn">from</span> <span class="nn">pyTagger.operations.ask</span> <span class="k">import</span> <span class="n">askMultipleChoice</span>
+<span class="kn">from</span> <span class="nn">pyTagger.utils</span> <span class="k">import</span> <span class="n">saveJson</span><span class="p">,</span> <span class="n">fmap</span>
+
+<span class="n">basicOptions</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;B&#39;</span><span class="p">:</span> <span class="s1">&#39;Browse for Match&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;D&#39;</span><span class="p">:</span> <span class="s1">&#39;Drop this row&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;M&#39;</span><span class="p">:</span> <span class="s1">&#39;Manual Entry&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;I&#39;</span><span class="p">:</span> <span class="s1">&#39;Ignore for now&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;X&#39;</span><span class="p">:</span> <span class="s1">&#39;Save the interview and Exit&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Z&#39;</span><span class="p">:</span> <span class="s1">&#39;Discard the interview&#39;</span>
+<span class="p">}</span>
+
+
+<span class="k">def</span> <span class="nf">_scan</span><span class="p">(</span><span class="n">rows</span><span class="p">):</span>
+    <span class="n">tally</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">Counter</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s1">&#39;status&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">row</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Missing status field.  Is this an interview?&quot;</span><span class="p">)</span>
+        <span class="n">tally</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="nb">sum</span><span class="p">([</span>
+        <span class="mi">1</span>
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">tally</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;single&#39;</span><span class="p">,</span> <span class="s1">&#39;multiple&#39;</span><span class="p">,</span> <span class="s1">&#39;nothing&#39;</span><span class="p">,</span> <span class="s1">&#39;insufficient&#39;</span><span class="p">]</span>
+    <span class="p">])</span>
+
+
+<span class="k">def</span> <span class="nf">_enforceMultiple</span><span class="p">(</span><span class="n">rows</span><span class="p">):</span>
+    <span class="c1"># Build a dictionary of all old paths</span>
+    <span class="n">olds</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;oldPath&#39;</span><span class="p">]:</span>
+            <span class="n">olds</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;oldPath&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+
+    <span class="c1"># If an old row entry has multiple matches, all the rows should have</span>
+    <span class="c1"># &#39;multiple&#39; as the status</span>
+    <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">olds</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">v</span><span class="p">:</span>
+                <span class="n">row</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;multiple&#39;</span>
+
+    <span class="k">return</span> <span class="n">rows</span>
+
+
+<span class="k">def</span> <span class="nf">_verifyTrackNumbersMatch</span><span class="p">(</span><span class="n">rows</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;oldTags&#39;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;newTags&#39;</span><span class="p">][</span><span class="s1">&#39;track&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;oldTags&#39;</span><span class="p">][</span><span class="s1">&#39;track&#39;</span><span class="p">]:</span>
+                <span class="n">row</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;multiple&#39;</span>
+    <span class="k">return</span> <span class="n">rows</span>
+
+
+<span class="k">def</span> <span class="nf">_handleSingle</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
+    <span class="n">context</span><span class="o">.</span><span class="n">inputToOutput</span><span class="p">(</span><span class="s1">&#39;ready&#39;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_handleMultiple</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
+    <span class="n">key</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">loadCurrent</span><span class="p">()</span>
+
+    <span class="n">options</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">basicOptions</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">current</span><span class="p">):</span>
+        <span class="n">options</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;oldPath&#39;</span><span class="p">]</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">askMultipleChoice</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">step</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">options</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">context</span><span class="o">.</span><span class="n">chooseCurrent</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">a</span> <span class="o">==</span> <span class="s1">&#39;B&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">context</span><span class="o">.</span><span class="n">browseForCurrent</span><span class="p">():</span>
+                    <span class="n">context</span><span class="o">.</span><span class="n">currentToOutput</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="n">a</span> <span class="o">==</span> <span class="s1">&#39;D&#39;</span><span class="p">:</span>
+                <span class="n">context</span><span class="o">.</span><span class="n">dropCurrent</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="n">a</span> <span class="o">==</span> <span class="s1">&#39;I&#39;</span><span class="p">:</span>
+                <span class="n">context</span><span class="o">.</span><span class="n">currentToOutput</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="n">a</span> <span class="o">==</span> <span class="s1">&#39;M&#39;</span><span class="p">:</span>
+                <span class="n">context</span><span class="o">.</span><span class="n">chooseCurrentAsManual</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="n">a</span> <span class="o">==</span> <span class="s1">&#39;X&#39;</span><span class="p">:</span>
+                <span class="n">context</span><span class="o">.</span><span class="n">quit</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="n">a</span> <span class="o">==</span> <span class="s1">&#39;Z&#39;</span><span class="p">:</span>
+                <span class="n">context</span><span class="o">.</span><span class="n">discard</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s2">&quot;askMultipleChoice failed to enforce&quot;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
+        <span class="n">context</span><span class="o">.</span><span class="n">discard</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">_handleNothing</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
+    <span class="n">key</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">loadCurrent</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">askMultipleChoice</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">step</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">basicOptions</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">a</span> <span class="o">==</span> <span class="s1">&#39;B&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">context</span><span class="o">.</span><span class="n">browseForCurrent</span><span class="p">():</span>
+                <span class="n">context</span><span class="o">.</span><span class="n">currentToOutput</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">a</span> <span class="o">==</span> <span class="s1">&#39;D&#39;</span><span class="p">:</span>
+            <span class="n">context</span><span class="o">.</span><span class="n">dropCurrent</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">a</span> <span class="o">==</span> <span class="s1">&#39;I&#39;</span><span class="p">:</span>
+            <span class="n">context</span><span class="o">.</span><span class="n">currentToOutput</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">a</span> <span class="o">==</span> <span class="s1">&#39;M&#39;</span><span class="p">:</span>
+            <span class="n">context</span><span class="o">.</span><span class="n">chooseCurrentAsManual</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">a</span> <span class="o">==</span> <span class="s1">&#39;X&#39;</span><span class="p">:</span>
+            <span class="n">context</span><span class="o">.</span><span class="n">quit</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">a</span> <span class="o">==</span> <span class="s1">&#39;Z&#39;</span><span class="p">:</span>
+            <span class="n">context</span><span class="o">.</span><span class="n">discard</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s2">&quot;askMultipleChoice failed to enforce&quot;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
+        <span class="n">context</span><span class="o">.</span><span class="n">discard</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">_handlePass</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
+    <span class="n">context</span><span class="o">.</span><span class="n">inputToOutput</span><span class="p">()</span>
+
+
+<span class="n">routes</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;single&#39;</span><span class="p">:</span> <span class="n">_handleSingle</span><span class="p">,</span>
+    <span class="s1">&#39;multiple&#39;</span><span class="p">:</span> <span class="n">_handleMultiple</span><span class="p">,</span>
+    <span class="s1">&#39;nothing&#39;</span><span class="p">:</span> <span class="n">_handleNothing</span><span class="p">,</span>
+    <span class="s1">&#39;insufficient&#39;</span><span class="p">:</span> <span class="n">_handleNothing</span><span class="p">,</span>
+    <span class="s1">&#39;ready&#39;</span><span class="p">:</span> <span class="n">_handlePass</span><span class="p">,</span>
+    <span class="s1">&#39;manual&#39;</span><span class="p">:</span> <span class="n">_handlePass</span>
+<span class="p">}</span>
+
+<span class="c1"># -----------------------------------------------------------------------------</span>
+
+
+<div class="viewcode-block" id="Interview"><a class="viewcode-back" href="../../../pyTagger.operations.html#pyTagger.operations.interview.Interview">[docs]</a><span class="k">class</span> <span class="nc">Interview</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rows</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">rows</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">userQuit</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">userDiscard</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">step</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="c1"># Private Methods</span>
+
+    <span class="k">def</span> <span class="nf">_preprocess</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">fns</span> <span class="o">=</span> <span class="p">[</span><span class="n">_enforceMultiple</span><span class="p">,</span> <span class="n">_verifyTrackNumbersMatch</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">fmap</span><span class="p">(</span><span class="n">fns</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_route</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="bp">self</span><span class="o">.</span><span class="n">step</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>  <span class="c1"># pragma: no branch</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">userQuit</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">userDiscard</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">StopIteration</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">StopIteration</span>
+
+            <span class="n">peek</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;status&#39;</span><span class="p">]</span>
+            <span class="k">yield</span> <span class="n">routes</span><span class="p">[</span><span class="n">peek</span><span class="p">]</span>
+
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="c1"># Public Methods</span>
+
+<div class="viewcode-block" id="Interview.isComplete"><a class="viewcode-back" href="../../../pyTagger.operations.html#pyTagger.operations.interview.Interview.isComplete">[docs]</a>    <span class="k">def</span> <span class="nf">isComplete</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">itertools</span><span class="o">.</span><span class="n">chain</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">current</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">_scan</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span></div>
+
+<div class="viewcode-block" id="Interview.conduct"><a class="viewcode-back" href="../../../pyTagger.operations.html#pyTagger.operations.interview.Interview.conduct">[docs]</a>    <span class="k">def</span> <span class="nf">conduct</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_preprocess</span><span class="p">()</span>
+
+        <span class="n">a</span> <span class="o">=</span> <span class="n">askMultipleChoice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Ready to begin the interview?&#39;</span><span class="p">,</span> <span class="p">{</span>
+            <span class="s1">&#39;Y&#39;</span><span class="p">:</span> <span class="s1">&#39;Yes&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;N&#39;</span><span class="p">:</span> <span class="s1">&#39;No&#39;</span>
+        <span class="p">},</span> <span class="kc">False</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">a</span> <span class="o">==</span> <span class="s1">&#39;N&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">for</span> <span class="n">handler</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_route</span><span class="p">():</span>
+            <span class="n">handler</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">userDiscard</span></div>
+
+<div class="viewcode-block" id="Interview.saveState"><a class="viewcode-back" href="../../../pyTagger.operations.html#pyTagger.operations.interview.Interview.saveState">[docs]</a>    <span class="k">def</span> <span class="nf">saveState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fileName</span><span class="p">):</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">itertools</span><span class="o">.</span><span class="n">chain</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">current</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">))</span>
+        <span class="n">saveJson</span><span class="p">(</span><span class="n">fileName</span><span class="p">,</span> <span class="n">rows</span><span class="p">)</span></div>
+
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="c1"># State Events</span>
+
+<div class="viewcode-block" id="Interview.loadCurrent"><a class="viewcode-back" href="../../../pyTagger.operations.html#pyTagger.operations.interview.Interview.loadCurrent">[docs]</a>    <span class="k">def</span> <span class="nf">loadCurrent</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;newPath&#39;</span><span class="p">]</span>
+        <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">)</span> <span class="ow">and</span> <span class="n">key</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;newPath&#39;</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">current</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">key</span></div>
+
+<div class="viewcode-block" id="Interview.quit"><a class="viewcode-back" href="../../../pyTagger.operations.html#pyTagger.operations.interview.Interview.quit">[docs]</a>    <span class="k">def</span> <span class="nf">quit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">userQuit</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="Interview.discard"><a class="viewcode-back" href="../../../pyTagger.operations.html#pyTagger.operations.interview.Interview.discard">[docs]</a>    <span class="k">def</span> <span class="nf">discard</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">userDiscard</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="Interview.inputToOutput"><a class="viewcode-back" href="../../../pyTagger.operations.html#pyTagger.operations.interview.Interview.inputToOutput">[docs]</a>    <span class="k">def</span> <span class="nf">inputToOutput</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">newStatus</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">row</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">newStatus</span><span class="p">:</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">newStatus</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Interview.chooseCurrent"><a class="viewcode-back" href="../../../pyTagger.operations.html#pyTagger.operations.interview.Interview.chooseCurrent">[docs]</a>    <span class="k">def</span> <span class="nf">chooseCurrent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">newStatus</span><span class="o">=</span><span class="s1">&#39;ready&#39;</span><span class="p">):</span>
+        <span class="n">row</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">row</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">newStatus</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current</span> <span class="o">=</span> <span class="p">[]</span></div>
+
+<div class="viewcode-block" id="Interview.chooseCurrentAsManual"><a class="viewcode-back" href="../../../pyTagger.operations.html#pyTagger.operations.interview.Interview.chooseCurrentAsManual">[docs]</a>    <span class="k">def</span> <span class="nf">chooseCurrentAsManual</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">row</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">row</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;manual&#39;</span>
+        <span class="n">row</span><span class="p">[</span><span class="s1">&#39;oldPath&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">row</span><span class="p">[</span><span class="s1">&#39;oldTags&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current</span> <span class="o">=</span> <span class="p">[]</span></div>
+
+<div class="viewcode-block" id="Interview.browseForCurrent"><a class="viewcode-back" href="../../../pyTagger.operations.html#pyTagger.operations.interview.Interview.browseForCurrent">[docs]</a>    <span class="k">def</span> <span class="nf">browseForCurrent</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">pyTagger.proxies.id3</span> <span class="k">import</span> <span class="n">ID3Proxy</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">tkFileDialog</span> <span class="k">import</span> <span class="n">askopenfilename</span>
+        <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">filedialog</span> <span class="k">import</span> <span class="n">askopenfilename</span>
+
+        <span class="n">filename</span> <span class="o">=</span> <span class="n">askopenfilename</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">filename</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">id3Proxy</span> <span class="o">=</span> <span class="n">ID3Proxy</span><span class="p">()</span>
+            <span class="n">row</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;ready&#39;</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;oldPath&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">filename</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;oldTags&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">id3Proxy</span><span class="o">.</span><span class="n">extractTags</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">current</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="Interview.currentToOutput"><a class="viewcode-back" href="../../../pyTagger.operations.html#pyTagger.operations.interview.Interview.currentToOutput">[docs]</a>    <span class="k">def</span> <span class="nf">currentToOutput</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">current</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current</span> <span class="o">=</span> <span class="p">[]</span></div>
+
+<div class="viewcode-block" id="Interview.dropCurrent"><a class="viewcode-back" href="../../../pyTagger.operations.html#pyTagger.operations.interview.Interview.dropCurrent">[docs]</a>    <span class="k">def</span> <span class="nf">dropCurrent</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current</span> <span class="o">=</span> <span class="p">[]</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Jeffrey M Farley.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

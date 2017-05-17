@@ -1,0 +1,176 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pyTagger.actions.diff &#8212; pyTagger 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pyTagger.actions.diff</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">unicode_literals</span>
+<span class="kn">from</span> <span class="nn">configargparse</span> <span class="k">import</span> <span class="n">getArgumentParser</span>
+<span class="kn">from</span> <span class="nn">pyTagger.models</span> <span class="k">import</span> <span class="n">Snapshot</span>
+<span class="kn">from</span> <span class="nn">pyTagger.operations.two_tags</span> <span class="k">import</span> <span class="n">difference</span>
+<span class="kn">from</span> <span class="nn">pyTagger.utils</span> <span class="k">import</span> <span class="n">defaultConfigFiles</span><span class="p">,</span> <span class="n">loadJson</span>
+<span class="kn">from</span> <span class="nn">pyTagger.utils</span> <span class="k">import</span> <span class="n">saveJsonIncrementalDict</span>
+
+<span class="c1"># -----------------------------------------------------------------------------</span>
+<span class="c1"># Configuration</span>
+
+<span class="n">p</span> <span class="o">=</span> <span class="n">getArgumentParser</span><span class="p">(</span><span class="s1">&#39;diff&#39;</span><span class="p">,</span>
+                      <span class="n">default_config_files</span><span class="o">=</span><span class="n">defaultConfigFiles</span><span class="p">,</span>
+                      <span class="n">ignore_unknown_config_file_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                      <span class="n">parents</span><span class="o">=</span><span class="p">[</span><span class="n">getArgumentParser</span><span class="p">()],</span>
+                      <span class="n">description</span><span class="o">=</span><span class="s1">&#39;find the differences between two snapshots&#39;</span><span class="p">)</span>
+<span class="n">group</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s1">&#39;Files&#39;</span><span class="p">)</span>
+<span class="n">group</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;left&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;the first snapshot to compare&#39;</span><span class="p">)</span>
+<span class="n">group</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;right&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;the second snapshot to compare&#39;</span><span class="p">)</span>
+<span class="n">group</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;outfile&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;the snapshot that will hold the results&#39;</span><span class="p">)</span>
+<span class="n">group</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s1">&#39;Options&#39;</span><span class="p">)</span>
+<span class="n">group</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;--compact&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s1">&#39;compact&#39;</span><span class="p">,</span>
+          <span class="n">help</span><span class="o">=</span><span class="s1">&#39;output the JSON in a compact format&#39;</span><span class="p">)</span>
+<span class="n">group</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;--include-nulls&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">,</span>
+          <span class="n">help</span><span class="o">=</span><span class="s1">&#39;include nulls in the difference&#39;</span><span class="p">)</span>
+<span class="n">group</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;--match-on&#39;</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="s1">&#39;path&#39;</span><span class="p">],</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;path&#39;</span><span class="p">,</span>
+          <span class="n">help</span><span class="o">=</span><span class="s1">&#39;select which field should be used for comparison&#39;</span><span class="p">)</span>
+<span class="n">group</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;--write-empty&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">,</span>
+          <span class="n">help</span><span class="o">=</span><span class="s1">&#39;output empty differences&#39;</span><span class="p">)</span>
+
+
+<span class="c1"># type: same, left-only, right-only, diff-left, diff-right</span>
+
+<span class="c1"># -----------------------------------------------------------------------------</span>
+
+<span class="k">def</span> <span class="nf">_filter</span><span class="p">(</span><span class="n">tags</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">Snapshot</span><span class="o">.</span><span class="n">mp3Info</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">tags</span><span class="p">:</span>
+            <span class="k">del</span> <span class="n">tags</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+    <span class="k">if</span> <span class="s1">&#39;length&#39;</span> <span class="ow">in</span> <span class="n">tags</span><span class="p">:</span>
+        <span class="k">del</span> <span class="n">tags</span><span class="p">[</span><span class="s1">&#39;length&#39;</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">tags</span>
+
+
+<span class="k">def</span> <span class="nf">_removeNulls</span><span class="p">(</span><span class="n">tags</span><span class="p">):</span>
+    <span class="n">keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">tags</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">tags</span><span class="p">[</span><span class="n">k</span><span class="p">]:</span>
+            <span class="k">del</span> <span class="n">tags</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">tags</span>
+
+
+<span class="k">def</span> <span class="nf">_keyOnId</span><span class="p">(</span><span class="n">tags</span><span class="p">):</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">tags</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="s1">&#39;id&#39;</span> <span class="ow">in</span> <span class="n">v</span><span class="p">:</span>
+            <span class="n">v</span><span class="p">[</span><span class="s1">&#39;path&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">k</span>
+            <span class="n">t</span><span class="p">[</span><span class="n">v</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">v</span>
+    <span class="k">return</span> <span class="n">t</span>
+
+
+<div class="viewcode-block" id="process"><a class="viewcode-back" href="../../../pyTagger.actions.html#pyTagger.actions.diff.process">[docs]</a><span class="k">def</span> <span class="nf">process</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">loadJson</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">left</span><span class="p">)</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">loadJson</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">right</span><span class="p">)</span>
+
+    <span class="c1"># Scope the work</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">match_on</span> <span class="o">==</span> <span class="s1">&#39;id&#39;</span><span class="p">:</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">_keyOnId</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">_keyOnId</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+
+    <span class="n">ka</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    <span class="n">kb</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    <span class="n">kboth</span> <span class="o">=</span> <span class="n">ka</span> <span class="o">&amp;</span> <span class="n">kb</span>
+
+    <span class="n">output</span> <span class="o">=</span> <span class="n">saveJsonIncrementalDict</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">outfile</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">compact</span><span class="p">)</span>
+
+    <span class="n">extracted</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">kboth</span><span class="p">):</span>
+        <span class="n">tags</span> <span class="o">=</span> <span class="n">difference</span><span class="p">(</span><span class="n">_filter</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="n">k</span><span class="p">]),</span> <span class="n">_filter</span><span class="p">(</span><span class="n">b</span><span class="p">[</span><span class="n">k</span><span class="p">]))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">args</span><span class="o">.</span><span class="n">include_nulls</span><span class="p">:</span>
+            <span class="n">tags</span> <span class="o">=</span> <span class="n">_removeNulls</span><span class="p">(</span><span class="n">tags</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">tags</span> <span class="ow">or</span> <span class="n">args</span><span class="o">.</span><span class="n">write_empty</span><span class="p">:</span>
+            <span class="n">pair</span> <span class="o">=</span> <span class="p">(</span><span class="n">k</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\\\\</span><span class="s1">&#39;</span><span class="p">),</span> <span class="n">tags</span><span class="p">)</span>
+            <span class="n">extracted</span> <span class="o">=</span> <span class="n">output</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">pair</span><span class="p">)</span>
+
+    <span class="n">output</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> tags processed&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">extracted</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Jeffrey M Farley.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

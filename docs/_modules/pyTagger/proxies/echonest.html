@@ -1,0 +1,265 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pyTagger.proxies.echonest &#8212; pyTagger 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pyTagger.proxies.echonest</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">requests</span>
+<span class="kn">from</span> <span class="nn">configargparse</span> <span class="k">import</span> <span class="n">getArgumentParser</span>
+<span class="kn">from</span> <span class="nn">operator</span> <span class="k">import</span> <span class="n">itemgetter</span>
+<span class="kn">from</span> <span class="nn">pyTagger.utils</span> <span class="k">import</span> <span class="n">configurationOptions</span><span class="p">,</span> <span class="n">defaultConfigFiles</span>
+<span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version</span> <span class="o">&lt;</span> <span class="s1">&#39;3&#39;</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+    <span class="n">_unicode</span> <span class="o">=</span> <span class="n">unicode</span>
+<span class="k">else</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+    <span class="n">_unicode</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span>
+
+<span class="c1"># -----------------------------------------------------------------------------</span>
+<span class="c1"># Configuration</span>
+
+<span class="n">p</span> <span class="o">=</span> <span class="n">getArgumentParser</span><span class="p">(</span><span class="s1">&#39;echonest&#39;</span><span class="p">,</span>
+                      <span class="n">default_config_files</span><span class="o">=</span><span class="n">defaultConfigFiles</span><span class="p">,</span>
+                      <span class="n">parents</span><span class="o">=</span><span class="p">[</span><span class="n">getArgumentParser</span><span class="p">()],</span>
+                      <span class="n">description</span><span class="o">=</span><span class="s1">&#39;settings for connecting to Echonest&#39;</span><span class="p">)</span>
+<span class="n">group</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s1">&#39;Echonest&#39;</span><span class="p">)</span>
+<span class="n">group</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;--echonest-api-key&#39;</span><span class="p">,</span> <span class="n">env_var</span><span class="o">=</span><span class="s1">&#39;ECHONEST_API_KEY&#39;</span><span class="p">,</span>
+          <span class="n">help</span><span class="o">=</span><span class="s1">&#39;the API Key used to access EchoNest&#39;</span><span class="p">)</span>
+
+<span class="c1"># -------------------------------------------------------------------------</span>
+<span class="c1"># Projections</span>
+<span class="c1"># -------------------------------------------------------------------------</span>
+
+
+<div class="viewcode-block" id="musicBrainz"><a class="viewcode-back" href="../../../pyTagger.proxies.html#pyTagger.proxies.echonest.musicBrainz">[docs]</a><span class="k">def</span> <span class="nf">musicBrainz</span><span class="p">(</span><span class="n">field</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">curried</span><span class="p">(</span><span class="n">song</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">song</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">song</span><span class="p">[</span><span class="n">field</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="n">o</span><span class="p">[</span><span class="s1">&#39;catalog&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;musicbrainz&#39;</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">o</span><span class="p">[</span><span class="s1">&#39;foreign_id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">curried</span></div>
+
+
+<div class="viewcode-block" id="audioSummary"><a class="viewcode-back" href="../../../pyTagger.proxies.html#pyTagger.proxies.echonest.audioSummary">[docs]</a><span class="k">def</span> <span class="nf">audioSummary</span><span class="p">(</span><span class="n">field</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">curried</span><span class="p">(</span><span class="n">song</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s1">&#39;audio_summary&#39;</span> <span class="ow">in</span> <span class="n">song</span><span class="p">:</span>
+            <span class="n">o</span> <span class="o">=</span> <span class="n">song</span><span class="p">[</span><span class="s1">&#39;audio_summary&#39;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">o</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">o</span><span class="p">[</span><span class="n">field</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">curried</span></div>
+
+<span class="n">_songProjection</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;artist&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="s1">&#39;artist_name&#39;</span><span class="p">],</span>
+    <span class="s1">&#39;bpm&#39;</span><span class="p">:</span> <span class="n">audioSummary</span><span class="p">(</span><span class="s1">&#39;tempo&#39;</span><span class="p">),</span>
+    <span class="s1">&#39;id_musicbrainz_artist&#39;</span><span class="p">:</span> <span class="n">musicBrainz</span><span class="p">(</span><span class="s1">&#39;artist_foreign_ids&#39;</span><span class="p">),</span>
+    <span class="s1">&#39;id_musicbrainz_song&#39;</span><span class="p">:</span> <span class="n">musicBrainz</span><span class="p">(</span><span class="s1">&#39;tracks&#39;</span><span class="p">),</span>
+    <span class="s1">&#39;id_echonest_artist&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="s1">&#39;artist_id&#39;</span><span class="p">],</span>
+    <span class="s1">&#39;id_echonest_song&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">],</span>
+    <span class="s1">&#39;key&#39;</span><span class="p">:</span> <span class="n">audioSummary</span><span class="p">(</span><span class="s1">&#39;key&#39;</span><span class="p">),</span>
+    <span class="s1">&#39;length&#39;</span><span class="p">:</span> <span class="n">audioSummary</span><span class="p">(</span><span class="s1">&#39;duration&#39;</span><span class="p">),</span>
+    <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="s1">&#39;title&#39;</span><span class="p">],</span>
+    <span class="s1">&#39;acousticness&#39;</span><span class="p">:</span> <span class="n">audioSummary</span><span class="p">(</span><span class="s1">&#39;acousticness&#39;</span><span class="p">),</span>
+    <span class="s1">&#39;danceability&#39;</span><span class="p">:</span> <span class="n">audioSummary</span><span class="p">(</span><span class="s1">&#39;danceability&#39;</span><span class="p">),</span>
+    <span class="s1">&#39;energy&#39;</span><span class="p">:</span> <span class="n">audioSummary</span><span class="p">(</span><span class="s1">&#39;energy&#39;</span><span class="p">),</span>
+    <span class="s1">&#39;instrumentalness&#39;</span><span class="p">:</span> <span class="n">audioSummary</span><span class="p">(</span><span class="s1">&#39;instrumentalness&#39;</span><span class="p">),</span>
+    <span class="s1">&#39;liveness&#39;</span><span class="p">:</span> <span class="n">audioSummary</span><span class="p">(</span><span class="s1">&#39;liveness&#39;</span><span class="p">),</span>
+    <span class="s1">&#39;loudness&#39;</span><span class="p">:</span> <span class="n">audioSummary</span><span class="p">(</span><span class="s1">&#39;loudness&#39;</span><span class="p">),</span>
+    <span class="s1">&#39;speechiness&#39;</span><span class="p">:</span> <span class="n">audioSummary</span><span class="p">(</span><span class="s1">&#39;speechiness&#39;</span><span class="p">),</span>
+    <span class="s1">&#39;valence&#39;</span><span class="p">:</span> <span class="n">audioSummary</span><span class="p">(</span><span class="s1">&#39;valence&#39;</span><span class="p">)</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="projection"><a class="viewcode-back" href="../../../pyTagger.proxies.html#pyTagger.proxies.echonest.projection">[docs]</a><span class="k">def</span> <span class="nf">projection</span><span class="p">(</span><span class="n">song</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">_songProjection</span><span class="p">[</span><span class="n">k</span><span class="p">](</span><span class="n">song</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">_songProjection</span><span class="p">)}</span></div>
+
+<span class="c1"># -----------------------------------------------------------------------------</span>
+<span class="c1"># Class</span>
+<span class="c1"># -----------------------------------------------------------------------------</span>
+
+
+<div class="viewcode-block" id="EchoNestProxy"><a class="viewcode-back" href="../../../pyTagger.proxies.html#pyTagger.proxies.echonest.EchoNestProxy">[docs]</a><span class="k">class</span> <span class="nc">EchoNestProxy</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Encapsulates calling the EchoNest Web Service</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">hew</span> <span class="k">import</span> <span class="n">Normalizer</span>
+        <span class="n">options</span> <span class="o">=</span> <span class="n">configurationOptions</span><span class="p">(</span><span class="s1">&#39;echonest&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">api_key</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">echonest_api_key</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">maxCallsPerMinute</span> <span class="o">=</span> <span class="mi">200</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">step</span> <span class="o">=</span> <span class="mi">100</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">normalizer</span> <span class="o">=</span> <span class="n">Normalizer</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">requestHook</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1"># -------------------------------------------------------------------------</span>
+
+    <span class="k">def</span> <span class="nf">_chunk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39; Retrieves a full set of data from an API</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">api_key</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Missing environment variable ECHONEST_API_KEY&quot;</span><span class="p">)</span>
+
+        <span class="c1"># The URL parameters</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;api_key&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">api_key</span><span class="p">,</span>
+                       <span class="s1">&#39;results&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">step</span><span class="p">,</span>
+                       <span class="s1">&#39;start&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                       <span class="s1">&#39;bucket&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;audio_summary&#39;</span><span class="p">,</span> <span class="s1">&#39;tracks&#39;</span><span class="p">,</span> <span class="s1">&#39;id:musicbrainz&#39;</span><span class="p">]</span>
+                       <span class="p">})</span>
+
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Calling&#39;</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">params</span><span class="p">[</span><span class="s1">&#39;artist&#39;</span><span class="p">],</span> <span class="n">params</span><span class="p">[</span><span class="s1">&#39;start&#39;</span><span class="p">])</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">requestHook</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">requestHook</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">status_code</span>
+            <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">status_code</span> <span class="o">!=</span> <span class="mi">200</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">StopIteration</span>
+
+            <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">data</span> <span class="ow">or</span> <span class="s1">&#39;response&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Unable to load records&#39;</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+                <span class="k">if</span> <span class="s1">&#39;error&#39;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;error&#39;</span><span class="p">],</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">StopIteration</span>
+
+            <span class="k">if</span> <span class="s1">&#39;songs&#39;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;response&#39;</span><span class="p">]:</span>
+                <span class="n">songs</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;response&#39;</span><span class="p">][</span><span class="s1">&#39;songs&#39;</span><span class="p">]</span>
+                <span class="k">yield</span> <span class="n">songs</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">StopIteration</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">songs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">100</span><span class="p">:</span>
+                <span class="n">params</span><span class="p">[</span><span class="s1">&#39;start&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s1">&#39;start&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">step</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">songs</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">100</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">StopIteration</span>
+
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">60</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">maxCallsPerMinute</span><span class="p">)</span>
+
+    <span class="c1"># -------------------------------------------------------------------------</span>
+
+<div class="viewcode-block" id="EchoNestProxy.getByArtist"><a class="viewcode-back" href="../../../pyTagger.proxies.html#pyTagger.proxies.echonest.EchoNestProxy.getByArtist">[docs]</a>    <span class="k">def</span> <span class="nf">getByArtist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">artist</span><span class="p">):</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="s1">&#39;http://developer.echonest.com/api/v4/song/search&#39;</span>
+        <span class="n">cleaned</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalizer</span><span class="o">.</span><span class="n">for_query_string</span><span class="p">(</span><span class="n">artist</span><span class="p">)</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;artist&#39;</span><span class="p">:</span> <span class="n">cleaned</span><span class="p">}</span>
+
+        <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chunk</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">song</span> <span class="ow">in</span> <span class="n">chunk</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="n">projection</span><span class="p">(</span><span class="n">song</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EchoNestProxy.getByArtistAndTitle"><a class="viewcode-back" href="../../../pyTagger.proxies.html#pyTagger.proxies.echonest.EchoNestProxy.getByArtistAndTitle">[docs]</a>    <span class="k">def</span> <span class="nf">getByArtistAndTitle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">artist</span><span class="p">,</span> <span class="n">title</span><span class="p">):</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="s1">&#39;http://developer.echonest.com/api/v4/song/search&#39;</span>
+        <span class="n">artist0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalizer</span><span class="o">.</span><span class="n">for_query_string</span><span class="p">(</span><span class="n">artist</span><span class="p">)</span>
+        <span class="n">title0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalizer</span><span class="o">.</span><span class="n">for_query_string</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;artist&#39;</span><span class="p">:</span> <span class="n">artist0</span><span class="p">,</span> <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="n">title0</span><span class="p">}</span>
+
+        <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chunk</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">song</span> <span class="ow">in</span> <span class="n">chunk</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="n">projection</span><span class="p">(</span><span class="n">song</span><span class="p">)</span></div></div>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">service</span> <span class="o">=</span> <span class="n">EchoNestProxy</span><span class="p">()</span>
+    <span class="c1">#service.requestHook = partial(pickleForTesting,</span>
+    <span class="c1">#                              baseFile=&#39;../tests/echonest-chunks&#39;)</span>
+    <span class="c1">#l = list(service.getByArtist(u&#39;Meat Beat Manifesto&#39;))</span>
+
+    <span class="n">songs</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">service</span><span class="o">.</span><span class="n">getByArtist</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;The Future Sound of London&#39;</span><span class="p">),</span>
+                   <span class="n">key</span><span class="o">=</span><span class="n">itemgetter</span><span class="p">(</span><span class="s1">&#39;artist&#39;</span><span class="p">,</span> <span class="s1">&#39;title&#39;</span><span class="p">,</span> <span class="s1">&#39;length&#39;</span><span class="p">))</span>
+
+    <span class="n">columns</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">_songProjection</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">columns</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">song</span> <span class="ow">in</span> <span class="n">songs</span><span class="p">:</span>
+        <span class="n">cells</span> <span class="o">=</span> <span class="p">[</span><span class="n">_unicode</span><span class="p">(</span><span class="n">song</span><span class="p">[</span><span class="n">col</span><span class="p">])</span> <span class="k">if</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">song</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">columns</span><span class="p">]</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">service</span><span class="o">.</span><span class="n">normalizer</span><span class="o">.</span><span class="n">to_ascii</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cells</span><span class="p">)))</span>
+
+    <span class="c1">#for song in songs:</span>
+    <span class="c1">#    s = json.dumps(song, ensure_ascii=True, sort_keys=True)</span>
+    <span class="c1">#    print(s)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Jeffrey M Farley.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

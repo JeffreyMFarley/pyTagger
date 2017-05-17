@@ -1,0 +1,197 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pyTagger.actions.scan &#8212; pyTagger 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pyTagger.actions.scan</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">import</span> <span class="nn">eyed3</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">platform</span>
+<span class="kn">from</span> <span class="nn">configargparse</span> <span class="k">import</span> <span class="n">getArgumentParser</span>
+<span class="kn">from</span> <span class="nn">pyTagger.models</span> <span class="k">import</span> <span class="n">Snapshot</span>
+<span class="kn">from</span> <span class="nn">pyTagger.operations.on_directory</span> <span class="k">import</span> <span class="n">buildSnapshot</span>
+<span class="kn">from</span> <span class="nn">pyTagger.proxies.id3</span> <span class="k">import</span> <span class="n">ID3Proxy</span>
+<span class="kn">from</span> <span class="nn">pyTagger.utils</span> <span class="k">import</span> <span class="n">defaultConfigFiles</span>
+
+<span class="c1"># -----------------------------------------------------------------------------</span>
+<span class="c1"># Configuration</span>
+
+<span class="n">MIN_DATE</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">(</span><span class="mi">1970</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span>
+<span class="n">MAX_DATE</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">(</span><span class="mi">2200</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span>
+
+<span class="n">p</span> <span class="o">=</span> <span class="n">getArgumentParser</span><span class="p">(</span><span class="s1">&#39;scan&#39;</span><span class="p">,</span>
+                      <span class="n">default_config_files</span><span class="o">=</span><span class="n">defaultConfigFiles</span><span class="p">,</span>
+                      <span class="n">ignore_unknown_config_file_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                      <span class="n">parents</span><span class="o">=</span><span class="p">[</span><span class="n">getArgumentParser</span><span class="p">(</span><span class="s1">&#39;snapshot&#39;</span><span class="p">)],</span>
+                      <span class="n">description</span><span class="o">=</span><span class="s1">&#39;create a snapshot from directories of MP3s&#39;</span><span class="p">)</span>
+<span class="n">group</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s1">&#39;Files&#39;</span><span class="p">)</span>
+<span class="n">group</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;path&#39;</span><span class="p">,</span>  <span class="n">nargs</span><span class="o">=</span><span class="s1">&#39;?&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">(),</span>
+          <span class="n">help</span><span class="o">=</span><span class="s1">&#39;the path to scan&#39;</span><span class="p">)</span>
+<span class="n">group</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;outfile&#39;</span><span class="p">,</span>  <span class="n">nargs</span><span class="o">=</span><span class="s1">&#39;?&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;mp3s.json&#39;</span><span class="p">,</span>
+          <span class="n">help</span><span class="o">=</span><span class="s1">&#39;the name of the file that will hold the results&#39;</span><span class="p">)</span>
+<span class="n">group</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;--compact&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s1">&#39;compact&#39;</span><span class="p">,</span>
+          <span class="n">help</span><span class="o">=</span><span class="s1">&#39;output the JSON in a compact format&#39;</span><span class="p">)</span>
+<span class="n">group</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s1">&#39;Filters&#39;</span><span class="p">)</span>
+<span class="n">group</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;--created-min&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">MIN_DATE</span><span class="p">,</span>
+          <span class="n">help</span><span class="o">=</span><span class="s1">&#39;only include files that have been created since&#39;</span><span class="p">)</span>
+<span class="n">group</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;--created-max&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">MAX_DATE</span><span class="p">,</span>
+          <span class="n">help</span><span class="o">=</span><span class="s1">&#39;only include files that have been created before&#39;</span><span class="p">)</span>
+<span class="n">group</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;--modified-min&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">MIN_DATE</span><span class="p">,</span>
+          <span class="n">help</span><span class="o">=</span><span class="s1">&#39;only include files that have been modified since&#39;</span><span class="p">)</span>
+<span class="n">group</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;--modified-max&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">MAX_DATE</span><span class="p">,</span>
+          <span class="n">help</span><span class="o">=</span><span class="s1">&#39;only include files that have been modified before&#39;</span><span class="p">)</span>
+
+
+<span class="c1"># -----------------------------------------------------------------------------</span>
+
+<span class="c1"># https://en.wikipedia.org/wiki/Robustness_principle</span>
+<div class="viewcode-block" id="postelDate"><a class="viewcode-back" href="../../../pyTagger.actions.html#pyTagger.actions.scan.postelDate">[docs]</a><span class="k">def</span> <span class="nf">postelDate</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="n">d0</span> <span class="o">=</span> <span class="n">eyed3</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">Date</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+    <span class="n">d1</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">(</span>
+        <span class="n">d0</span><span class="o">.</span><span class="n">year</span><span class="p">,</span>
+        <span class="n">d0</span><span class="o">.</span><span class="n">month</span> <span class="ow">or</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">d0</span><span class="o">.</span><span class="n">day</span> <span class="ow">or</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">d0</span><span class="o">.</span><span class="n">hour</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">d0</span><span class="o">.</span><span class="n">minute</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">d0</span><span class="o">.</span><span class="n">second</span> <span class="ow">or</span> <span class="mi">0</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">d1</span></div>
+
+
+<div class="viewcode-block" id="creationDate"><a class="viewcode-back" href="../../../pyTagger.actions.html#pyTagger.actions.scan.creationDate">[docs]</a><span class="k">def</span> <span class="nf">creationDate</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>  <span class="c1"># pragma: no cover</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Try to get the date that a file was created, falling back to when it was</span>
+<span class="sd">    last modified if that isn&#39;t possible.</span>
+<span class="sd">    See http://stackoverflow.com/questions/237079/</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">platform</span><span class="o">.</span><span class="n">system</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;Windows&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getctime</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">stat</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">stat</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">stat</span><span class="o">.</span><span class="n">st_birthtime</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="c1"># We&#39;re probably on Linux. No easy way to get creation dates here,</span>
+            <span class="c1"># so we&#39;ll settle for when its content was last modified.</span>
+            <span class="k">return</span> <span class="n">stat</span><span class="o">.</span><span class="n">st_mtime</span></div>
+
+
+<div class="viewcode-block" id="buildFilter"><a class="viewcode-back" href="../../../pyTagger.actions.html#pyTagger.actions.scan.buildFilter">[docs]</a><span class="k">def</span> <span class="nf">buildFilter</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">minModTime</span> <span class="o">=</span> <span class="n">postelDate</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">modified_min</span><span class="p">)</span>
+    <span class="n">maxModTime</span> <span class="o">=</span> <span class="n">postelDate</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">modified_max</span><span class="p">)</span>
+    <span class="n">minCreateTime</span> <span class="o">=</span> <span class="n">postelDate</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">created_min</span><span class="p">)</span>
+    <span class="n">maxCreateTime</span> <span class="o">=</span> <span class="n">postelDate</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">created_max</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">innerFilter</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">path</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">:]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;mp3&#39;</span><span class="p">]:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="n">stats</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">stat</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="n">modTime</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="n">stats</span><span class="o">.</span><span class="n">st_mtime</span><span class="p">)</span>
+        <span class="n">createTime</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="n">creationDate</span><span class="p">(</span><span class="n">path</span><span class="p">))</span>
+
+        <span class="n">createOk</span> <span class="o">=</span> <span class="n">minCreateTime</span> <span class="o">&lt;=</span> <span class="n">createTime</span> <span class="o">&lt;=</span> <span class="n">maxCreateTime</span>
+        <span class="n">modOk</span> <span class="o">=</span> <span class="n">minModTime</span> <span class="o">&lt;=</span> <span class="n">modTime</span> <span class="o">&lt;=</span> <span class="n">maxModTime</span>
+        <span class="k">if</span> <span class="n">createOk</span> <span class="ow">and</span> <span class="n">modOk</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">return</span> <span class="n">innerFilter</span></div>
+
+
+<div class="viewcode-block" id="process"><a class="viewcode-back" href="../../../pyTagger.actions.html#pyTagger.actions.scan.process">[docs]</a><span class="k">def</span> <span class="nf">process</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">filterFn</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="p">(</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">modified_min</span> <span class="o">!=</span> <span class="n">MIN_DATE</span> <span class="ow">or</span> <span class="n">args</span><span class="o">.</span><span class="n">modified_max</span> <span class="o">!=</span> <span class="n">MAX_DATE</span> <span class="ow">or</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">created_min</span> <span class="o">!=</span> <span class="n">MIN_DATE</span> <span class="ow">or</span> <span class="n">args</span><span class="o">.</span><span class="n">created_max</span> <span class="o">!=</span> <span class="n">MAX_DATE</span>
+    <span class="p">):</span>
+        <span class="n">filterFn</span> <span class="o">=</span> <span class="n">buildFilter</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+
+    <span class="n">columns</span> <span class="o">=</span> <span class="n">Snapshot</span><span class="o">.</span><span class="n">columnsFromArgs</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="n">id3Proxy</span> <span class="o">=</span> <span class="n">ID3Proxy</span><span class="p">(</span><span class="n">columns</span><span class="p">)</span>
+    <span class="n">s</span><span class="p">,</span> <span class="n">f</span> <span class="o">=</span> <span class="n">buildSnapshot</span><span class="p">(</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">outfile</span><span class="p">,</span> <span class="n">id3Proxy</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">compact</span><span class="p">,</span> <span class="n">filterFn</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="s1">&#39;Extracted tags from </span><span class="si">{0}</span><span class="s1"> files</span><span class="se">\n</span><span class="s1">Failed </span><span class="si">{1}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Jeffrey M Farley.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

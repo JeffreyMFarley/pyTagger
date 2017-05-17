@@ -1,0 +1,128 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pyTagger.actions.upload &#8212; pyTagger 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pyTagger.actions.upload</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">configargparse</span> <span class="k">import</span> <span class="n">getArgumentParser</span>
+<span class="kn">from</span> <span class="nn">pyTagger.proxies.es</span> <span class="k">import</span> <span class="n">Client</span>
+<span class="kn">from</span> <span class="nn">pyTagger.utils</span> <span class="k">import</span> <span class="n">loadJson</span>
+<span class="kn">from</span> <span class="nn">pyTagger.utils</span> <span class="k">import</span> <span class="n">defaultConfigFiles</span>
+
+<span class="c1"># -----------------------------------------------------------------------------</span>
+<span class="c1"># Configuration</span>
+
+<span class="n">p</span> <span class="o">=</span> <span class="n">getArgumentParser</span><span class="p">(</span><span class="s1">&#39;upload&#39;</span><span class="p">,</span>
+                      <span class="n">default_config_files</span><span class="o">=</span><span class="n">defaultConfigFiles</span><span class="p">,</span>
+                      <span class="n">ignore_unknown_config_file_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                      <span class="n">parents</span><span class="o">=</span><span class="p">[</span><span class="n">getArgumentParser</span><span class="p">(</span><span class="s1">&#39;elasticsearch&#39;</span><span class="p">)],</span>
+                      <span class="n">description</span><span class="o">=</span><span class="s1">&#39;load a snapshot into Elasticsearch&#39;</span><span class="p">)</span>
+<span class="n">group</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s1">&#39;Files&#39;</span><span class="p">)</span>
+<span class="n">group</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;--library-snapshot&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;mp3s.json&#39;</span><span class="p">,</span>
+          <span class="n">help</span><span class="o">=</span><span class="s1">&#39;the file to upload&#39;</span><span class="p">)</span>
+<span class="n">group</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s1">&#39;Other Options&#39;</span><span class="p">)</span>
+<span class="n">group</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;--append&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;append records to the index&#39;</span><span class="p">)</span>
+<span class="n">group</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;--reload&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">,</span>
+          <span class="n">help</span><span class="o">=</span><span class="s1">&#39;clear the index and repopulate&#39;</span><span class="p">)</span>
+
+<span class="c1"># -----------------------------------------------------------------------------</span>
+
+
+<div class="viewcode-block" id="uploadToElasticsearch"><a class="viewcode-back" href="../../../pyTagger.actions.html#pyTagger.actions.upload.uploadToElasticsearch">[docs]</a><span class="k">def</span> <span class="nf">uploadToElasticsearch</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">snapshot</span> <span class="o">=</span> <span class="n">loadJson</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">library_snapshot</span><span class="p">)</span>
+
+    <span class="n">cli</span> <span class="o">=</span> <span class="n">Client</span><span class="p">()</span>
+    <span class="n">exists</span> <span class="o">=</span> <span class="n">cli</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">exists</span> <span class="ow">and</span> <span class="n">args</span><span class="o">.</span><span class="n">reload</span><span class="p">:</span>
+        <span class="n">cli</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
+
+    <span class="k">elif</span> <span class="n">exists</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">args</span><span class="o">.</span><span class="n">append</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Upload already exists!  You can correct this by:</span><span class="se">\n\n</span><span class="s1">&#39;</span>
+                         <span class="s1">&#39;--append    Append the records to the index</span><span class="se">\n</span><span class="s1">&#39;</span>
+                         <span class="s1">&#39;--reload    Clear the index and repopulate</span><span class="se">\n</span><span class="s1">&#39;</span>
+                         <span class="s1">&#39;--es-index  Specify a different index&#39;</span><span class="p">)</span>
+
+    <span class="n">l</span><span class="p">,</span> <span class="n">f</span> <span class="o">=</span> <span class="n">cli</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">snapshot</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s1">&#39;Loaded </span><span class="si">{0}</span><span class="s1"> records</span><span class="se">\n</span><span class="s1">Failed </span><span class="si">{1}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Jeffrey M Farley.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

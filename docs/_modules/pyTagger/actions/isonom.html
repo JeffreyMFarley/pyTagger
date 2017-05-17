@@ -1,0 +1,166 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pyTagger.actions.isonom &#8212; pyTagger 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pyTagger.actions.isonom</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">unicode_literals</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">configargparse</span> <span class="k">import</span> <span class="n">getArgumentParser</span>
+<span class="kn">from</span> <span class="nn">pyTagger.actions.upload</span> <span class="k">import</span> <span class="n">uploadToElasticsearch</span>
+<span class="kn">from</span> <span class="nn">pyTagger.operations.find_duplicates</span> <span class="k">import</span> <span class="n">findIsonoms</span>
+<span class="kn">from</span> <span class="nn">pyTagger.operations.interview</span> <span class="k">import</span> <span class="n">Interview</span>
+<span class="kn">from</span> <span class="nn">pyTagger.proxies.es</span> <span class="k">import</span> <span class="n">Client</span>
+<span class="kn">from</span> <span class="nn">pyTagger.utils</span> <span class="k">import</span> <span class="n">loadJson</span><span class="p">,</span> <span class="n">saveJsonIncrementalArray</span>
+<span class="kn">from</span> <span class="nn">pyTagger.utils</span> <span class="k">import</span> <span class="n">defaultConfigFiles</span>
+
+<span class="c1"># -----------------------------------------------------------------------------</span>
+<span class="c1"># Configuration</span>
+
+<span class="n">p</span> <span class="o">=</span> <span class="n">getArgumentParser</span><span class="p">(</span><span class="s1">&#39;isonom&#39;</span><span class="p">,</span>
+                      <span class="n">default_config_files</span><span class="o">=</span><span class="n">defaultConfigFiles</span><span class="p">,</span>
+                      <span class="n">ignore_unknown_config_file_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                      <span class="n">parents</span><span class="o">=</span><span class="p">[</span><span class="n">getArgumentParser</span><span class="p">(</span><span class="s1">&#39;elasticsearch&#39;</span><span class="p">)],</span>
+                      <span class="n">description</span><span class="o">=</span><span class="s1">&#39;find mp3s with similar names&#39;</span><span class="p">)</span>
+<span class="n">group</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s1">&#39;Isonom Files&#39;</span><span class="p">)</span>
+<span class="n">group</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;--library-snapshot&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;library.json&#39;</span><span class="p">,</span>
+          <span class="n">help</span><span class="o">=</span><span class="s1">&#39;a snapshot of the current library&#39;</span><span class="p">)</span>
+<span class="n">group</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;--intake-snapshot&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;mp3s.json&#39;</span><span class="p">,</span>
+          <span class="n">help</span><span class="o">=</span><span class="s1">&#39;a snapshot of files to check&#39;</span><span class="p">)</span>
+<span class="n">group</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;--interview&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;interview.json&#39;</span><span class="p">,</span>
+          <span class="n">help</span><span class="o">=</span><span class="s1">&#39;communcation with the user about the match results&#39;</span><span class="p">)</span>
+<span class="n">group</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;--min-score&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+          <span class="n">help</span><span class="o">=</span><span class="s1">&#39;lower values lead to more matches, but less accurate&#39;</span><span class="p">)</span>
+
+<span class="c1"># -----------------------------------------------------------------------------</span>
+
+<span class="n">_success</span> <span class="o">=</span> <span class="s2">&quot;Success&quot;</span>
+<span class="n">_notFinished</span> <span class="o">=</span> <span class="s2">&quot;Interview Not Complete&quot;</span>
+
+
+<span class="k">def</span> <span class="nf">_buildIndex</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">uploadToElasticsearch</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_findIsonoms</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">client</span><span class="p">):</span>
+    <span class="n">snapshot</span> <span class="o">=</span> <span class="n">loadJson</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">intake_snapshot</span><span class="p">)</span>
+
+    <span class="n">output</span> <span class="o">=</span> <span class="n">saveJsonIncrementalArray</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">interview</span><span class="p">)</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">findIsonoms</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="n">snapshot</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">min_score</span><span class="p">):</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="n">output</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">_asdict</span><span class="p">())</span>
+
+    <span class="n">output</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="s2">&quot;</span><span class="si">{1}</span><span class="s2"> track(s) produced </span><span class="si">{0}</span><span class="s2"> rows&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">snapshot</span><span class="p">))</span>
+
+
+<div class="viewcode-block" id="process"><a class="viewcode-back" href="../../../pyTagger.actions.html#pyTagger.actions.isonom.process">[docs]</a><span class="k">def</span> <span class="nf">process</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">interview</span><span class="p">):</span>
+        <span class="n">cli</span> <span class="o">=</span> <span class="n">Client</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">cli</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Building Index&#39;</span><span class="p">)</span>
+            <span class="n">_buildIndex</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Using Existing Index&#39;</span><span class="p">)</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Finding Isonoms&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">_findIsonoms</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">cli</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Using existing isonoms file&#39;</span><span class="p">)</span>
+
+    <span class="n">rows</span> <span class="o">=</span> <span class="n">loadJson</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">interview</span><span class="p">)</span>
+    <span class="n">interview</span> <span class="o">=</span> <span class="n">Interview</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">interview</span><span class="o">.</span><span class="n">isComplete</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">interview</span><span class="o">.</span><span class="n">conduct</span><span class="p">():</span>
+            <span class="n">interview</span><span class="o">.</span><span class="n">saveState</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">interview</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">_success</span> <span class="k">if</span> <span class="n">interview</span><span class="o">.</span><span class="n">isComplete</span><span class="p">()</span> <span class="k">else</span> <span class="n">_notFinished</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">_notFinished</span>
+
+    <span class="k">return</span> <span class="n">_success</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Jeffrey M Farley.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

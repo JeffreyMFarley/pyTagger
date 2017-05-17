@@ -1,0 +1,526 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pyTagger.actions.tag_album &#8212; pyTagger 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pyTagger.actions.tag_album</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">unicode_literals</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">pyTagger.operations.ask</span> <span class="k">as</span> <span class="nn">ask</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">defaultdict</span><span class="p">,</span> <span class="n">deque</span>
+<span class="kn">from</span> <span class="nn">configargparse</span> <span class="k">import</span> <span class="n">getArgumentParser</span>
+<span class="kn">from</span> <span class="nn">hew</span> <span class="k">import</span> <span class="n">Normalizer</span>
+<span class="kn">from</span> <span class="nn">pyTagger.operations.name</span> <span class="k">import</span> <span class="n">_safeGet</span> <span class="k">as</span> <span class="n">safeGet</span>
+<span class="kn">from</span> <span class="nn">pyTagger.utils</span> <span class="k">import</span> <span class="n">configurationOptions</span><span class="p">,</span> <span class="n">defaultConfigFiles</span>
+<span class="kn">from</span> <span class="nn">pyTagger.utils</span> <span class="k">import</span> <span class="n">loadJson</span><span class="p">,</span> <span class="n">saveJsonIncrementalDict</span>
+
+
+<span class="n">REQUIRED</span> <span class="o">=</span> <span class="mi">3</span>
+<span class="n">PREFERRED</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">NICE</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">NOT_REQUIRED</span> <span class="o">=</span> <span class="mi">0</span>
+
+<span class="c1"># key: requiredLevel</span>
+<span class="n">albumFields</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;album&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+    <span class="s1">&#39;albumArtist&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+    <span class="s1">&#39;barcode&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s1">&#39;compilation&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="s1">&#39;disc&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="s1">&#39;genre&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s1">&#39;media&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s1">&#39;publisher&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s1">&#39;recordingDate&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="s1">&#39;subtitle&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="s1">&#39;totalDisc&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="s1">&#39;totalTrack&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s1">&#39;year&#39;</span><span class="p">:</span> <span class="mi">2</span>
+<span class="p">}</span>
+
+<span class="c1"># &#39;comments&#39;,</span>
+
+<span class="n">normalizer</span> <span class="o">=</span> <span class="n">Normalizer</span><span class="p">()</span>
+
+
+<span class="c1"># -----------------------------------------------------------------------------</span>
+<span class="c1"># Configuration</span>
+
+<span class="n">p</span> <span class="o">=</span> <span class="n">getArgumentParser</span><span class="p">(</span><span class="s1">&#39;tag-album&#39;</span><span class="p">,</span>
+                      <span class="n">default_config_files</span><span class="o">=</span><span class="n">defaultConfigFiles</span><span class="p">,</span>
+                      <span class="n">ignore_unknown_config_file_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                      <span class="n">parents</span><span class="o">=</span><span class="p">[</span><span class="n">getArgumentParser</span><span class="p">()],</span>
+                      <span class="n">description</span><span class="o">=</span><span class="s1">&#39;settings for editing whole albums&#39;</span><span class="p">)</span>
+<span class="n">group</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s1">&#39;tag-album&#39;</span><span class="p">)</span>
+<span class="n">group</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;--tag-album-file&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;albums.json&#39;</span><span class="p">,</span>
+          <span class="n">help</span><span class="o">=</span><span class="s1">&#39;a snapshot of the mp3s to edit&#39;</span><span class="p">)</span>
+<span class="n">group</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;--tag-album-logging&#39;</span><span class="p">,</span>
+          <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="n">logging</span><span class="o">.</span><span class="n">NOTSET</span><span class="p">,</span> <span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span> <span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">,</span>
+                   <span class="n">logging</span><span class="o">.</span><span class="n">ERROR</span><span class="p">],</span>
+          <span class="n">default</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+          <span class="n">help</span><span class="o">=</span><span class="s1">&#39;how verbose the process should be&#39;</span><span class="p">)</span>
+
+
+<span class="c1"># -----------------------------------------------------------------------------</span>
+<span class="c1"># Methods</span>
+
+<span class="k">def</span> <span class="nf">_albumKey</span><span class="p">(</span><span class="n">tags</span><span class="p">):</span>
+    <span class="n">album</span> <span class="o">=</span> <span class="n">safeGet</span><span class="p">(</span><span class="n">tags</span><span class="p">,</span> <span class="s1">&#39;album&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;Unknown&#39;</span>
+    <span class="n">disc</span> <span class="o">=</span> <span class="n">safeGet</span><span class="p">(</span><span class="n">tags</span><span class="p">,</span> <span class="s1">&#39;disc&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">normalizer</span><span class="o">.</span><span class="n">to_key</span><span class="p">(</span><span class="n">album</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">disc</span><span class="p">))</span>
+
+
+<span class="k">def</span> <span class="nf">_buildAlbums</span><span class="p">(</span><span class="n">snapshot</span><span class="p">):</span>
+    <span class="n">albums</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="n">Album</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">path</span><span class="p">,</span> <span class="n">tags</span> <span class="ow">in</span> <span class="n">snapshot</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="n">_albumKey</span><span class="p">(</span><span class="n">tags</span><span class="p">)</span>
+        <span class="n">albums</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">tags</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">albums</span>
+
+
+<span class="c1"># -----------------------------------------------------------------------------</span>
+<span class="c1"># Album Class</span>
+
+<div class="viewcode-block" id="Album"><a class="viewcode-back" href="../../../pyTagger.actions.html#pyTagger.actions.tag_album.Album">[docs]</a><span class="k">class</span> <span class="nc">Album</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tracks</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">options</span> <span class="o">=</span> <span class="n">configurationOptions</span><span class="p">(</span><span class="s1">&#39;tag-album&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">tag_album_logging</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">tracks</span> <span class="o">=</span> <span class="n">tracks</span> <span class="ow">or</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">variations</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Album.add"><a class="viewcode-back" href="../../../pyTagger.actions.html#pyTagger.actions.tag_album.Album.add">[docs]</a>    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">tags</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tracks</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">path</span><span class="p">,</span> <span class="n">tags</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Album.assign"><a class="viewcode-back" href="../../../pyTagger.actions.html#pyTagger.actions.tag_album.Album.assign">[docs]</a>    <span class="k">def</span> <span class="nf">assign</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> = </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">tags</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tracks</span><span class="p">:</span>
+            <span class="n">tags</span><span class="p">[</span><span class="n">field</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span></div>
+
+<div class="viewcode-block" id="Album.assignIf"><a class="viewcode-back" href="../../../pyTagger.actions.html#pyTagger.actions.tag_album.Album.assignIf">[docs]</a>    <span class="k">def</span> <span class="nf">assignIf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ifField</span><span class="p">,</span> <span class="n">ifValue</span><span class="p">,</span> <span class="n">assignField</span><span class="p">,</span> <span class="n">assignValue</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">tags</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tracks</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">ifField</span> <span class="ow">in</span> <span class="n">tags</span> <span class="ow">and</span> <span class="n">tags</span><span class="p">[</span><span class="n">ifField</span><span class="p">]</span> <span class="o">==</span> <span class="n">ifValue</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> = </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">safeGet</span><span class="p">(</span><span class="n">tags</span><span class="p">,</span> <span class="s1">&#39;title&#39;</span><span class="p">),</span>
+                    <span class="n">assignField</span><span class="p">,</span> <span class="n">assignValue</span>
+                <span class="p">)</span>
+                <span class="n">tags</span><span class="p">[</span><span class="n">assignField</span><span class="p">]</span> <span class="o">=</span> <span class="n">assignValue</span></div>
+
+<div class="viewcode-block" id="Album.assignToBlank"><a class="viewcode-back" href="../../../pyTagger.actions.html#pyTagger.actions.tag_album.Album.assignToBlank">[docs]</a>    <span class="k">def</span> <span class="nf">assignToBlank</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">tags</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tracks</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">field</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">tags</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">tags</span><span class="p">[</span><span class="n">field</span><span class="p">]:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> = </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">safeGet</span><span class="p">(</span><span class="n">tags</span><span class="p">,</span> <span class="s1">&#39;title&#39;</span><span class="p">),</span> <span class="n">field</span><span class="p">,</span>
+                    <span class="n">value</span>
+                <span class="p">)</span>
+                <span class="n">tags</span><span class="p">[</span><span class="n">field</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span></div>
+
+<div class="viewcode-block" id="Album.assignTotalTrack"><a class="viewcode-back" href="../../../pyTagger.actions.html#pyTagger.actions.tag_album.Album.assignTotalTrack">[docs]</a>    <span class="k">def</span> <span class="nf">assignTotalTrack</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">last</span> <span class="o">=</span> <span class="nb">max</span><span class="p">([</span><span class="n">safeGet</span><span class="p">(</span><span class="n">tags</span><span class="p">,</span> <span class="s1">&#39;track&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">tags</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tracks</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="s1">&#39;totalTrack&#39;</span><span class="p">,</span> <span class="n">last</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Album.findVariations"><a class="viewcode-back" href="../../../pyTagger.actions.html#pyTagger.actions.tag_album.Album.findVariations">[docs]</a>    <span class="k">def</span> <span class="nf">findVariations</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">variations</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">tags</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tracks</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">albumFields</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">variations</span><span class="p">[</span><span class="n">field</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">safeGet</span><span class="p">(</span><span class="n">tags</span><span class="p">,</span> <span class="n">field</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">variations</span><span class="p">[</span><span class="s1">&#39;album&#39;</span><span class="p">])</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="sa">u</span><span class="s1">&#39;Unknown&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">variations</span><span class="p">[</span><span class="s1">&#39;album&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">nameAndDisc</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">variations</span><span class="p">[</span><span class="s1">&#39;disc&#39;</span><span class="p">])</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">disc</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">disc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">variations</span><span class="p">[</span><span class="s1">&#39;disc&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> **</span><span class="si">{}</span><span class="s1">**&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">disc</span><span class="p">)</span></div>
+
+
+<span class="c1"># -----------------------------------------------------------------------------</span>
+<span class="c1"># Process Class</span>
+
+<div class="viewcode-block" id="AlbumTagger"><a class="viewcode-back" href="../../../pyTagger.actions.html#pyTagger.actions.tag_album.AlbumTagger">[docs]</a><span class="k">class</span> <span class="nc">AlbumTagger</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">options</span> <span class="o">=</span> <span class="n">configurationOptions</span><span class="p">(</span><span class="s1">&#39;tag-album&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">tag_album_logging</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">albums</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">autoFixes</span> <span class="o">=</span> <span class="n">deque</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">manualFixes</span> <span class="o">=</span> <span class="n">deque</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setEdits</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">userQuit</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">userDiscard</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">albums</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">albums</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="c1"># Private</span>
+
+    <span class="k">def</span> <span class="nf">_addToAuto</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">autoFixes</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">fn</span><span class="p">,</span> <span class="n">args</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_addToAsk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">album</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">variations</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">manualFixes</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">album</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">variations</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_addToSetEdit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">album</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">variations</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setEdits</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">album</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">variations</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_routeAssign</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">album</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">album</span><span class="o">.</span><span class="n">variations</span><span class="p">[</span><span class="n">field</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">toAll</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;A&#39;</span><span class="p">:</span> <span class="s1">&#39;Apply to all tracks&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;B&#39;</span><span class="p">:</span> <span class="s1">&#39;Apply only to blank tracks&#39;</span>
+            <span class="p">}</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">ask</span><span class="o">.</span><span class="n">askMultipleChoice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">toAll</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">a</span> <span class="o">==</span> <span class="s1">&#39;A&#39;</span><span class="p">:</span>
+                <span class="n">album</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">album</span><span class="o">.</span><span class="n">assignToBlank</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">album</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_triage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">autoFixes</span> <span class="o">=</span> <span class="n">deque</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">manualFixes</span> <span class="o">=</span> <span class="n">deque</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setEdits</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">album</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_triageOne</span><span class="p">(</span><span class="n">album</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_triageOne</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">album</span><span class="p">):</span>
+        <span class="n">album</span><span class="o">.</span><span class="n">findVariations</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">albumFields</span><span class="p">):</span>
+            <span class="n">variations</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">album</span><span class="o">.</span><span class="n">variations</span><span class="p">[</span><span class="n">field</span><span class="p">]))</span>
+            <span class="n">hasBlank</span> <span class="o">=</span> <span class="nb">any</span><span class="p">([</span><span class="kc">True</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">variations</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">x</span><span class="p">])</span>
+
+            <span class="c1"># There are two entries, one has a value, one does not</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">variations</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">hasBlank</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_addToAuto</span><span class="p">(</span><span class="n">album</span><span class="o">.</span><span class="n">assign</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">variations</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+            <span class="c1"># There is one entry, it has a value</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">variations</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">hasBlank</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+            <span class="c1"># There is one entry, it is blank</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">variations</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">field</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;disc&#39;</span><span class="p">,</span> <span class="s1">&#39;totalDisc&#39;</span><span class="p">]:</span>
+                    <span class="k">pass</span>
+                <span class="k">elif</span> <span class="n">field</span> <span class="o">==</span> <span class="s1">&#39;totalTrack&#39;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_addToAuto</span><span class="p">(</span><span class="n">album</span><span class="o">.</span><span class="n">assignTotalTrack</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_addToAsk</span><span class="p">(</span><span class="n">album</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="p">[])</span>
+
+            <span class="c1"># There are multiple entries, no blanks</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">variations</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">hasBlank</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_addToSetEdit</span><span class="p">(</span><span class="n">album</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">variations</span><span class="p">)</span>
+
+            <span class="c1"># There are multiple entries, there is a blank</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_addToAsk</span><span class="p">(</span><span class="n">album</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">variations</span><span class="p">)</span>
+
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="c1"># I/O</span>
+
+<div class="viewcode-block" id="AlbumTagger.createFromSnapshot"><a class="viewcode-back" href="../../../pyTagger.actions.html#pyTagger.actions.tag_album.AlbumTagger.createFromSnapshot">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">createFromSnapshot</span><span class="p">(</span><span class="n">snapshot</span><span class="p">):</span>
+        <span class="n">instance</span> <span class="o">=</span> <span class="n">AlbumTagger</span><span class="p">()</span>
+        <span class="n">instance</span><span class="o">.</span><span class="n">albums</span> <span class="o">=</span> <span class="n">_buildAlbums</span><span class="p">(</span><span class="n">snapshot</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">instance</span></div>
+
+<div class="viewcode-block" id="AlbumTagger.rebuild"><a class="viewcode-back" href="../../../pyTagger.actions.html#pyTagger.actions.tag_album.AlbumTagger.rebuild">[docs]</a>    <span class="k">def</span> <span class="nf">rebuild</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">snapshot</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">fullPath</span><span class="p">:</span> <span class="n">row</span>
+            <span class="k">for</span> <span class="n">album</span> <span class="ow">in</span> <span class="bp">self</span>
+            <span class="k">for</span> <span class="n">fullPath</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">album</span><span class="o">.</span><span class="n">tracks</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">albums</span> <span class="o">=</span> <span class="n">_buildAlbums</span><span class="p">(</span><span class="n">snapshot</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AlbumTagger.save"><a class="viewcode-back" href="../../../pyTagger.actions.html#pyTagger.actions.tag_album.AlbumTagger.save">[docs]</a>    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fileName</span><span class="p">):</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">saveJsonIncrementalDict</span><span class="p">(</span><span class="n">fileName</span><span class="p">)</span>
+
+        <span class="nb">next</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">album</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">fullPath</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">album</span><span class="o">.</span><span class="n">tracks</span><span class="p">:</span>
+                <span class="n">pair</span> <span class="o">=</span> <span class="p">(</span><span class="n">fullPath</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\\\\</span><span class="s1">&#39;</span><span class="p">),</span> <span class="n">row</span><span class="p">)</span>
+                <span class="n">output</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">pair</span><span class="p">)</span>
+
+        <span class="n">output</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="c1"># Public Methods</span>
+
+<div class="viewcode-block" id="AlbumTagger.applyAutoFix"><a class="viewcode-back" href="../../../pyTagger.actions.html#pyTagger.actions.tag_album.AlbumTagger.applyAutoFix">[docs]</a>    <span class="k">def</span> <span class="nf">applyAutoFix</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">autoFixes</span><span class="p">:</span>
+            <span class="n">fn</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">autoFixes</span><span class="o">.</span><span class="n">popleft</span><span class="p">()</span>
+            <span class="n">fn</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">autoFixes</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span></div>
+
+<div class="viewcode-block" id="AlbumTagger.askAlbumName"><a class="viewcode-back" href="../../../pyTagger.actions.html#pyTagger.actions.tag_album.AlbumTagger.askAlbumName">[docs]</a>    <span class="k">def</span> <span class="nf">askAlbumName</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">albums</span> <span class="o">=</span> <span class="p">[</span><span class="n">album</span> <span class="k">for</span> <span class="n">album</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">]</span>
+        <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="n">album</span><span class="o">.</span><span class="n">nameAndDisc</span> <span class="k">for</span> <span class="n">album</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">]</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">index</span><span class="p">,</span> <span class="n">other</span> <span class="o">=</span> <span class="n">ask</span><span class="o">.</span><span class="n">editSet</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Select an album to change&#39;</span><span class="p">,</span> <span class="n">names</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">index</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="k">return</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">album</span> <span class="o">=</span> <span class="n">albums</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+                    <span class="n">album</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="s1">&#39;album&#39;</span><span class="p">,</span> <span class="n">albums</span><span class="p">[</span><span class="n">other</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">album</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="s1">&#39;album&#39;</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">userDiscard</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="AlbumTagger.askManualFix"><a class="viewcode-back" href="../../../pyTagger.actions.html#pyTagger.actions.tag_album.AlbumTagger.askManualFix">[docs]</a>    <span class="k">def</span> <span class="nf">askManualFix</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">basicOptions</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;I&#39;</span><span class="p">:</span> <span class="s1">&#39;Ignore&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;X&#39;</span><span class="p">:</span> <span class="s1">&#39;Save the edits and Exit&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Z&#39;</span><span class="p">:</span> <span class="s1">&#39;Discard the edits&#39;</span>
+        <span class="p">}</span>
+
+        <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">manualFixes</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">bail</span><span class="p">():</span>
+            <span class="n">album</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">variations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">manualFixes</span><span class="o">.</span><span class="n">popleft</span><span class="p">()</span>
+            <span class="n">options</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">basicOptions</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">variations</span><span class="p">):</span>
+                <span class="n">options</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span> <span class="o">=</span> <span class="n">v</span>
+            <span class="n">text</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> - </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">album</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">field</span><span class="p">)</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">a</span> <span class="o">=</span> <span class="n">ask</span><span class="o">.</span><span class="n">askOrEnterMultipleChoice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">options</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">options</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">index</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_routeAssign</span><span class="p">(</span><span class="n">album</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">variations</span><span class="p">[</span><span class="n">index</span><span class="p">])</span>
+                    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">a</span> <span class="o">==</span> <span class="s1">&#39;I&#39;</span><span class="p">:</span>
+                            <span class="k">pass</span>
+                        <span class="k">elif</span> <span class="n">a</span> <span class="o">==</span> <span class="s1">&#39;X&#39;</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">userQuit</span> <span class="o">=</span> <span class="kc">True</span>
+                        <span class="k">elif</span> <span class="n">a</span> <span class="o">==</span> <span class="s1">&#39;Z&#39;</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">userDiscard</span> <span class="o">=</span> <span class="kc">True</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s2">&quot;Unexpected path&quot;</span> <span class="o">+</span> <span class="n">a</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">field</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;compilation&#39;</span><span class="p">,</span> <span class="s1">&#39;disc&#39;</span><span class="p">,</span> <span class="s1">&#39;totalDisc&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="n">a</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_routeAssign</span><span class="p">(</span><span class="n">album</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">a</span><span class="p">))</span>
+                    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_addToAsk</span><span class="p">(</span><span class="n">album</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">variations</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_routeAssign</span><span class="p">(</span><span class="n">album</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span>
+
+            <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">userDiscard</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">manualFixes</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span></div>
+
+<div class="viewcode-block" id="AlbumTagger.bail"><a class="viewcode-back" href="../../../pyTagger.actions.html#pyTagger.actions.tag_album.AlbumTagger.bail">[docs]</a>    <span class="k">def</span> <span class="nf">bail</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">userQuit</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">userDiscard</span></div>
+
+<div class="viewcode-block" id="AlbumTagger.conduct"><a class="viewcode-back" href="../../../pyTagger.actions.html#pyTagger.actions.tag_album.AlbumTagger.conduct">[docs]</a>    <span class="k">def</span> <span class="nf">conduct</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="n">menu</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;1&#39;</span><span class="p">:</span> <span class="s1">&#39;Update Album Names&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;2&#39;</span><span class="p">:</span> <span class="s1">&#39;Apply Auto Fixes&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;3&#39;</span><span class="p">:</span> <span class="s1">&#39;Answer questions&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;4&#39;</span><span class="p">:</span> <span class="s1">&#39;Edit Set&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;S&#39;</span><span class="p">:</span> <span class="s1">&#39;Save current edits&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;X&#39;</span><span class="p">:</span> <span class="s1">&#39;Save current edits and exit&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Z&#39;</span><span class="p">:</span> <span class="s1">&#39;Discard current edits and exit&#39;</span>
+        <span class="p">}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_triage</span><span class="p">()</span>
+        <span class="k">while</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">bail</span><span class="p">():</span>
+            <span class="n">options</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">menu</span><span class="p">)</span>
+            <span class="n">options</span><span class="p">[</span><span class="s1">&#39;2&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;Apply </span><span class="si">{}</span><span class="s1"> auto-fixes&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">autoFixes</span><span class="p">))</span>
+            <span class="n">options</span><span class="p">[</span><span class="s1">&#39;3&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;Answer </span><span class="si">{}</span><span class="s1"> questions&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">manualFixes</span><span class="p">))</span>
+            <span class="n">options</span><span class="p">[</span><span class="s1">&#39;4&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;Edit </span><span class="si">{}</span><span class="s1"> sets&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">setEdits</span><span class="p">))</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">a</span> <span class="o">=</span> <span class="n">ask</span><span class="o">.</span><span class="n">askMultipleChoice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Enter a choice&#39;</span><span class="p">,</span> <span class="n">options</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">a</span> <span class="o">==</span> <span class="s1">&#39;1&#39;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">askAlbumName</span><span class="p">()</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">rebuild</span><span class="p">()</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_triage</span><span class="p">()</span>
+                <span class="k">elif</span> <span class="n">a</span> <span class="o">==</span> <span class="s1">&#39;2&#39;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">applyAutoFix</span><span class="p">()</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_triage</span><span class="p">()</span>
+                <span class="k">elif</span> <span class="n">a</span> <span class="o">==</span> <span class="s1">&#39;3&#39;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">askManualFix</span><span class="p">()</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_triage</span><span class="p">()</span>
+                <span class="k">elif</span> <span class="n">a</span> <span class="o">==</span> <span class="s1">&#39;4&#39;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">editSets</span><span class="p">()</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_triage</span><span class="p">()</span>
+                <span class="k">elif</span> <span class="n">a</span> <span class="o">==</span> <span class="s1">&#39;S&#39;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">tag_album_file</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">a</span> <span class="o">==</span> <span class="s1">&#39;X&#39;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">userQuit</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">elif</span> <span class="n">a</span> <span class="o">==</span> <span class="s1">&#39;Z&#39;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">userDiscard</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s2">&quot;Unexpected path &quot;</span> <span class="o">+</span> <span class="n">a</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">userDiscard</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="AlbumTagger.editOneSet"><a class="viewcode-back" href="../../../pyTagger.actions.html#pyTagger.actions.tag_album.AlbumTagger.editOneSet">[docs]</a>    <span class="k">def</span> <span class="nf">editOneSet</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">album</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">variations</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">text</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">album</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">field</span><span class="p">)</span>
+            <span class="n">index</span><span class="p">,</span> <span class="n">other</span> <span class="o">=</span> <span class="n">ask</span><span class="o">.</span><span class="n">editSet</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">variations</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">index</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">variations</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+                    <span class="n">album</span><span class="o">.</span><span class="n">assignIf</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">variations</span><span class="p">[</span><span class="n">other</span><span class="p">])</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">album</span><span class="o">.</span><span class="n">assignIf</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span>
+                <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">userDiscard</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="AlbumTagger.editSets"><a class="viewcode-back" href="../../../pyTagger.actions.html#pyTagger.actions.tag_album.AlbumTagger.editSets">[docs]</a>    <span class="k">def</span> <span class="nf">editSets</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">menu</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;R&#39;</span><span class="p">:</span> <span class="s1">&#39;Return to Main Menu&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;X&#39;</span><span class="p">:</span> <span class="s1">&#39;Save the edits and Exit&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Z&#39;</span><span class="p">:</span> <span class="s1">&#39;Discard the edits&#39;</span>
+        <span class="p">}</span>
+
+        <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">setEdits</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">bail</span><span class="p">():</span>
+            <span class="n">options</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">menu</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">setEdits</span><span class="p">):</span>
+                <span class="n">album</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">variations</span> <span class="o">=</span> <span class="n">t</span>
+                <span class="n">options</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)]</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{1}</span><span class="s2">:</span><span class="si">{2}</span><span class="s2"> (</span><span class="si">{0}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="nb">len</span><span class="p">(</span><span class="n">variations</span><span class="p">),</span> <span class="n">album</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">field</span>
+                <span class="p">)</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">a</span> <span class="o">=</span> <span class="n">ask</span><span class="o">.</span><span class="n">askMultipleChoice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Enter a choice&#39;</span><span class="p">,</span> <span class="n">options</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">a</span> <span class="o">==</span> <span class="s1">&#39;R&#39;</span><span class="p">:</span>
+                    <span class="k">return</span>
+                <span class="k">elif</span> <span class="n">a</span> <span class="o">==</span> <span class="s1">&#39;X&#39;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">userQuit</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">elif</span> <span class="n">a</span> <span class="o">==</span> <span class="s1">&#39;Z&#39;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">userDiscard</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">index</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+                        <span class="n">album</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">variations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">setEdits</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">editOneSet</span><span class="p">(</span><span class="n">album</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">variations</span><span class="p">):</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_triage</span><span class="p">()</span>
+                    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s2">&quot;Unexpected path &quot;</span> <span class="o">+</span> <span class="n">a</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">userDiscard</span> <span class="o">=</span> <span class="kc">True</span></div></div>
+
+<span class="c1"># -----------------------------------------------------------------------------</span>
+<span class="c1"># Action Main</span>
+
+<span class="n">_success</span> <span class="o">=</span> <span class="s2">&quot;Success&quot;</span>
+<span class="n">_notFinished</span> <span class="o">=</span> <span class="s2">&quot;Not Complete&quot;</span>
+
+
+<div class="viewcode-block" id="process"><a class="viewcode-back" href="../../../pyTagger.actions.html#pyTagger.actions.tag_album.process">[docs]</a><span class="k">def</span> <span class="nf">process</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">_notFinished</span>
+
+    <span class="n">fileName</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">tag_album_file</span>
+    <span class="n">snapshot</span> <span class="o">=</span> <span class="n">loadJson</span><span class="p">(</span><span class="n">fileName</span><span class="p">)</span>
+
+    <span class="n">instance</span> <span class="o">=</span> <span class="n">AlbumTagger</span><span class="o">.</span><span class="n">createFromSnapshot</span><span class="p">(</span><span class="n">snapshot</span><span class="p">)</span>
+    <span class="n">instance</span><span class="o">.</span><span class="n">conduct</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">instance</span><span class="o">.</span><span class="n">userDiscard</span><span class="p">:</span>
+        <span class="n">instance</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">fileName</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">_success</span>
+
+    <span class="k">return</span> <span class="n">result</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Jeffrey M Farley.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

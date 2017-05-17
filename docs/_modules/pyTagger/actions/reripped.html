@@ -1,0 +1,358 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pyTagger.actions.reripped &#8212; pyTagger 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pyTagger.actions.reripped</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">unicode_literals</span>
+<span class="kn">import</span> <span class="nn">io</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">pyTagger.actions.isonom</span> <span class="k">as</span> <span class="nn">isonom</span>
+<span class="kn">import</span> <span class="nn">pyTagger.actions.tag_album</span> <span class="k">as</span> <span class="nn">tag_album</span>
+<span class="kn">from</span> <span class="nn">configargparse</span> <span class="k">import</span> <span class="n">getArgumentParser</span>
+<span class="kn">from</span> <span class="nn">pyTagger.operations.ask</span> <span class="k">import</span> <span class="n">askMultipleChoice</span>
+<span class="kn">from</span> <span class="nn">pyTagger.operations.from_csv</span> <span class="k">import</span> <span class="n">convert</span>
+<span class="kn">from</span> <span class="nn">pyTagger.operations.on_directory</span> <span class="k">import</span> <span class="n">extractImages</span><span class="p">,</span> <span class="n">deleteFiles</span>
+<span class="kn">from</span> <span class="nn">pyTagger.operations.on_directory</span> <span class="k">import</span> <span class="n">renameFiles</span><span class="p">,</span> <span class="n">replaceFiles</span>
+<span class="kn">from</span> <span class="nn">pyTagger.operations.on_directory</span> <span class="k">import</span> <span class="n">deleteEmptyDirectories</span>
+<span class="kn">from</span> <span class="nn">pyTagger.operations.on_mp3</span> <span class="k">import</span> <span class="n">updateFromSnapshot</span>
+<span class="kn">from</span> <span class="nn">pyTagger.operations.to_csv</span> <span class="k">import</span> <span class="n">writeCsv</span>
+<span class="kn">from</span> <span class="nn">pyTagger.operations.two_tags</span> <span class="k">import</span> <span class="n">union</span>
+<span class="kn">from</span> <span class="nn">pyTagger.proxies.id3</span> <span class="k">import</span> <span class="n">ID3Proxy</span>
+<span class="kn">from</span> <span class="nn">pyTagger.utils</span> <span class="k">import</span> <span class="n">loadJson</span><span class="p">,</span> <span class="n">saveJson</span><span class="p">,</span> <span class="n">generateUfid</span>
+<span class="kn">from</span> <span class="nn">pyTagger.utils</span> <span class="k">import</span> <span class="n">defaultConfigFiles</span>
+
+<span class="c1"># -----------------------------------------------------------------------------</span>
+<span class="c1"># Configuration</span>
+
+<span class="n">p</span> <span class="o">=</span> <span class="n">getArgumentParser</span><span class="p">(</span><span class="s1">&#39;reripped&#39;</span><span class="p">,</span>
+                      <span class="n">default_config_files</span><span class="o">=</span><span class="n">defaultConfigFiles</span><span class="p">,</span>
+                      <span class="n">ignore_unknown_config_file_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                      <span class="n">parents</span><span class="o">=</span><span class="p">[</span>
+                          <span class="n">getArgumentParser</span><span class="p">(</span><span class="s1">&#39;isonom&#39;</span><span class="p">),</span>
+                      <span class="p">],</span>
+                      <span class="n">description</span><span class="o">=</span><span class="s1">&#39;process re-ripped files and merge into &#39;</span>
+                      <span class="s1">&#39;house library&#39;</span><span class="p">)</span>
+<span class="n">p</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;step&#39;</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+      <span class="n">help</span><span class="o">=</span><span class="s1">&#39;which step to execute&#39;</span><span class="p">)</span>
+<span class="n">group</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s1">&#39;tag-album&#39;</span><span class="p">)</span>
+<span class="n">group</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;--tag-album-file&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;albums.json&#39;</span><span class="p">,</span>
+          <span class="n">help</span><span class="o">=</span><span class="s1">&#39;a snapshot of the mp3s to edit&#39;</span><span class="p">)</span>
+<span class="n">group</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;--tag-album-logging&#39;</span><span class="p">,</span>
+          <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="n">logging</span><span class="o">.</span><span class="n">NOTSET</span><span class="p">,</span> <span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span> <span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">,</span>
+                   <span class="n">logging</span><span class="o">.</span><span class="n">ERROR</span><span class="p">],</span>
+          <span class="n">default</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+          <span class="n">help</span><span class="o">=</span><span class="s1">&#39;how verbose the process should be&#39;</span><span class="p">)</span>
+<span class="n">group</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s1">&#39;Step 1&#39;</span><span class="p">)</span>
+<span class="n">group</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;--goal-csv&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;goal.csv&#39;</span><span class="p">,</span>
+          <span class="n">help</span><span class="o">=</span><span class="s1">&#39;a CSV version of the goal snapshot&#39;</span><span class="p">)</span>
+<span class="n">group</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s1">&#39;Step 2&#39;</span><span class="p">)</span>
+<span class="n">group</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;--goal-snapshot&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;goal.json&#39;</span><span class="p">,</span>
+          <span class="n">help</span><span class="o">=</span><span class="s1">&#39;a snapshot of what the mp3s should look like&#39;</span><span class="p">)</span>
+<span class="n">group</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;--images-dir&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">(),</span> <span class="s1">&#39;images&#39;</span><span class="p">),</span>
+          <span class="n">help</span><span class="o">=</span><span class="s1">&#39;the directory where images should be extracted&#39;</span><span class="p">)</span>
+<span class="n">group</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;--to-delete&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;to-delete.txt&#39;</span><span class="p">,</span>
+          <span class="n">help</span><span class="o">=</span><span class="s1">&#39;the file that lists the MP3s to be deleted&#39;</span><span class="p">)</span>
+<span class="n">group</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;--to-extract&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;to-extract.txt&#39;</span><span class="p">,</span>
+          <span class="n">help</span><span class="o">=</span><span class="s1">&#39;the file that lists the MP3s to extract images from&#39;</span><span class="p">)</span>
+<span class="n">group</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;--to-move&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;to-move.txt&#39;</span><span class="p">,</span>
+          <span class="n">help</span><span class="o">=</span><span class="s1">&#39;the file that lists the MP3s to be moved&#39;</span><span class="p">)</span>
+<span class="n">group</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;--to-update&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;to-update.txt&#39;</span><span class="p">,</span>
+          <span class="n">help</span><span class="o">=</span><span class="s1">&#39;the file that lists the MP3s to be overwritten&#39;</span><span class="p">)</span>
+<span class="n">group</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s1">&#39;Step 3&#39;</span><span class="p">)</span>
+<span class="n">group</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;--library-dir&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">(),</span> <span class="s1">&#39;Music&#39;</span><span class="p">),</span>
+          <span class="n">help</span><span class="o">=</span><span class="s1">&#39;the directory where the managed MP3s are located&#39;</span><span class="p">)</span>
+<span class="n">group</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;--intake-dir&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">(),</span> <span class="s1">&#39;Add To Library&#39;</span><span class="p">),</span>
+          <span class="n">help</span><span class="o">=</span><span class="s1">&#39;the directory where the incoming MP3s are located&#39;</span><span class="p">)</span>
+<span class="n">group</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;--cleanup&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">,</span>
+          <span class="n">help</span><span class="o">=</span><span class="s1">&#39;clean up files if successful&#39;</span><span class="p">)</span>
+<span class="c1"># -----------------------------------------------------------------------------</span>
+
+<span class="n">SUCCESS</span> <span class="o">=</span> <span class="s2">&quot;Success&quot;</span>
+
+
+<span class="k">def</span> <span class="nf">_mergeAll</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="n">loadJson</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">interview</span><span class="p">)</span>
+    <span class="n">merged</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">union</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;newTags&#39;</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;oldTags&#39;</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;manual&#39;</span><span class="p">:</span>
+            <span class="n">ufid</span> <span class="o">=</span> <span class="n">generateUfid</span><span class="p">()</span>
+            <span class="n">c</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ufid</span>
+            <span class="n">c</span><span class="p">[</span><span class="s1">&#39;ufid&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;DJTagger&#39;</span><span class="p">:</span> <span class="n">ufid</span><span class="p">}</span>
+
+        <span class="n">merged</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;newPath&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">c</span>
+
+    <span class="k">return</span> <span class="n">merged</span>
+
+
+<span class="k">def</span> <span class="nf">_tagAlbum</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">tag_album</span><span class="o">.</span><span class="n">process</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">result</span> <span class="o">==</span> <span class="s1">&#39;Success&#39;</span><span class="p">:</span>
+        <span class="n">snapshot</span> <span class="o">=</span> <span class="n">loadJson</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">tag_album_file</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Creating &#39;</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">goal_csv</span><span class="p">)</span>
+        <span class="n">writeCsv</span><span class="p">(</span><span class="n">snapshot</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">goal_csv</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">result</span>
+
+
+<span class="k">def</span> <span class="nf">_step1</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">goal_csv</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Using existing goals file&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">SUCCESS</span>
+
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">tag_album_file</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_tagAlbum</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+
+    <span class="n">result</span> <span class="o">=</span> <span class="n">isonom</span><span class="o">.</span><span class="n">process</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">result</span> <span class="o">==</span> <span class="s1">&#39;Success&#39;</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Creating &#39;</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">tag_album_file</span><span class="p">)</span>
+        <span class="n">merged</span> <span class="o">=</span> <span class="n">_mergeAll</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+        <span class="n">saveJson</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">tag_album_file</span><span class="p">,</span> <span class="n">merged</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_tagAlbum</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">result</span>
+
+<span class="c1"># -----------------------------------------------------------------------------</span>
+
+
+<span class="k">def</span> <span class="nf">_writeText</span><span class="p">(</span><span class="n">lines</span><span class="p">,</span> <span class="n">fileName</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">io</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">fileName</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">lines</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_buildDeletes</span><span class="p">(</span><span class="n">interview</span><span class="p">,</span> <span class="n">snapshot</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="s1">&#39;newPath&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">interview</span> <span class="k">if</span> <span class="n">x</span><span class="p">[</span><span class="s1">&#39;newPath&#39;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">snapshot</span><span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">_buildMoves</span><span class="p">(</span><span class="n">interview</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="s1">&#39;newPath&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">interview</span> <span class="k">if</span> <span class="n">x</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;manual&#39;</span><span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">_buildUpdates</span><span class="p">(</span><span class="n">interview</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="s1">&#39;newPath&#39;</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="s1">&#39;oldPath&#39;</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">interview</span>
+        <span class="k">if</span> <span class="n">x</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;ready&#39;</span>
+    <span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">_step2</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">goal_csv</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Step 1 not finished&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s2">&quot;Not Ready&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">goal_snapshot</span><span class="p">):</span>
+        <span class="n">convert</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">goal_csv</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">goal_snapshot</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Using existing goals file&#39;</span><span class="p">)</span>
+
+    <span class="n">interview</span> <span class="o">=</span> <span class="n">loadJson</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">interview</span><span class="p">)</span>
+    <span class="n">snapshot</span> <span class="o">=</span> <span class="n">loadJson</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">goal_snapshot</span><span class="p">)</span>
+
+    <span class="n">l</span> <span class="o">=</span> <span class="n">_buildDeletes</span><span class="p">(</span><span class="n">interview</span><span class="p">,</span> <span class="n">snapshot</span><span class="p">)</span>
+    <span class="n">_writeText</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">to_delete</span><span class="p">)</span>
+
+    <span class="c1"># Remove the deletes from the interview</span>
+    <span class="n">interview</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">interview</span> <span class="k">if</span> <span class="n">x</span><span class="p">[</span><span class="s1">&#39;newPath&#39;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">l</span><span class="p">]</span>
+
+    <span class="n">l</span> <span class="o">=</span> <span class="n">_buildMoves</span><span class="p">(</span><span class="n">interview</span><span class="p">)</span>
+    <span class="n">_writeText</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">to_move</span><span class="p">)</span>
+
+    <span class="n">updates</span> <span class="o">=</span> <span class="n">_buildUpdates</span><span class="p">(</span><span class="n">interview</span><span class="p">)</span>
+    <span class="n">pairs</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">b</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">updates</span><span class="p">]</span>
+    <span class="n">_writeText</span><span class="p">(</span><span class="n">pairs</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">to_update</span><span class="p">)</span>
+
+    <span class="n">l</span> <span class="o">=</span> <span class="p">[</span><span class="n">b</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">updates</span><span class="p">]</span>
+    <span class="n">_writeText</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">to_extract</span><span class="p">)</span>
+
+    <span class="n">id3Proxy</span> <span class="o">=</span> <span class="n">ID3Proxy</span><span class="p">()</span>
+    <span class="n">updated</span><span class="p">,</span> <span class="n">failed</span> <span class="o">=</span> <span class="n">updateFromSnapshot</span><span class="p">(</span><span class="n">id3Proxy</span><span class="p">,</span> <span class="n">snapshot</span><span class="p">,</span> <span class="n">upgrade</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">counter</span> <span class="o">=</span> <span class="n">extractImages</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">to_extract</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">images_dir</span><span class="p">,</span> <span class="n">id3Proxy</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Updated </span><span class="si">{0}</span><span class="se">\n</span><span class="s1">Failed </span><span class="si">{1}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">updated</span><span class="p">,</span> <span class="n">failed</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Images&#39;</span><span class="p">,</span> <span class="n">counter</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">SUCCESS</span>
+
+<span class="c1"># -----------------------------------------------------------------------------</span>
+
+
+<span class="k">def</span> <span class="nf">_image_ask</span><span class="p">():</span>
+    <span class="n">choices</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Y&#39;</span><span class="p">:</span> <span class="s1">&#39;Yes&#39;</span><span class="p">,</span> <span class="s1">&#39;N&#39;</span><span class="p">:</span> <span class="s1">&#39;No&#39;</span><span class="p">}</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">askMultipleChoice</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Have the images been copied?&#39;</span><span class="p">,</span> <span class="n">choices</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">a</span> <span class="o">==</span> <span class="s1">&#39;Y&#39;</span>
+
+
+<span class="k">def</span> <span class="nf">_deleteFiles</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">to_delete</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="n">s</span><span class="p">,</span> <span class="n">f</span> <span class="o">=</span> <span class="n">deleteFiles</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">to_delete</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Deleted </span><span class="si">{0}</span><span class="s1">, Errors </span><span class="si">{1}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">f</span><span class="p">))</span>
+
+    <span class="n">passed</span> <span class="o">=</span> <span class="n">f</span> <span class="o">==</span> <span class="mi">0</span>
+
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">cleanup</span> <span class="ow">and</span> <span class="n">passed</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">to_delete</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">passed</span>
+
+
+<span class="k">def</span> <span class="nf">_moveFiles</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">to_move</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="n">reader</span> <span class="o">=</span> <span class="n">ID3Proxy</span><span class="p">()</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">renameFiles</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">to_move</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">library_dir</span><span class="p">,</span> <span class="n">reader</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Moved&#39;</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span>
+
+    <span class="n">passed</span> <span class="o">=</span> <span class="n">c</span><span class="p">[</span><span class="s1">&#39;moved&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="nb">sum</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">cleanup</span> <span class="ow">and</span> <span class="n">passed</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">to_move</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">passed</span>
+
+
+<span class="k">def</span> <span class="nf">_replaceFiles</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">to_update</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="n">c</span> <span class="o">=</span> <span class="n">replaceFiles</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">to_update</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Replaced&#39;</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span>
+
+    <span class="n">passed</span> <span class="o">=</span> <span class="n">c</span><span class="p">[</span><span class="s1">&#39;replaced&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="nb">sum</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">cleanup</span> <span class="ow">and</span> <span class="n">passed</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">to_update</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">passed</span>
+
+
+<span class="k">def</span> <span class="nf">_step3</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">_image_ask</span><span class="p">():</span>
+        <span class="k">return</span> <span class="s1">&#39;Not Ready&#39;</span>
+
+    <span class="n">p0</span> <span class="o">=</span> <span class="n">_deleteFiles</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="n">p1</span> <span class="o">=</span> <span class="n">_moveFiles</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="n">p2</span> <span class="o">=</span> <span class="n">_replaceFiles</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+
+    <span class="n">passed</span> <span class="o">=</span> <span class="n">p0</span> <span class="ow">and</span> <span class="n">p1</span> <span class="ow">and</span> <span class="n">p2</span>
+
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">cleanup</span><span class="p">:</span>
+        <span class="n">d</span><span class="p">,</span> <span class="n">s</span> <span class="o">=</span> <span class="n">deleteEmptyDirectories</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">intake_dir</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Removed </span><span class="si">{0}</span><span class="s1"> directories, skipped </span><span class="si">{1}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">s</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">passed</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Removing goals files&#39;</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">goal_csv</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">goal_snapshot</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">interview</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">SUCCESS</span> <span class="k">if</span> <span class="n">passed</span> <span class="k">else</span> <span class="s1">&#39;Not Completed&#39;</span>
+
+<span class="c1"># -----------------------------------------------------------------------------</span>
+
+
+<div class="viewcode-block" id="process"><a class="viewcode-back" href="../../../pyTagger.actions.html#pyTagger.actions.reripped.process">[docs]</a><span class="k">def</span> <span class="nf">process</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="s2">&quot;Not Implemented&quot;</span>
+
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">step</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_step1</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">args</span><span class="o">.</span><span class="n">step</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_step2</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">args</span><span class="o">.</span><span class="n">step</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_step3</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">result</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Jeffrey M Farley.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

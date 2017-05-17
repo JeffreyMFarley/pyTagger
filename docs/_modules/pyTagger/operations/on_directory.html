@@ -1,0 +1,304 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pyTagger.operations.on_directory &#8212; pyTagger 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pyTagger.operations.on_directory</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">unicode_literals</span>
+<span class="kn">import</span> <span class="nn">io</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">shutil</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">Counter</span>
+<span class="kn">from</span> <span class="nn">pyTagger.operations.conform</span> <span class="k">import</span> <span class="n">LibraryStandard</span>
+<span class="kn">from</span> <span class="nn">pyTagger.operations.hash</span> <span class="k">import</span> <span class="n">hashFile</span>
+<span class="kn">from</span> <span class="nn">pyTagger.operations.name</span> <span class="k">import</span> <span class="n">buildPath</span>
+<span class="kn">from</span> <span class="nn">pyTagger.operations.on_mp3</span> <span class="k">import</span> <span class="n">extractImages</span> <span class="k">as</span> <span class="n">singleExtract</span>
+<span class="kn">from</span> <span class="nn">pyTagger.utils</span> <span class="k">import</span> <span class="n">saveJsonIncrementalDict</span>
+
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version</span> <span class="o">&lt;</span> <span class="s1">&#39;3&#39;</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+    <span class="n">_unicode</span> <span class="o">=</span> <span class="n">unicode</span>
+<span class="k">else</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+    <span class="n">_unicode</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span>
+
+<span class="c1"># -----------------------------------------------------------------------------</span>
+<span class="c1"># Walk Variations</span>
+
+
+<span class="k">def</span> <span class="nf">_filterAll</span><span class="p">(</span><span class="n">fullPath</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">fullPath</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span>
+
+
+<span class="k">def</span> <span class="nf">_filterMp3s</span><span class="p">(</span><span class="n">fullPath</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">fullPath</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">:]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;mp3&#39;</span><span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">_walkDirectory</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">filterFn</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">currentDir</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">_unicode</span><span class="p">(</span><span class="n">path</span><span class="p">)):</span>
+        <span class="c1"># Get the absolute path of the currentDir parameter</span>
+        <span class="n">currentDir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">currentDir</span><span class="p">)</span>
+
+        <span class="c1"># Traverse through all files</span>
+        <span class="k">for</span> <span class="n">fileName</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+            <span class="n">fullPath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">currentDir</span><span class="p">,</span> <span class="n">fileName</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">filterFn</span><span class="p">(</span><span class="n">fullPath</span><span class="p">):</span>
+                <span class="k">yield</span> <span class="n">fullPath</span>
+
+
+<span class="k">def</span> <span class="nf">_walkFile</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">filterFn</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">io</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">fullPath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+
+            <span class="k">if</span> <span class="n">filterFn</span><span class="p">(</span><span class="n">fullPath</span><span class="p">):</span>
+                <span class="k">yield</span> <span class="n">fullPath</span>
+
+
+<div class="viewcode-block" id="walk"><a class="viewcode-back" href="../../../pyTagger.operations.html#pyTagger.operations.on_directory.walk">[docs]</a><span class="k">def</span> <span class="nf">walk</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">filterFn</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">filterFn</span><span class="p">:</span>
+        <span class="n">filterFn</span> <span class="o">=</span> <span class="n">_filterMp3s</span>
+
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">_walkFile</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">filterFn</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="n">f</span>
+    <span class="k">elif</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">_walkDirectory</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">filterFn</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="n">f</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">path</span> <span class="o">+</span> <span class="s1">&#39; is not a file or directory&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="walkAll"><a class="viewcode-back" href="../../../pyTagger.operations.html#pyTagger.operations.on_directory.walkAll">[docs]</a><span class="k">def</span> <span class="nf">walkAll</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">_walkFile</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">_filterAll</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="n">f</span>
+    <span class="k">elif</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">_walkDirectory</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">_filterAll</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="n">f</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">path</span> <span class="o">+</span> <span class="s1">&#39; is not a file or directory&#39;</span><span class="p">)</span></div>
+
+<span class="c1"># -----------------------------------------------------------------------------</span>
+<span class="c1"># Local Helper Functions</span>
+
+
+<div class="viewcode-block" id="needsMove"><a class="viewcode-back" href="../../../pyTagger.operations.html#pyTagger.operations.on_directory.needsMove">[docs]</a><span class="k">def</span> <span class="nf">needsMove</span><span class="p">(</span><span class="n">current</span><span class="p">,</span> <span class="n">proposed</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">current</span> <span class="o">==</span> <span class="n">proposed</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">proposed</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">proposed</span> <span class="o">+</span> <span class="s1">&#39; already exists. Avoiding collision&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="kc">True</span></div>
+
+<span class="c1"># -----------------------------------------------------------------------------</span>
+<span class="c1"># Directory Functions</span>
+
+
+<div class="viewcode-block" id="buildSnapshot"><a class="viewcode-back" href="../../../pyTagger.operations.html#pyTagger.operations.on_directory.buildSnapshot">[docs]</a><span class="k">def</span> <span class="nf">buildSnapshot</span><span class="p">(</span>
+    <span class="n">path</span><span class="p">,</span> <span class="n">outFileName</span><span class="p">,</span> <span class="n">id3Reader</span><span class="p">,</span> <span class="n">compact</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">walkFilter</span><span class="o">=</span><span class="kc">None</span>
+<span class="p">):</span>
+    <span class="n">output</span> <span class="o">=</span> <span class="n">saveJsonIncrementalDict</span><span class="p">(</span><span class="n">outFileName</span><span class="p">,</span> <span class="n">compact</span><span class="p">)</span>
+
+    <span class="n">extracted</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+    <span class="n">failed</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">for</span> <span class="n">fullPath</span> <span class="ow">in</span> <span class="n">walk</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">walkFilter</span><span class="p">):</span>
+        <span class="n">row</span> <span class="o">=</span> <span class="n">id3Reader</span><span class="o">.</span><span class="n">extractTags</span><span class="p">(</span><span class="n">fullPath</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">row</span><span class="p">:</span>
+            <span class="n">pair</span> <span class="o">=</span> <span class="p">(</span><span class="n">fullPath</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\\\\</span><span class="s1">&#39;</span><span class="p">),</span> <span class="n">row</span><span class="p">)</span>
+            <span class="n">extracted</span> <span class="o">=</span> <span class="n">output</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">pair</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">failed</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="n">output</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">extracted</span><span class="p">,</span> <span class="n">failed</span></div>
+
+
+<div class="viewcode-block" id="buildHashTable"><a class="viewcode-back" href="../../../pyTagger.operations.html#pyTagger.operations.on_directory.buildHashTable">[docs]</a><span class="k">def</span> <span class="nf">buildHashTable</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+    <span class="n">table</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">fullPath</span> <span class="ow">in</span> <span class="n">walkAll</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">hashFile</span><span class="p">(</span><span class="n">fullPath</span><span class="p">)</span>
+        <span class="n">table</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="n">fullPath</span>
+    <span class="k">return</span> <span class="n">table</span></div>
+
+
+<div class="viewcode-block" id="deleteEmptyDirectories"><a class="viewcode-back" href="../../../pyTagger.operations.html#pyTagger.operations.on_directory.deleteEmptyDirectories">[docs]</a><span class="k">def</span> <span class="nf">deleteEmptyDirectories</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+    <span class="c1"># Flatten the list of directories, walking bottom up</span>
+    <span class="n">queue</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">currentDir</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">_unicode</span><span class="p">(</span><span class="n">path</span><span class="p">),</span> <span class="n">topdown</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">queue</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">currentDir</span><span class="p">)</span>
+
+    <span class="c1"># Now check the values, `os.walk` does not recognize intermediate deletes</span>
+    <span class="n">success</span><span class="p">,</span> <span class="n">skipped</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">queue</span><span class="p">:</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">size</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">rmdir</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+            <span class="n">success</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">skipped</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">success</span><span class="p">,</span> <span class="n">skipped</span></div>
+
+
+<div class="viewcode-block" id="deleteFiles"><a class="viewcode-back" href="../../../pyTagger.operations.html#pyTagger.operations.on_directory.deleteFiles">[docs]</a><span class="k">def</span> <span class="nf">deleteFiles</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+    <span class="n">success</span><span class="p">,</span> <span class="n">failed</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">fileName</span> <span class="ow">in</span> <span class="n">walkAll</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">fileName</span><span class="p">)</span>
+            <span class="n">success</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+            <span class="n">failed</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">success</span><span class="p">,</span> <span class="n">failed</span></div>
+
+
+<div class="viewcode-block" id="extractImages"><a class="viewcode-back" href="../../../pyTagger.operations.html#pyTagger.operations.on_directory.extractImages">[docs]</a><span class="k">def</span> <span class="nf">extractImages</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">outputDir</span><span class="p">,</span> <span class="n">id3Proxy</span><span class="p">):</span>
+    <span class="n">hashTable</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">outputDir</span><span class="p">):</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">outputDir</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">hashTable</span> <span class="o">=</span> <span class="n">buildHashTable</span><span class="p">(</span><span class="n">outputDir</span><span class="p">)</span>
+
+    <span class="n">c</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">fullPath</span> <span class="ow">in</span> <span class="n">walk</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="n">c</span> <span class="o">+=</span> <span class="n">singleExtract</span><span class="p">(</span><span class="n">id3Proxy</span><span class="p">,</span> <span class="n">hashTable</span><span class="p">,</span> <span class="n">outputDir</span><span class="p">,</span> <span class="n">fullPath</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">c</span></div>
+
+
+<div class="viewcode-block" id="prepareForLibrary"><a class="viewcode-back" href="../../../pyTagger.operations.html#pyTagger.operations.on_directory.prepareForLibrary">[docs]</a><span class="k">def</span> <span class="nf">prepareForLibrary</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">standards</span> <span class="o">=</span> <span class="n">LibraryStandard</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">fullPath</span> <span class="ow">in</span> <span class="n">walk</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="n">standards</span><span class="o">.</span><span class="n">processFile</span><span class="p">(</span><span class="n">fullPath</span><span class="p">)</span>
+        <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">i</span></div>
+
+
+<div class="viewcode-block" id="renameFiles"><a class="viewcode-back" href="../../../pyTagger.operations.html#pyTagger.operations.on_directory.renameFiles">[docs]</a><span class="k">def</span> <span class="nf">renameFiles</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">destDir</span><span class="p">,</span> <span class="n">reader</span><span class="p">):</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">fullPath</span> <span class="ow">in</span> <span class="n">walk</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">tags</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">extractTags</span><span class="p">(</span><span class="n">fullPath</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">tags</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">OSError</span>
+            <span class="n">jointed</span> <span class="o">=</span> <span class="n">buildPath</span><span class="p">(</span><span class="n">tags</span><span class="p">,</span> <span class="n">fullPath</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">:])</span>
+            <span class="n">proposed</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">destDir</span><span class="p">,</span> <span class="o">*</span><span class="n">jointed</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">needsMove</span><span class="p">(</span><span class="n">fullPath</span><span class="p">,</span> <span class="n">proposed</span><span class="p">):</span>
+                <span class="n">newPath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">destDir</span><span class="p">,</span> <span class="n">jointed</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">jointed</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">newPath</span><span class="p">):</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">newPath</span><span class="p">)</span>
+                <span class="n">shutil</span><span class="o">.</span><span class="n">move</span><span class="p">(</span><span class="n">fullPath</span><span class="p">,</span> <span class="n">proposed</span><span class="p">)</span>
+                <span class="n">c</span><span class="p">[</span><span class="s1">&#39;moved&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">c</span><span class="p">[</span><span class="s1">&#39;skipped&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+            <span class="n">c</span><span class="p">[</span><span class="s1">&#39;errors&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="n">c</span><span class="p">[</span><span class="s1">&#39;collisions&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">c</span></div>
+
+
+<div class="viewcode-block" id="replaceFiles"><a class="viewcode-back" href="../../../pyTagger.operations.html#pyTagger.operations.on_directory.replaceFiles">[docs]</a><span class="k">def</span> <span class="nf">replaceFiles</span><span class="p">(</span><span class="n">fileOfFilePairs</span><span class="p">):</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">()</span>
+    <span class="k">with</span> <span class="n">io</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">fileOfFilePairs</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">source</span><span class="p">,</span> <span class="n">dest</span> <span class="o">=</span> <span class="n">l</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">source</span><span class="p">):</span>
+                <span class="n">c</span><span class="p">[</span><span class="s1">&#39;missing-source&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">elif</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">dest</span><span class="p">):</span>
+                <span class="n">c</span><span class="p">[</span><span class="s1">&#39;missing-dest&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">shutil</span><span class="o">.</span><span class="n">move</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">dest</span><span class="p">)</span>
+                    <span class="n">c</span><span class="p">[</span><span class="s1">&#39;replaced&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                    <span class="n">c</span><span class="p">[</span><span class="s1">&#39;errors&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">c</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Jeffrey M Farley.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

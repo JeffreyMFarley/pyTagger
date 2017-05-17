@@ -1,0 +1,379 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pyTagger.proxies.id3 &#8212; pyTagger 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pyTagger.proxies.id3</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">unicode_literals</span>
+<span class="kn">import</span> <span class="nn">binascii</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">eyed3</span>
+<span class="kn">from</span> <span class="nn">configargparse</span> <span class="k">import</span> <span class="n">getArgumentParser</span>
+<span class="kn">from</span> <span class="nn">hew</span> <span class="k">import</span> <span class="n">Normalizer</span>
+<span class="kn">from</span> <span class="nn">pyTagger.models</span> <span class="k">import</span> <span class="n">Snapshot</span>
+<span class="kn">from</span> <span class="nn">pyTagger.operations.hash</span> <span class="k">import</span> <span class="n">hashFile</span>
+<span class="kn">from</span> <span class="nn">pyTagger.utils</span> <span class="k">import</span> <span class="n">configurationOptions</span><span class="p">,</span> <span class="n">defaultConfigFiles</span>
+
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version</span> <span class="o">&lt;</span> <span class="s1">&#39;3&#39;</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+    <span class="n">_unicode</span> <span class="o">=</span> <span class="n">unicode</span>
+<span class="k">else</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+    <span class="n">_unicode</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span>
+
+<span class="c1"># -----------------------------------------------------------------------------</span>
+<span class="c1"># Configuration</span>
+
+<span class="n">p</span> <span class="o">=</span> <span class="n">getArgumentParser</span><span class="p">(</span><span class="s1">&#39;id3&#39;</span><span class="p">,</span>
+                      <span class="n">default_config_files</span><span class="o">=</span><span class="n">defaultConfigFiles</span><span class="p">,</span>
+                      <span class="n">parents</span><span class="o">=</span><span class="p">[</span><span class="n">getArgumentParser</span><span class="p">()],</span>
+                      <span class="n">description</span><span class="o">=</span><span class="s1">&#39;settings for loading MP3 files&#39;</span><span class="p">)</span>
+<span class="n">group</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s1">&#39;id3&#39;</span><span class="p">)</span>
+<span class="n">group</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;--id3-logging&#39;</span><span class="p">,</span>
+          <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="n">logging</span><span class="o">.</span><span class="n">NOTSET</span><span class="p">,</span> <span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span> <span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">,</span>
+                   <span class="n">logging</span><span class="o">.</span><span class="n">ERROR</span><span class="p">],</span>
+          <span class="n">default</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+          <span class="n">help</span><span class="o">=</span><span class="s1">&#39;how verbose the id3 client should be&#39;</span><span class="p">)</span>
+
+<span class="c1"># -----------------------------------------------------------------------------</span>
+<span class="c1"># Read Methods</span>
+<span class="c1"># -----------------------------------------------------------------------------</span>
+
+
+<span class="k">def</span> <span class="nf">_extractDate</span><span class="p">(</span><span class="n">date</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">date</span><span class="p">)</span> <span class="k">if</span> <span class="n">date</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
+
+
+<span class="k">def</span> <span class="nf">_extractFileIds</span><span class="p">(</span><span class="n">track</span><span class="p">):</span>
+    <span class="c1"># Python 2.6 does not like dictionary comprehensions</span>
+    <span class="n">ids</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">track</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">unique_file_ids</span><span class="p">:</span>
+        <span class="n">ids</span><span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">owner_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">binascii</span><span class="o">.</span><span class="n">b2a_base64</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">uniq_id</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">ids</span>
+
+
+<span class="k">def</span> <span class="nf">_extractTaggerId</span><span class="p">(</span><span class="n">track</span><span class="p">):</span>
+    <span class="n">ufid</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="k">for</span> <span class="n">a0</span> <span class="ow">in</span> <span class="n">track</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">unique_file_ids</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">a0</span><span class="o">.</span><span class="n">owner_id</span> <span class="o">==</span> <span class="s1">&#39;DJTagger&#39;</span><span class="p">:</span>
+            <span class="n">ufid</span> <span class="o">=</span> <span class="n">binascii</span><span class="o">.</span><span class="n">b2a_base64</span><span class="p">(</span><span class="n">a0</span><span class="o">.</span><span class="n">uniq_id</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">ufid</span>
+
+<span class="c1"># -----------------------------------------------------------------------------</span>
+<span class="c1"># Write Methods</span>
+<span class="c1"># -----------------------------------------------------------------------------</span>
+
+<span class="n">_useSetAttr</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;bpm&#39;</span><span class="p">:</span> <span class="s1">&#39;bpm&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;playCount&#39;</span><span class="p">:</span> <span class="s1">&#39;play_count&#39;</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">_useSetAttrDate</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;encodingDate&#39;</span><span class="p">:</span> <span class="s1">&#39;encoding_date&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;originalReleaseDate&#39;</span><span class="p">:</span> <span class="s1">&#39;original_release_date&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;recordingDate&#39;</span><span class="p">:</span> <span class="s1">&#39;recording_date&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;releaseDate&#39;</span><span class="p">:</span> <span class="s1">&#39;release_date&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;taggingDate&#39;</span><span class="p">:</span> <span class="s1">&#39;tagging_date&#39;</span>
+<span class="p">}</span>
+
+<span class="n">_useSetAttrString</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;album&#39;</span><span class="p">:</span> <span class="s1">&#39;album&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;albumArtist&#39;</span><span class="p">:</span> <span class="s1">&#39;album_artist&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;artist&#39;</span><span class="p">:</span> <span class="s1">&#39;artist&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;publisher&#39;</span><span class="p">:</span> <span class="s1">&#39;publisher&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="s1">&#39;title&#39;</span>
+<span class="p">}</span>
+
+<span class="n">_useSetTextFrame</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;barcode&#39;</span><span class="p">:</span> <span class="s1">&#39;TSRC&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;compilation&#39;</span><span class="p">:</span> <span class="s1">&#39;TCMP&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;composer&#39;</span><span class="p">:</span> <span class="s1">&#39;TCOM&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;conductor&#39;</span><span class="p">:</span> <span class="s1">&#39;TPE3&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;genre&#39;</span><span class="p">:</span> <span class="s1">&#39;TCON&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;group&#39;</span><span class="p">:</span> <span class="s1">&#39;TIT1&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;key&#39;</span><span class="p">:</span> <span class="s1">&#39;TKEY&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;language&#39;</span><span class="p">:</span> <span class="s1">&#39;TLAN&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;media&#39;</span><span class="p">:</span> <span class="s1">&#39;TMED&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;remixer&#39;</span><span class="p">:</span> <span class="s1">&#39;TPE4&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;subtitle&#39;</span><span class="p">:</span> <span class="s1">&#39;TIT3&#39;</span>
+<span class="p">}</span>
+
+
+<span class="k">def</span> <span class="nf">_writeSimple</span><span class="p">(</span><span class="n">track</span><span class="p">,</span> <span class="n">tags</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">tags</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">Snapshot</span><span class="o">.</span><span class="n">complexTags</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="k">assert</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">set</span><span class="p">,</span> <span class="nb">dict</span><span class="p">))</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="n">_unicode</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">if</span> <span class="n">v</span> <span class="k">else</span> <span class="kc">None</span>
+
+        <span class="c1"># pick setting the value based on a strategy</span>
+        <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">_useSetAttr</span> <span class="ow">and</span> <span class="n">v</span><span class="p">:</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">track</span><span class="o">.</span><span class="n">tag</span><span class="p">,</span> <span class="n">_useSetAttr</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">v</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">_useSetAttrString</span><span class="p">:</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">track</span><span class="o">.</span><span class="n">tag</span><span class="p">,</span> <span class="n">_useSetAttrString</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">text</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">_useSetAttrDate</span><span class="p">:</span>
+            <span class="n">date</span> <span class="o">=</span> <span class="n">eyed3</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">Date</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">if</span> <span class="n">v</span> <span class="k">else</span> <span class="kc">None</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">track</span><span class="o">.</span><span class="n">tag</span><span class="p">,</span> <span class="n">_useSetAttrDate</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">date</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">_useSetTextFrame</span><span class="p">:</span>
+            <span class="n">track</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">setTextFrame</span><span class="p">(</span><span class="n">_useSetTextFrame</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">text</span><span class="p">),</span>
+        <span class="k">elif</span> <span class="n">k</span> <span class="o">==</span> <span class="s1">&#39;year&#39;</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">dateAttr</span> <span class="ow">in</span> <span class="n">_useSetAttrDate</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="n">track</span><span class="o">.</span><span class="n">tag</span><span class="p">,</span> <span class="n">dateAttr</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">date</span> <span class="o">=</span> <span class="n">eyed3</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">Date</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">if</span> <span class="n">v</span> <span class="k">else</span> <span class="kc">None</span>
+            <span class="n">track</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">recording_date</span> <span class="o">=</span> <span class="n">date</span>
+        <span class="k">elif</span> <span class="n">k</span> <span class="o">==</span> <span class="s1">&#39;disc&#39;</span><span class="p">:</span>
+            <span class="n">track</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">disc_num</span> <span class="o">=</span> <span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">track</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">disc_num</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="n">k</span> <span class="o">==</span> <span class="s1">&#39;totalDisc&#39;</span><span class="p">:</span>
+            <span class="n">track</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">disc_num</span> <span class="o">=</span> <span class="p">(</span><span class="n">track</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">disc_num</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">v</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">k</span> <span class="o">==</span> <span class="s1">&#39;totalTrack&#39;</span><span class="p">:</span>
+            <span class="n">track</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">track_num</span> <span class="o">=</span> <span class="p">(</span><span class="n">track</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">track_num</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">v</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">k</span> <span class="o">==</span> <span class="s1">&#39;track&#39;</span><span class="p">:</span>  <span class="c1"># pragma: no branch</span>
+            <span class="n">track</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">track_num</span> <span class="o">=</span> <span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">track</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">track_num</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+
+<span class="k">def</span> <span class="nf">_writeCollection</span><span class="p">(</span><span class="n">track</span><span class="p">,</span> <span class="n">tags</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">tags</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="s1">&#39;comments&#39;</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">v0</span> <span class="ow">in</span> <span class="n">v</span><span class="p">:</span>
+                <span class="n">l</span> <span class="o">=</span> <span class="n">_unicode</span><span class="p">(</span><span class="n">v0</span><span class="p">[</span><span class="s1">&#39;lang&#39;</span><span class="p">])</span>
+                <span class="n">d</span> <span class="o">=</span> <span class="n">_unicode</span><span class="p">(</span><span class="n">v0</span><span class="p">[</span><span class="s1">&#39;description&#39;</span><span class="p">])</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">v0</span><span class="p">[</span><span class="s1">&#39;text&#39;</span><span class="p">]:</span>
+                    <span class="n">track</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">comments</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">track</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">comments</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">_unicode</span><span class="p">(</span><span class="n">v0</span><span class="p">[</span><span class="s1">&#39;text&#39;</span><span class="p">]),</span> <span class="n">d</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">k</span> <span class="o">==</span> <span class="s1">&#39;lyrics&#39;</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">v0</span> <span class="ow">in</span> <span class="n">v</span><span class="p">:</span>
+                <span class="n">l</span> <span class="o">=</span> <span class="n">_unicode</span><span class="p">(</span><span class="n">v0</span><span class="p">[</span><span class="s1">&#39;lang&#39;</span><span class="p">])</span>
+                <span class="n">d</span> <span class="o">=</span> <span class="n">_unicode</span><span class="p">(</span><span class="n">v0</span><span class="p">[</span><span class="s1">&#39;description&#39;</span><span class="p">])</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">v0</span><span class="p">[</span><span class="s1">&#39;text&#39;</span><span class="p">]:</span>
+                    <span class="n">track</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">lyrics</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">track</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">lyrics</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">_unicode</span><span class="p">(</span><span class="n">v0</span><span class="p">[</span><span class="s1">&#39;text&#39;</span><span class="p">]),</span> <span class="n">d</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">k</span> <span class="o">==</span> <span class="s1">&#39;ufid&#39;</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">ufid</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">v</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">value</span><span class="p">:</span>
+                    <span class="n">track</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">unique_file_ids</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">ufid</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">toBytes</span> <span class="o">=</span> <span class="n">binascii</span><span class="o">.</span><span class="n">a2b_base64</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+                    <span class="c1"># str(ufid) is so Python doesn&#39;t try to do ASCII</span>
+                    <span class="c1"># conversion on the whole string</span>
+                    <span class="n">track</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">unique_file_ids</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">toBytes</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">ufid</span><span class="p">))</span>
+
+
+<span class="k">def</span> <span class="nf">_update</span><span class="p">(</span><span class="n">track</span><span class="p">,</span> <span class="n">tags</span><span class="p">):</span>
+    <span class="n">_writeSimple</span><span class="p">(</span><span class="n">track</span><span class="p">,</span> <span class="n">tags</span><span class="p">)</span>
+    <span class="n">_writeCollection</span><span class="p">(</span><span class="n">track</span><span class="p">,</span> <span class="n">tags</span><span class="p">)</span>
+
+<span class="c1"># -----------------------------------------------------------------------------</span>
+<span class="c1"># Compliance Methods</span>
+<span class="c1"># -----------------------------------------------------------------------------</span>
+
+
+<span class="k">def</span> <span class="nf">_compliance</span><span class="p">(</span><span class="n">track</span><span class="p">,</span> <span class="n">upgrade</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="n">version</span> <span class="o">=</span> <span class="n">track</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">version</span>
+    <span class="k">if</span> <span class="n">version</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">version</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">upgrade</span> <span class="ow">and</span> <span class="n">version</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="n">version</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># MJMD tag was in some Jen files</span>
+    <span class="k">if</span> <span class="s1">&#39;MJMD&#39;</span> <span class="ow">in</span> <span class="n">track</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">frame_set</span><span class="p">:</span>
+        <span class="k">del</span> <span class="n">track</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">frame_set</span><span class="p">[</span><span class="s1">&#39;MJMD&#39;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">version</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="n">hasMood</span> <span class="o">=</span> <span class="n">track</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">getTextFrame</span><span class="p">(</span><span class="s1">&#39;TMOO&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">hasMood</span><span class="p">:</span>
+            <span class="n">track</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">setTextFrame</span><span class="p">(</span><span class="s1">&#39;TMOO&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">version</span>
+
+<span class="c1"># -----------------------------------------------------------------------------</span>
+<span class="c1"># Classes</span>
+<span class="c1"># -----------------------------------------------------------------------------</span>
+
+
+<div class="viewcode-block" id="ID3Proxy"><a class="viewcode-back" href="../../../pyTagger.proxies.html#pyTagger.proxies.id3.ID3Proxy">[docs]</a><span class="k">class</span> <span class="nc">ID3Proxy</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="n">_projection</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;album&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">album</span><span class="p">,</span>
+        <span class="s1">&#39;albumArtist&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">album_artist</span><span class="p">,</span>
+        <span class="s1">&#39;artist&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">artist</span><span class="p">,</span>
+        <span class="s1">&#39;barcode&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span>  <span class="n">x</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">getTextFrame</span><span class="p">(</span><span class="s1">&#39;TSRC&#39;</span><span class="p">),</span>
+        <span class="s1">&#39;bitRate&#39;</span><span class="p">:</span>
+        <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">bit_rate</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">info</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;bpm&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">bpm</span><span class="p">,</span>
+        <span class="s1">&#39;comments&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">[{</span><span class="s1">&#39;lang&#39;</span><span class="p">:</span> <span class="n">y</span><span class="o">.</span><span class="n">lang</span><span class="p">,</span>
+                                <span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="n">y</span><span class="o">.</span><span class="n">text</span><span class="p">,</span>
+                                <span class="s1">&#39;description&#39;</span><span class="p">:</span> <span class="n">y</span><span class="o">.</span><span class="n">description</span><span class="p">}</span>
+                               <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">comments</span><span class="p">],</span>
+        <span class="s1">&#39;compilation&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">getTextFrame</span><span class="p">(</span><span class="s1">&#39;TCMP&#39;</span><span class="p">),</span>
+        <span class="s1">&#39;composer&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">getTextFrame</span><span class="p">(</span><span class="s1">&#39;TCOM&#39;</span><span class="p">),</span>
+        <span class="s1">&#39;conductor&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">getTextFrame</span><span class="p">(</span><span class="s1">&#39;TPE3&#39;</span><span class="p">),</span>
+        <span class="s1">&#39;disc&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">disc_num</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="s1">&#39;encodingDate&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">_extractDate</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">encoding_date</span><span class="p">),</span>
+        <span class="s1">&#39;fileHash&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;genre&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">genre</span><span class="o">.</span><span class="n">name</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">genre</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;group&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">getTextFrame</span><span class="p">(</span><span class="s1">&#39;TIT1&#39;</span><span class="p">),</span>
+        <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="n">_extractTaggerId</span><span class="p">,</span>
+        <span class="s1">&#39;key&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">getTextFrame</span><span class="p">(</span><span class="s1">&#39;TKEY&#39;</span><span class="p">),</span>
+        <span class="s1">&#39;language&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">getTextFrame</span><span class="p">(</span><span class="s1">&#39;TLAN&#39;</span><span class="p">),</span>
+        <span class="s1">&#39;length&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">time_secs</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">info</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;lyrics&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">[{</span><span class="s1">&#39;lang&#39;</span><span class="p">:</span> <span class="n">y</span><span class="o">.</span><span class="n">lang</span><span class="p">,</span>
+                              <span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="n">y</span><span class="o">.</span><span class="n">text</span><span class="p">,</span>
+                              <span class="s1">&#39;description&#39;</span><span class="p">:</span> <span class="n">y</span><span class="o">.</span><span class="n">description</span><span class="p">}</span>
+                             <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">lyrics</span><span class="p">],</span>
+        <span class="s1">&#39;media&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">getTextFrame</span><span class="p">(</span><span class="s1">&#39;TMED&#39;</span><span class="p">),</span>
+        <span class="s1">&#39;originalReleaseDate&#39;</span><span class="p">:</span>
+        <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">_extractDate</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">original_release_date</span><span class="p">),</span>
+        <span class="s1">&#39;playCount&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">play_count</span><span class="p">,</span>
+        <span class="s1">&#39;publisher&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">publisher</span><span class="p">,</span>
+        <span class="s1">&#39;recordingDate&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">_extractDate</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">recording_date</span><span class="p">),</span>
+        <span class="s1">&#39;releaseDate&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">_extractDate</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">release_date</span><span class="p">),</span>
+        <span class="s1">&#39;remixer&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">getTextFrame</span><span class="p">(</span><span class="s1">&#39;TPE4&#39;</span><span class="p">),</span>
+        <span class="s1">&#39;subtitle&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">getTextFrame</span><span class="p">(</span><span class="s1">&#39;TIT3&#39;</span><span class="p">),</span>
+        <span class="s1">&#39;taggingDate&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">_extractDate</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">tagging_date</span><span class="p">),</span>
+        <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">title</span><span class="p">,</span>
+        <span class="s1">&#39;totalDisc&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">disc_num</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+        <span class="s1">&#39;totalTrack&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">track_num</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+        <span class="s1">&#39;track&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">track_num</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="s1">&#39;ufid&#39;</span><span class="p">:</span> <span class="n">_extractFileIds</span><span class="p">,</span>
+        <span class="s1">&#39;vbr&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">bit_rate</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">info</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;version&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="s1">&#39;.&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">version</span><span class="p">]),</span>
+        <span class="s1">&#39;year&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">_extractDate</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">getBestDate</span><span class="p">()),</span>
+    <span class="p">}</span>
+    <span class="n">columns</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">_projection</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fieldSet</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">options</span> <span class="o">=</span> <span class="n">configurationOptions</span><span class="p">(</span><span class="s1">&#39;id3&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">fieldSet</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="n">fieldSet</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">fieldSet</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span> <span class="o">=</span> <span class="n">Normalizer</span><span class="p">()</span><span class="o">.</span><span class="n">to_ascii</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">id3_logging</span><span class="p">)</span>
+
+        <span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;eyed3&#39;</span><span class="p">)</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">ERROR</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_calculateHash</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">track</span><span class="p">,</span> <span class="n">mp3FileName</span><span class="p">):</span>
+        <span class="n">offset</span> <span class="o">=</span> <span class="p">(</span><span class="n">track</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">tag_size</span>
+                  <span class="k">if</span> <span class="n">track</span><span class="o">.</span><span class="n">tag</span> <span class="ow">and</span> <span class="n">track</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">header</span>
+                  <span class="k">else</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">hashFile</span><span class="p">(</span><span class="n">mp3FileName</span><span class="p">,</span> <span class="n">offset</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ID3Proxy.extractImages"><a class="viewcode-back" href="../../../pyTagger.proxies.html#pyTagger.proxies.id3.ID3Proxy.extractImages">[docs]</a>    <span class="k">def</span> <span class="nf">extractImages</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">track</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">track</span> <span class="ow">and</span> <span class="n">track</span><span class="o">.</span><span class="n">tag</span> <span class="ow">and</span> <span class="n">track</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">images</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">image</span> <span class="ow">in</span> <span class="n">track</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">images</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="n">image</span><span class="o">.</span><span class="n">image_data</span><span class="p">,</span> <span class="n">image</span><span class="o">.</span><span class="n">mime_type</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="ID3Proxy.extractTags"><a class="viewcode-back" href="../../../pyTagger.proxies.html#pyTagger.proxies.id3.ID3Proxy.extractTags">[docs]</a>    <span class="k">def</span> <span class="nf">extractTags</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mp3FileName</span><span class="p">):</span>
+        <span class="n">track</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">loadID3</span><span class="p">(</span><span class="n">mp3FileName</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">track</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extractTagsFromTrack</span><span class="p">(</span><span class="n">track</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s1">&#39;fileHash&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fieldSet</span><span class="p">:</span>
+            <span class="n">a</span><span class="p">[</span><span class="s1">&#39;fileHash&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculateHash</span><span class="p">(</span><span class="n">track</span><span class="p">,</span> <span class="n">mp3FileName</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">a</span></div>
+
+<div class="viewcode-block" id="ID3Proxy.extractTagsFromTrack"><a class="viewcode-back" href="../../../pyTagger.proxies.html#pyTagger.proxies.id3.ID3Proxy.extractTagsFromTrack">[docs]</a>    <span class="k">def</span> <span class="nf">extractTagsFromTrack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">eyed3</span><span class="o">.</span><span class="n">mp3</span><span class="o">.</span><span class="n">Mp3AudioFile</span><span class="p">)</span> <span class="ow">and</span> <span class="n">obj</span><span class="o">.</span><span class="n">tag</span><span class="p">:</span>
+            <span class="c1"># Python 2.6 does not like dictionary comprehensions</span>
+            <span class="n">row</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fieldSet</span><span class="p">:</span>
+                <span class="n">row</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_projection</span><span class="p">[</span><span class="n">k</span><span class="p">](</span><span class="n">obj</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">row</span>
+        <span class="k">return</span> <span class="p">{}</span></div>
+
+<div class="viewcode-block" id="ID3Proxy.loadID3"><a class="viewcode-back" href="../../../pyTagger.proxies.html#pyTagger.proxies.id3.ID3Proxy.loadID3">[docs]</a>    <span class="k">def</span> <span class="nf">loadID3</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mp3FileName</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Reading </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">mp3FileName</span><span class="p">))</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">eyed3</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">mp3FileName</span><span class="p">)</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">IOError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Cannot load ID3 &#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">mp3FileName</span><span class="p">))</span>
+            <span class="k">return</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="ID3Proxy.saveID3"><a class="viewcode-back" href="../../../pyTagger.proxies.html#pyTagger.proxies.id3.ID3Proxy.saveID3">[docs]</a>    <span class="k">def</span> <span class="nf">saveID3</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">track</span><span class="p">,</span> <span class="n">tags</span><span class="p">,</span> <span class="n">upgrade</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Writing </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">track</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">file_info</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+        <span class="n">_update</span><span class="p">(</span><span class="n">track</span><span class="p">,</span> <span class="n">tags</span><span class="p">)</span>
+        <span class="n">version</span> <span class="o">=</span> <span class="n">_compliance</span><span class="p">(</span><span class="n">track</span><span class="p">,</span> <span class="n">upgrade</span><span class="p">)</span>
+        <span class="n">track</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">version</span><span class="o">=</span><span class="n">version</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf8&#39;</span><span class="p">)</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Jeffrey M Farley.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
