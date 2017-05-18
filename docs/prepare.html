@@ -1,0 +1,172 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>The Prepare Process &#8212; pyTagger 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="The Reripping Process" href="reripped.html" />
+    <link rel="prev" title="Basic Commands" href="commands.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="the-prepare-process">
+<h1>The Prepare Process<a class="headerlink" href="#the-prepare-process" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<p>Whenever I get new music via digital download, I like to process it so that
+it is consistent with other files in my music library.</p>
+<p>This code is specifically tuned to work on digital files downloaded from Amazon</p>
+<p>For each of these steps, it is recommended that the configuration options
+be stored in a <code class="docutils literal"><span class="pre">config.ini</span></code> file</p>
+</div>
+<div class="section" id="step-1">
+<h2>Step 1<a class="headerlink" href="#step-1" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>pyTagger prepare <span class="m">1</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li>Walk the download directory and for each file:<ul>
+<li>Remove “featuring xxx” from the title</li>
+<li>Remove “[Explicit]” or “[Extended]” type of annotations from the album name</li>
+<li>Add a tag that identifies the day this file was added to the library</li>
+<li>Add a tag with a unique library identifier</li>
+<li>Change the media tag to be “DIG”</li>
+<li>Clear any existing comments</li>
+<li>Clear the “group” tag</li>
+</ul>
+</li>
+<li>Create a snapshot of the downloaded files</li>
+<li>Create a CSV version of the snapshot</li>
+</ul>
+</div>
+<div class="section" id="step-1-5">
+<h2>Step 1.5<a class="headerlink" href="#step-1-5" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>Review CSV file and make any additional changes</li>
+</ul>
+</div>
+<div class="section" id="step-2">
+<h2>Step 2<a class="headerlink" href="#step-2" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>pyTagger prepare <span class="m">2</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li>Convert the CSV back to the snapshot format</li>
+<li>Update the files with the additional changes</li>
+<li>Rename the files to conform with library standards</li>
+</ul>
+<p><em>Related Code</em></p>
+<ul class="simple">
+<li><a class="reference internal" href="pyTagger.actions.html#pyTagger.actions.prepare.process" title="pyTagger.actions.prepare.process"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.actions.prepare.process()</span></code></a></li>
+<li><code class="xref py py-func docutils literal"><span class="pre">pyTagger.operations.conform.LibraryStandard._expel()</span></code></li>
+<li><a class="reference internal" href="pyTagger.operations.html#pyTagger.operations.conform.LibraryStandard.assignID" title="pyTagger.operations.conform.LibraryStandard.assignID"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.operations.conform.LibraryStandard.assignID()</span></code></a></li>
+<li><a class="reference internal" href="pyTagger.operations.html#pyTagger.operations.conform.LibraryStandard.clearComments" title="pyTagger.operations.conform.LibraryStandard.clearComments"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.operations.conform.LibraryStandard.clearComments()</span></code></a></li>
+<li><a class="reference internal" href="pyTagger.operations.html#pyTagger.operations.conform.LibraryStandard.clearMedia" title="pyTagger.operations.conform.LibraryStandard.clearMedia"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.operations.conform.LibraryStandard.clearMedia()</span></code></a></li>
+<li><a class="reference internal" href="pyTagger.operations.html#pyTagger.operations.conform.LibraryStandard.clearRating" title="pyTagger.operations.conform.LibraryStandard.clearRating"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.operations.conform.LibraryStandard.clearRating()</span></code></a></li>
+<li><a class="reference internal" href="pyTagger.operations.html#pyTagger.operations.conform.LibraryStandard.digitalMedia" title="pyTagger.operations.conform.LibraryStandard.digitalMedia"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.operations.conform.LibraryStandard.digitalMedia()</span></code></a></li>
+<li><a class="reference internal" href="pyTagger.operations.html#pyTagger.operations.conform.LibraryStandard.extractArtist" title="pyTagger.operations.conform.LibraryStandard.extractArtist"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.operations.conform.LibraryStandard.extractArtist()</span></code></a></li>
+<li><a class="reference internal" href="pyTagger.operations.html#pyTagger.operations.conform.LibraryStandard.processFile" title="pyTagger.operations.conform.LibraryStandard.processFile"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.operations.conform.LibraryStandard.processFile()</span></code></a></li>
+<li><a class="reference internal" href="pyTagger.operations.html#pyTagger.operations.conform.LibraryStandard.removeAnnotations" title="pyTagger.operations.conform.LibraryStandard.removeAnnotations"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.operations.conform.LibraryStandard.removeAnnotations()</span></code></a></li>
+<li><a class="reference internal" href="pyTagger.operations.html#pyTagger.operations.conform.LibraryStandard.timestamp" title="pyTagger.operations.conform.LibraryStandard.timestamp"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.operations.conform.LibraryStandard.timestamp()</span></code></a></li>
+<li><a class="reference internal" href="pyTagger.operations.html#pyTagger.operations.on_directory.prepareForLibrary" title="pyTagger.operations.on_directory.prepareForLibrary"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.operations.on_directory.prepareForLibrary()</span></code></a></li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">The Prepare Process</a><ul>
+<li><a class="reference internal" href="#overview">Overview</a></li>
+<li><a class="reference internal" href="#step-1">Step 1</a></li>
+<li><a class="reference internal" href="#step-1-5">Step 1.5</a></li>
+<li><a class="reference internal" href="#step-2">Step 2</a></li>
+</ul>
+</li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="commands.html" title="previous chapter">Basic Commands</a></li>
+      <li>Next: <a href="reripped.html" title="next chapter">The Reripping Process</a></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/prepare.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Jeffrey M Farley.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="_sources/prepare.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

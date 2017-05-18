@@ -1,0 +1,252 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Basic Commands &#8212; pyTagger 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="The Prepare Process" href="prepare.html" />
+    <link rel="prev" title="pyTagger" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="basic-commands">
+<h1>Basic Commands<a class="headerlink" href="#basic-commands" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="scan">
+<h2>scan<a class="headerlink" href="#scan" title="Permalink to this headline">¶</a></h2>
+<p>After installing, the first thing you would probably want to do is scan a
+directory of MP3s to extract their tags.  This can be done with:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>pyTagger scan path/to/mp3s
+</pre></div>
+</div>
+<p>This will scan basic MP3 information about each file into a <a class="reference internal" href="glossary.html#term-snapshot"><span class="xref std std-term">snapshot</span></a></p>
+<p>Several options are available to control the scanning.  These can be found by
+running:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>pyTagger scan --help
+</pre></div>
+</div>
+<p><em>Related Code</em></p>
+<ul class="simple">
+<li><a class="reference internal" href="pyTagger.actions.html#pyTagger.actions.scan.process" title="pyTagger.actions.scan.process"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.actions.scan.process()</span></code></a></li>
+<li><a class="reference internal" href="pyTagger.html#pyTagger.models.Snapshot.columnsFromArgs" title="pyTagger.models.Snapshot.columnsFromArgs"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.models.Snapshot.columnsFromArgs()</span></code></a></li>
+<li><a class="reference internal" href="pyTagger.operations.html#pyTagger.operations.hash.hashBuffer" title="pyTagger.operations.hash.hashBuffer"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.operations.hash.hashBuffer()</span></code></a></li>
+<li><a class="reference internal" href="pyTagger.operations.html#pyTagger.operations.on_directory.buildSnapshot" title="pyTagger.operations.on_directory.buildSnapshot"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.operations.on_directory.buildSnapshot()</span></code></a></li>
+<li><a class="reference internal" href="pyTagger.operations.html#pyTagger.operations.on_directory.walk" title="pyTagger.operations.on_directory.walk"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.operations.on_directory.walk()</span></code></a></li>
+<li><a class="reference internal" href="pyTagger.operations.html#pyTagger.operations.on_directory.walkAll" title="pyTagger.operations.on_directory.walkAll"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.operations.on_directory.walkAll()</span></code></a></li>
+<li><a class="reference internal" href="pyTagger.proxies.html#pyTagger.proxies.id3.ID3Proxy.extractTags" title="pyTagger.proxies.id3.ID3Proxy.extractTags"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.proxies.id3.ID3Proxy.extractTags()</span></code></a></li>
+<li><a class="reference internal" href="pyTagger.proxies.html#pyTagger.proxies.id3.ID3Proxy.extractTagsFromTrack" title="pyTagger.proxies.id3.ID3Proxy.extractTagsFromTrack"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.proxies.id3.ID3Proxy.extractTagsFromTrack()</span></code></a></li>
+<li><a class="reference internal" href="pyTagger.proxies.html#pyTagger.proxies.id3.ID3Proxy.loadID3" title="pyTagger.proxies.id3.ID3Proxy.loadID3"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.proxies.id3.ID3Proxy.loadID3()</span></code></a></li>
+</ul>
+</div>
+<div class="section" id="images">
+<h2>images<a class="headerlink" href="#images" title="Permalink to this headline">¶</a></h2>
+<p>pyTagger not only extracts the ID3 information from MP3s, it can also extract
+any embedded images from the files:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>pyTagger images path/to/mp3s path/to/where/images/are/stored
+</pre></div>
+</div>
+<p>This command will extract any images from the MP3s found in the given path and
+place them in the destination directory.</p>
+<ol class="arabic simple">
+<li>The name of the image files take the form <code class="docutils literal"><span class="pre">&lt;artist&gt;</span> <span class="pre">-</span> <span class="pre">&lt;album&gt;</span> <span class="pre">-</span> <span class="pre">&lt;title&gt;</span></code></li>
+<li>If the image is the same for all MP3s in an album, only one image file will
+be extracted</li>
+</ol>
+<p><em>Related Code</em></p>
+<ul class="simple">
+<li><a class="reference internal" href="pyTagger.actions.html#pyTagger.actions.images.process" title="pyTagger.actions.images.process"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.actions.images.process()</span></code></a></li>
+<li><a class="reference internal" href="pyTagger.operations.html#pyTagger.operations.hash.hashFile" title="pyTagger.operations.hash.hashFile"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.operations.hash.hashFile()</span></code></a></li>
+<li><a class="reference internal" href="pyTagger.operations.html#pyTagger.operations.name.imageFileName" title="pyTagger.operations.name.imageFileName"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.operations.name.imageFileName()</span></code></a></li>
+<li><a class="reference internal" href="pyTagger.operations.html#pyTagger.operations.on_directory.buildHashTable" title="pyTagger.operations.on_directory.buildHashTable"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.operations.on_directory.buildHashTable()</span></code></a></li>
+<li><a class="reference internal" href="pyTagger.operations.html#pyTagger.operations.on_directory.extractImages" title="pyTagger.operations.on_directory.extractImages"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.operations.on_directory.extractImages()</span></code></a></li>
+<li><a class="reference internal" href="pyTagger.operations.html#pyTagger.operations.on_mp3.extractImages" title="pyTagger.operations.on_mp3.extractImages"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.operations.on_mp3.extractImages()</span></code></a></li>
+<li><a class="reference internal" href="pyTagger.proxies.html#pyTagger.proxies.id3.ID3Proxy.extractImages" title="pyTagger.proxies.id3.ID3Proxy.extractImages"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.proxies.id3.ID3Proxy.extractImages()</span></code></a></li>
+</ul>
+</div>
+<div class="section" id="rename">
+<h2>rename<a class="headerlink" href="#rename" title="Permalink to this headline">¶</a></h2>
+<p>This command is used to apply (my) naming standards to a directory of MP3s</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>pyTagger rename path/to/mp3s path/to/new/home
+</pre></div>
+</div>
+<p>The naming format is: <code class="docutils literal"><span class="pre">&lt;artist:40&gt;/&lt;album:40&gt;/&lt;track&gt;</span> <span class="pre">&lt;title&gt;</span></code></p>
+<p><em>Related Code</em></p>
+<ul class="simple">
+<li><a class="reference internal" href="pyTagger.actions.html#pyTagger.actions.rename.process" title="pyTagger.actions.rename.process"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.actions.rename.process()</span></code></a></li>
+<li><a class="reference internal" href="pyTagger.operations.html#pyTagger.operations.name.buildPath" title="pyTagger.operations.name.buildPath"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.operations.name.buildPath()</span></code></a></li>
+<li><a class="reference internal" href="pyTagger.operations.html#pyTagger.operations.on_directory.needsMove" title="pyTagger.operations.on_directory.needsMove"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.operations.on_directory.needsMove()</span></code></a></li>
+<li><a class="reference internal" href="pyTagger.operations.html#pyTagger.operations.on_directory.renameFiles" title="pyTagger.operations.on_directory.renameFiles"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.operations.on_directory.renameFiles()</span></code></a></li>
+</ul>
+</div>
+<div class="section" id="to-csv">
+<h2>to-csv<a class="headerlink" href="#to-csv" title="Permalink to this headline">¶</a></h2>
+<p>Without developer tools, it can be difficult to read or update <a class="reference internal" href="glossary.html#term-snapshot"><span class="xref std std-term">snapshot</span></a>
+files.  Often, it is more convenient to use Excel, or similar tools to view
+the MP3 tags.</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>pyTagger to-csv path/to/snapshot
+</pre></div>
+</div>
+<p>This will convert the snapshot into a tabular format.</p>
+<p>Several options are available to control the conversion.  These can be found by
+running:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>pyTagger to-csv --help
+</pre></div>
+</div>
+<p><em>Related Code</em></p>
+<ul class="simple">
+<li><a class="reference internal" href="pyTagger.actions.html#pyTagger.actions.export.process" title="pyTagger.actions.export.process"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.actions.export.process()</span></code></a></li>
+<li><a class="reference internal" href="pyTagger.operations.html#pyTagger.operations.to_csv.flattenOne" title="pyTagger.operations.to_csv.flattenOne"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.operations.to_csv.flattenOne()</span></code></a></li>
+<li><a class="reference internal" href="pyTagger.operations.html#pyTagger.operations.to_csv.flattenSnapshot" title="pyTagger.operations.to_csv.flattenSnapshot"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.operations.to_csv.flattenSnapshot()</span></code></a></li>
+<li><a class="reference internal" href="pyTagger.operations.html#pyTagger.operations.to_csv.listFlattenedColumns" title="pyTagger.operations.to_csv.listFlattenedColumns"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.operations.to_csv.listFlattenedColumns()</span></code></a></li>
+<li><a class="reference internal" href="pyTagger.operations.html#pyTagger.operations.to_csv.writeCsv" title="pyTagger.operations.to_csv.writeCsv"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.operations.to_csv.writeCsv()</span></code></a></li>
+</ul>
+</div>
+<div class="section" id="convert-csv">
+<h2>convert-csv<a class="headerlink" href="#convert-csv" title="Permalink to this headline">¶</a></h2>
+<p>Of course, if there is a way to create a tabular version of a snapshot, there
+needs to be a way to convert back to the <a class="reference internal" href="glossary.html#term-snapshot"><span class="xref std std-term">snapshot</span></a> format:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>pyTagger convert-csv path/to/csv
+</pre></div>
+</div>
+<p>This will convert the tabular version into the pyTagger format.</p>
+<p>Several options are available to control the conversion.  These can be found by
+running:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>pyTagger convert-csv --help
+</pre></div>
+</div>
+<p><em>Related Code</em></p>
+<ul class="simple">
+<li><a class="reference internal" href="pyTagger.actions.html#pyTagger.actions.convert_csv.process" title="pyTagger.actions.convert_csv.process"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.actions.convert_csv.process()</span></code></a></li>
+<li><a class="reference internal" href="pyTagger.operations.html#pyTagger.operations.from_csv.convert" title="pyTagger.operations.from_csv.convert"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.operations.from_csv.convert()</span></code></a></li>
+</ul>
+</div>
+<div class="section" id="update">
+<h2>update<a class="headerlink" href="#update" title="Permalink to this headline">¶</a></h2>
+<p>After changes have been made to a snapshot, either directly, or through the
+CSV process, you can write the changes into the MP3 files with this command:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>pyTagger update path/to/snapshot
+</pre></div>
+</div>
+<p>This will update the ID3 tags in the MP3 files.</p>
+<p>Several options are available to control the updates.  These can be found by
+running:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>pyTagger update --help
+</pre></div>
+</div>
+<p><em>Related Code</em></p>
+<ul class="simple">
+<li><a class="reference internal" href="pyTagger.actions.html#pyTagger.actions.update.process" title="pyTagger.actions.update.process"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.actions.update.process()</span></code></a></li>
+<li><a class="reference internal" href="pyTagger.operations.html#pyTagger.operations.on_mp3.updateFromSnapshot" title="pyTagger.operations.on_mp3.updateFromSnapshot"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.operations.on_mp3.updateFromSnapshot()</span></code></a></li>
+<li><a class="reference internal" href="pyTagger.operations.html#pyTagger.operations.on_mp3.updateOne" title="pyTagger.operations.on_mp3.updateOne"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.operations.on_mp3.updateOne()</span></code></a></li>
+<li><a class="reference internal" href="pyTagger.operations.html#pyTagger.operations.two_tags.difference" title="pyTagger.operations.two_tags.difference"><code class="xref py py-func docutils literal"><span class="pre">pyTagger.operations.two_tags.difference()</span></code></a></li>
+<li><code class="xref py py-func docutils literal"><span class="pre">pyTagger.proxies.id3.saveID3()</span></code></li>
+</ul>
+</div>
+<div class="section" id="diff">
+<h2>diff<a class="headerlink" href="#diff" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="where">
+<h2>where<a class="headerlink" href="#where" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Basic Commands</a><ul>
+<li><a class="reference internal" href="#scan">scan</a></li>
+<li><a class="reference internal" href="#images">images</a></li>
+<li><a class="reference internal" href="#rename">rename</a></li>
+<li><a class="reference internal" href="#to-csv">to-csv</a></li>
+<li><a class="reference internal" href="#convert-csv">convert-csv</a></li>
+<li><a class="reference internal" href="#update">update</a></li>
+<li><a class="reference internal" href="#diff">diff</a></li>
+<li><a class="reference internal" href="#where">where</a></li>
+</ul>
+</li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">pyTagger</a></li>
+      <li>Next: <a href="prepare.html" title="next chapter">The Prepare Process</a></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/commands.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Jeffrey M Farley.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="_sources/commands.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

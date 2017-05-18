@@ -10,7 +10,7 @@ GENDOCSRC := $(addsuffix .rst, $(MODULES))
 GENDOCSRC := $(addprefix $(SOURCEDIR)/, $(GENDOCSRC))
 
 
-all: clean-pyc test
+all: clean-pyc test docs
 
 test:
 	coverage run setup.py test
@@ -28,16 +28,16 @@ $(BUILDDIR)/index.html: $(SOURCEDIR)/*.rst $(GENDOCSRC)
 
 $(SOURCEDIR)/pyTagger.rst: $(SPHINXPROJ)/*.py
 	rm -rf $@
-	sphinx-apidoc -o "$(SOURCEDIR)" "$(SPHINXPROJ)"
+	sphinx-apidoc -T -o "$(SOURCEDIR)" "$(SPHINXPROJ)"
 
 $(SOURCEDIR)/pyTagger.actions.rst: $(SPHINXPROJ)/actions/*.py
 	rm -rf $@
-	sphinx-apidoc -o "$(SOURCEDIR)" "$(SPHINXPROJ)"
+	sphinx-apidoc -T -o "$(SOURCEDIR)" "$(SPHINXPROJ)"
 
 $(SOURCEDIR)/pyTagger.operations.rst: $(SPHINXPROJ)/operations/*.py
 	rm -rf $@
-	sphinx-apidoc -o "$(SOURCEDIR)" "$(SPHINXPROJ)"
+	sphinx-apidoc -T -o "$(SOURCEDIR)" "$(SPHINXPROJ)"
 
 $(SOURCEDIR)/pyTagger.proxies.rst: $(SPHINXPROJ)/proxies/*.py
 	rm -rf $@
-	sphinx-apidoc -o "$(SOURCEDIR)" "$(SPHINXPROJ)"
+	sphinx-apidoc -T -o "$(SOURCEDIR)" "$(SPHINXPROJ)"

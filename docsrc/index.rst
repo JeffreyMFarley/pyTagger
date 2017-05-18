@@ -6,12 +6,15 @@
 pyTagger
 ====================================
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-
 Python Implementation of personal MP3 Library Management Tools
 
+.. toctree::
+   :maxdepth: 2
+
+   commands
+   prepare
+   reripped
+   glossary
 
 Indices and tables
 ==================
