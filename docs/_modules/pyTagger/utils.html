@@ -60,6 +60,7 @@
 <span class="c1"># -----------------------------------------------------------------------------</span>
 
 <span class="n">defaultConfigFiles</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;./config.ini&#39;</span><span class="p">,</span> <span class="s1">&#39;~/pyTagger.ini&#39;</span><span class="p">]</span>
+<span class="sd">&quot;&quot;&quot;Possible locations for the configuration file&quot;&quot;&quot;</span>
 
 <span class="n">rootParser</span> <span class="o">=</span> <span class="n">getArgumentParser</span><span class="p">(</span>
     <span class="n">default_config_files</span><span class="o">=</span><span class="n">defaultConfigFiles</span><span class="p">,</span>
@@ -69,6 +70,14 @@
 
 
 <div class="viewcode-block" id="configurationOptions"><a class="viewcode-back" href="../../pyTagger.html#pyTagger.utils.configurationOptions">[docs]</a><span class="k">def</span> <span class="nf">configurationOptions</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Gets the set of known arguments from a specific parser</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">       name (str):  The name of the parser to get options from</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        An object with the options as attributes</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">getArgumentParser</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
     <span class="n">options</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">parse_known_args</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">options</span></div>
@@ -77,6 +86,14 @@
 
 
 <div class="viewcode-block" id="toAbsolute"><a class="viewcode-back" href="../../pyTagger.html#pyTagger.utils.toAbsolute">[docs]</a><span class="k">def</span> <span class="nf">toAbsolute</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Determines the absolute path from a relative path</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        path (str): A path relative to ``setup.py``</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        The absolute path</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># where is _this_ script?</span>
     <span class="n">thisScriptDir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span>
 
@@ -85,16 +102,65 @@
 
 
 <div class="viewcode-block" id="loadJson"><a class="viewcode-back" href="../../pyTagger.html#pyTagger.utils.loadJson">[docs]</a><span class="k">def</span> <span class="nf">loadJson</span><span class="p">(</span><span class="n">fileName</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Provides an application-wide standard for loading JSON files</span>
+
+<span class="sd">    The application standard uses UTF-8 and no newline translation</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        fileName (str): The absolute path to a JSON file</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A fully-loaded, deserialized version of the JSON file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">with</span> <span class="n">io</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">fileName</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="saveJson"><a class="viewcode-back" href="../../pyTagger.html#pyTagger.utils.saveJson">[docs]</a><span class="k">def</span> <span class="nf">saveJson</span><span class="p">(</span><span class="n">fileName</span><span class="p">,</span> <span class="n">o</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Provides an application-wide standard for saving JSON files</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        fileName (str): The absolute path to where the JSON file should be</span>
+<span class="sd">        written</span>
+
+<span class="sd">        o (object):     The object that will be written out</span>
+
+<span class="sd">    These steps are used for writing the JSON in the application&#39;s standard:</span>
+<span class="sd">      1. Convert the *entire* object to a JSON string</span>
+<span class="sd">      2. Ensure the string is Unicode</span>
+<span class="sd">      3. Write out to the filename using UTF-8 encoding</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">with</span> <span class="n">io</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">fileName</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
         <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">_unicode</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">)))</span></div>
 
 
 <div class="viewcode-block" id="saveJsonIncrementalArray"><a class="viewcode-back" href="../../pyTagger.html#pyTagger.utils.saveJsonIncrementalArray">[docs]</a><span class="k">def</span> <span class="nf">saveJsonIncrementalArray</span><span class="p">(</span><span class="n">fileName</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Provides a way to write an array to a JSON file, one item at a time</span>
+
+<span class="sd">    The JSON file is written using the same standards as :func:`saveJson`</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        fileName (str): The absolute path to where the JSON file should be</span>
+<span class="sd">        written</span>
+
+<span class="sd">    Yields:</span>
+<span class="sd">        int: The current number of rows processed</span>
+
+<span class="sd">    **Example Usage:**</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">       output = saveJsonIncrementalArray(fileName)</span>
+
+<span class="sd">       counted = next(output)</span>
+
+<span class="sd">       for row in someArray:</span>
+<span class="sd">           counted = output.send(row)</span>
+
+<span class="sd">       output.close()</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">sep</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span>
     <span class="k">with</span> <span class="n">io</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">fileName</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
         <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;[&#39;</span><span class="p">)</span>
@@ -109,6 +175,35 @@
 
 
 <div class="viewcode-block" id="saveJsonIncrementalDict"><a class="viewcode-back" href="../../pyTagger.html#pyTagger.utils.saveJsonIncrementalDict">[docs]</a><span class="k">def</span> <span class="nf">saveJsonIncrementalDict</span><span class="p">(</span><span class="n">fileName</span><span class="p">,</span> <span class="n">compact</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Provides a way to write a dictionary to a JSON file, one item at a time</span>
+
+<span class="sd">    The JSON file is written using the same standards as :func:`saveJson`</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        fileName (str): The absolute path to where the JSON file should be</span>
+<span class="sd">        written</span>
+
+<span class="sd">        compact (bool): ``True`` if the resulting JSON should be written as</span>
+<span class="sd">        densely as possible</span>
+
+<span class="sd">    Yields:</span>
+<span class="sd">        int: The current number of rows processed</span>
+
+<span class="sd">    **Example Usage:**</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">       output = saveJsonIncrementalDict(fileName)</span>
+
+<span class="sd">       counted = next(output)</span>
+
+<span class="sd">       for key, value in someDict.items():</span>
+<span class="sd">           pair = (key, value)</span>
+<span class="sd">           counted = output.send(pair)</span>
+
+<span class="sd">       output.close()</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">sep</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span>
     <span class="n">indent</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">compact</span> <span class="k">else</span> <span class="mi">2</span>
 
@@ -133,6 +228,11 @@
 
 
 <div class="viewcode-block" id="generateUfid"><a class="viewcode-back" href="../../pyTagger.html#pyTagger.utils.generateUfid">[docs]</a><span class="k">def</span> <span class="nf">generateUfid</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Generate a unique identifer</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        str: A 24 character string that should be unique across time and space</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">ufid</span> <span class="o">=</span> <span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">binascii</span><span class="o">.</span><span class="n">b2a_base64</span><span class="p">(</span><span class="n">ufid</span><span class="o">.</span><span class="n">bytes</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span></div>
 
@@ -141,6 +241,18 @@
 <span class="c1"># Functional FTW</span>
 
 <div class="viewcode-block" id="fmap"><a class="viewcode-back" href="../../pyTagger.html#pyTagger.utils.fmap">[docs]</a><span class="k">def</span> <span class="nf">fmap</span><span class="p">(</span><span class="n">fns</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A version of the Haskell `functor` concept</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        fns (list[functions]): A list of functions to apply.</span>
+
+<span class="sd">        x (object): The object that will be passed to all functions</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        The value of ``x`` after calling the last function</span>
+
+<span class="sd">    All the functions should have the same signature: ``def foo(x) -&gt; x``</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="n">fns</span><span class="p">:</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">x</span></div>

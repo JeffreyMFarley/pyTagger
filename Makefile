@@ -23,12 +23,12 @@ clean-pyc:
 
 docs: $(BUILDDIR)/index.html
 
-$(BUILDDIR)/index.html: $(SOURCEDIR)/*.rst $(GENDOCSRC)
+$(BUILDDIR)/index.html: $(SOURCEDIR)/*.rst $(GENDOCSRC) $(SPHINXPROJ)/*.py
 	@$(SPHINXBUILD) "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
-$(SOURCEDIR)/pyTagger.rst: $(SPHINXPROJ)/*.py
-	rm -rf $@
-	sphinx-apidoc -T -o "$(SOURCEDIR)" "$(SPHINXPROJ)"
+# $(SOURCEDIR)/pyTagger.rst: $(SPHINXPROJ)/*.py
+# 	rm -rf $@
+# 	sphinx-apidoc -T -o "$(SOURCEDIR)" "$(SPHINXPROJ)"
 
 $(SOURCEDIR)/pyTagger.actions.rst: $(SPHINXPROJ)/actions/*.py
 	rm -rf $@

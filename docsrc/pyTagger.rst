@@ -20,6 +20,7 @@ pyTagger\.models module
     :members:
     :undoc-members:
     :show-inheritance:
+    :member-order: bysource
 
 pyTagger\.utils module
 ----------------------
@@ -28,7 +29,7 @@ pyTagger\.utils module
     :members:
     :undoc-members:
     :show-inheritance:
-
+    :member-order: bysource
 
 Module contents
 ---------------
